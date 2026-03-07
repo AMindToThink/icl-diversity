@@ -1,0 +1,381 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{enumitem}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\pmi}{\mathrm{pmi}}
+\newcommand{\TC}{\mathrm{TC}}
+
+\title{A Base-Model Diversity Metric for LLM Outputs\\via Progressive Conditional Surprise}
+\author{Matthew Khoriaty$^1$ \and Claude (Anthropic)$^2$}
+\date{\today\\[1em]\small $^1$ERA Cambridge \quad $^2$Anthropic}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} whose shape characterizes the policy's mode structure. We summarize this curve via excess entropy (how much learnable structure exists among the outputs) and pair it with a separate coherence term (how plausible the outputs are). All quantities are normalized per byte rather than per token, making the metric tokenizer-agnostic. These two quantities answer orthogonal questions and are best reported jointly; their product yields a single scalar --- plausibility-weighted structural diversity --- that is dimensionally consistent, length-normalized, and does not reward noise.
+\end{abstract}
+
+\section{Motivation}
+
+Consider evaluating the diversity of outputs from a language model policy $\pi$ (which may be a steered, finetuned, or otherwise modified model). Existing approaches typically measure diversity via embedding-space clustering \citep{lai2024llmmeans} or surface-level $n$-gram statistics. These have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
+
+We propose an alternative grounded in information theory: use a trusted base model $\theta$ with white-box access to assess how much information responses from $\pi$ share with one another. The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another. If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
+
+\paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs. A steered model may assign high probability to all its (narrowed) outputs, masking the loss of diversity. Using an independent $\theta$ provides an external reference frame.
+
+\paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses. All quantities derived below --- the progressive conditional surprise curve, the excess entropy, the effective mode count, and even the coherence term --- measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}. If $\pi$'s modes differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity. Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy. The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$. As base models continue to improve at in-context learning, this gap narrows.
+
+\section{Setup and Notation}
+
+Let:
+\begin{itemize}[nosep]
+    \item $p$ be a prompt,
+    \item $\pi$ be the policy under evaluation,
+    \item $r_1, r_2, \ldots, r_n \sim \pi(\cdot \mid p)$ be $n$ i.i.d.\ responses sampled from $\pi$,
+    \item $\theta$ be a trusted base model with white-box access (we can compute token-level log-probabilities),
+    \item $|r|_{\mathrm{tok}}$ denote the number of tokens in response $r$,
+    \item $\|r\|$ denote the number of bytes in the UTF-8 encoding of response $r$.
+\end{itemize}
+
+All information-theoretic quantities in this paper are normalized per byte rather than per token. This makes the metric independent of $\theta$'s tokenizer, enabling comparisons across base models with different vocabularies. The per-token log-probabilities from $\theta$ are summed as usual to obtain the total log-probability of a response, and only the final normalization divides by byte count instead of token count.
+
+We define the \textbf{per-byte cross-entropy} of a response $r$ under $\theta$:
+\begin{equation}\label{eq:pertok}
+    h_\theta(r \mid p) = \frac{-\log_2 \theta(r \mid p)}{\|r\|} = \frac{1}{\|r\|}\sum_{t=1}^{|r|_{\mathrm{tok}}} -\log_2 \theta(r^t \mid r^{<t}, p)
+\end{equation}
+where $r^t$ is the $t$-th token and $r^{<t}$ the preceding tokens. Units: bits/byte.
+
+Similarly, the \textbf{per-byte conditional cross-entropy} given previous responses $r_{<k} = (r_1, \ldots, r_{k-1})$:
+\begin{equation}\label{eq:condpertok}
+    h_\theta(r_k \mid r_{<k}, p) = \frac{-\log_2 \theta(r_k \mid r_{<k}, p)}{\|r_k\|}
+\end{equation}
+
+In practice, computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a formatted context containing the prompt and all previous responses (see Section~\ref{sec:practical}).
+
+\section{From Mutual Information to Progressive Conditioning}
+
+\subsection{Pairwise Pointwise Mutual Information}
+
+The natural starting point is the mutual information between two responses. For specific samples $r_1, r_2$, the relevant quantity is the \textbf{pointwise mutual information} (PMI):
+\begin{equation}
+    \pmi_\theta(r_1; r_2 \mid p) = \log_2 \frac{\theta(r_1 \mid r_2, p)}{\theta(r_1 \mid p)}
+\end{equation}
+
+Note the distinction from mutual information proper: $I_\theta(R_1; R_2 \mid p) = \E_{r_1, r_2 \sim \pi}[\pmi_\theta(r_1; r_2 \mid p)]$. PMI for a single pair can be negative, unlike MI. With $n$ samples, the average of $\binom{n}{2}$ pairwise PMI values estimates MI.
+
+\paragraph{Asymmetry.} PMI is symmetric under the true joint distribution, but the quantity above is computed via autoregressive conditioning: $\theta(r_1 \mid r_2, p)$ places $r_2$ before $r_1$ in context, and there is no guarantee that swapping the order yields the same value. The asymmetry $\pmi_\theta(r_1; r_2 \mid p) \neq \pmi_\theta(r_2; r_1 \mid p)$ is an artifact of $\theta$'s context-order sensitivity. One could symmetrize by averaging both orderings, at the cost of doubling the computation. Since the progressive conditional surprise framework (Section~3.3) commits to a single ordering anyway and does not rely on pairwise PMI, this asymmetry does not affect our final metric, but it illustrates why pairwise approaches are less natural than sequential conditioning for autoregressive models.
+
+\subsection{The Coherence Problem}\label{sec:coherence-problem}
+
+Low MI (or low average PMI) means responses are approximately statistically independent under $\theta$'s assessment. But there are two distinct ways to achieve independence:
+\begin{enumerate}[nosep]
+    \item \textbf{Diverse-coherent}: $\pi$ has broad support over plausible completions, each individually likely under $\theta$.
+    \item \textbf{Random/incoherent}: $\pi$ produces noise; each sample is improbable under $\theta$ but trivially independent.
+\end{enumerate}
+
+Both yield $\pmi \approx 0$. The distinguishing signal lies in the marginal $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
+
+\subsection{Progressive Conditional Surprise}
+
+Rather than all-pairs PMI (which costs $O(n^2)$ forward passes), we use the chain rule of mutual information. Define:
+\begin{equation}\label{eq:ak}
+    a_k = h_\theta(r_k \mid r_{<k}, p) \quad \text{for } k = 1, \ldots, n
+\end{equation}
+
+The sequence $(a_1, a_2, \ldots, a_n)$ is the \textbf{progressive conditional surprise curve}. If $\theta$ were the true joint distribution of $\pi$'s outputs, then $\E[a_k]$ would be non-increasing in $k$ by the information-theoretic identity $H(X \mid Y, Z) \leq H(X \mid Y)$. Since $a_k$ is a \emph{cross}-entropy under $\theta$ rather than the true conditional entropy, this monotonicity is an empirical property of $\theta$'s in-context learning, not a theorem: the cross-entropy decomposes as $H + \KL$, and while the entropy component is non-increasing with additional conditioning, the model-mismatch component could in principle increase if $\theta$'s predictions degrade with longer or more complex contexts. We assume throughout that $\theta$ is a sufficiently capable model that this mismatch remains small and does not reverse the monotonicity. If $a_k$ is observed to be non-monotone in practice, this is a diagnostic signal that $\theta$'s in-context learning is failing for the given context length or formatting. The total correlation decomposes as:
+\begin{equation}
+    \TC_n = \sum_{k=1}^{n}\bigl[h_\theta(r_k \mid p) - a_k\bigr]
+\end{equation}
+
+The $a_k$ curve is the fundamental object of interest. Its shape reveals the policy's mode structure:
+\begin{itemize}[nosep]
+    \item For $k \ll m$ (where $m$ is the number of effective modes), each new response is likely novel, so $a_k \approx a_1$.
+    \item For $k \approx m$, $a_k$ begins to decline as $\theta$ has seen examples from most modes.
+    \item For $k \gg m$, $a_k$ converges to a floor $a_\infty > 0$ reflecting within-mode variation.
+\end{itemize}
+
+This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals the number of effective modes, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
+
+\section{Excess Entropy and Effective Mode Count}
+
+\subsection{The Excess Entropy}
+
+Neither the running average $\bar{h}^{\mathrm{cond}}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is a satisfactory single scalar. The running average converges to $a_\infty$ (the uninteresting within-mode floor), losing sensitivity to mode structure. The total correlation grows linearly in $n$ and never saturates, because each new term contributes approximately $h_\theta(r \mid p) - a_\infty > 0$ for large $k$.
+
+The solution is to isolate the signal above the noise floor. Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:
+\begin{equation}\label{eq:excess}
+    E = \sum_{k=1}^{\infty}\bigl(a_k - a_\infty\bigr)
+\end{equation}
+
+This measures the total ``structural'' information in the progressive conditioning process, above the irreducible within-mode noise. It converges whenever $\pi$ has finitely many effective modes (since $a_k \to a_\infty$ and the excess $e_k = a_k - a_\infty$ decays to zero).
+
+In practice, $a_\infty$ is unknown. We estimate it as $a_n$ (the last observed value) and compute:
+\begin{equation}\label{eq:excess-hat}
+    \hat{E}_n = \sum_{k=1}^{n}(a_k - a_n)
+\end{equation}
+
+This underestimates $E$ (since $a_n \geq a_\infty$), but the bias decreases with $n$.
+
+\paragraph{Out-of-distribution risk.} In practice, the conditioning context grows with $k$. For large $k$, the concatenation of many responses may push $\theta$ out of distribution: the context may exceed lengths seen during pretraining, or the repeated-response formatting may be sufficiently unusual that $\theta$'s predictions become unreliable. When $\theta$ goes out of distribution, $a_k$ may \emph{increase} rather than decrease (reflecting model confusion rather than genuine novelty), violating the monotonicity assumption and corrupting the excess entropy estimate. It is therefore important to monitor $a_k$ for non-monotonicity, particularly at large $k$, and to keep $n$ within a range where the total context length remains well within $\theta$'s reliable operating regime. If responses are long, $n$ may need to be reduced accordingly.
+
+\subsection{Effective Mode Count}\label{sec:meff}
+
+To build intuition, consider a policy $\pi$ with $m$ equally-weighted, near-deterministic modes. The total information about mode identity is $\log_2 m$ bits. Our per-byte accounting spreads this across $\bar{B}$ bytes (the average response length in bytes), so:
+\begin{equation}
+    E \approx \frac{\log_2 m}{\bar{B}} \quad \text{(bits/byte)}
+\end{equation}
+
+Inverting gives the \textbf{effective mode count}:
+\begin{equation}\label{eq:meff}
+    m_{\mathrm{eff}} = 2^{\bar{B} \cdot E}
+\end{equation}
+
+This is analogous to how perplexity exponentiates cross-entropy to obtain an effective vocabulary size. For unequally-weighted modes, $m_{\mathrm{eff}}$ recovers the exponential of the Shannon entropy of the mode distribution, $m_{\mathrm{eff}} = 2^{H(w)}$ where $w$ is the vector of mode weights and $H$ is computed in bits. This follows from the fact that the total information gained about mode identity from an i.i.d.\ sample of a categorical distribution converges to the Shannon entropy $H(w) = -\sum_j w_j \log_2 w_j$ --- a standard result, but one that requires $\theta$ to perform near-perfect Bayesian updating over mode assignments from in-context examples, and in particular requires $\theta$'s implicit prior over modes to be compatible with $\pi$'s actual mode distribution. Like the equal-weights case, this relies on the ICL assumption throughout.
+
+We discuss how $m_{\mathrm{eff}}$ relates to our primary scalar summary in Section~\ref{sec:meff-revisited}.
+
+\section{The Coherence Term}\label{sec:coherence}
+
+\subsection{Does Excess Entropy Already Handle Incoherence?}
+
+At first glance, excess entropy appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own. A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so $e_k \approx 0$ and $E \approx 0$. The noise policy correctly scores as having zero structural diversity. No separate coherence penalty is needed for this case.
+
+The problem arises with a \textbf{policy that has multiple distinct but individually incoherent modes}. Consider a badly steered or finetuned model that produces several recognizably different types of low-quality output. The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$), but each type is still implausible text. In this case $E > 0$ and $m_{\mathrm{eff}}$ may be nontrivial, yet the policy should not score as meaningfully diverse. This failure mode is particularly relevant when evaluating models at high steering magnitudes, where the model may produce incoherent outputs that nonetheless condition strongly on their own prior responses.
+
+\subsection{Definition}
+
+The per-byte cross-entropy $h_\theta(r \mid p)$ from Eq.~\eqref{eq:pertok} can be converted to a geometric mean per-byte probability:
+\begin{equation}
+    2^{-h_\theta(r \mid p)} = \left(\prod_{t=1}^{|r|_{\mathrm{tok}}} \theta(r^t \mid r^{<t}, p)\right)^{1/\|r\|}
+\end{equation}
+
+This is the average per-byte probability the base model assigns to the response, living in $(0,1)$.
+
+We define \textbf{coherence} as the geometric mean of this quantity across responses:
+\begin{equation}\label{eq:coherence}
+    C = 2^{-\frac{1}{n}\sum_{i=1}^{n} h_\theta(r_i \mid p)}
+\end{equation}
+
+This is interpretable as ``how likely, per byte, does the base model find this policy's outputs?'' Equivalently, $C$ is the reciprocal of the geometric-mean per-byte perplexity:
+\begin{equation}
+    C = \frac{1}{\mathrm{PPL}_\theta(\pi, p)}, \qquad \mathrm{PPL}_\theta(\pi, p) = 2^{\frac{1}{n}\sum_{i=1}^{n} h_\theta(r_i \mid p)}
+\end{equation}
+
+We chose the geometric mean (equivalently, $1/n$ inside the exponent) over the arithmetic mean $C_{\mathrm{AM}} = \frac{1}{n}\sum_i 2^{-h_\theta(r_i \mid p)}$. By Jensen's inequality (since $2^{-x}$ is convex), $C_{\mathrm{AM}} \geq C$ with equality iff all $h_\theta(r_i \mid p)$ are identical. The gap is precisely what makes the arithmetic mean problematic: if 9 out of 10 responses are incoherent and one is highly plausible, $C_{\mathrm{AM}}$ remains nonzero while $C$ is driven toward zero by the geometric averaging.
+
+\paragraph{Distributional distance.} In expectation over $r \sim \pi$:
+\begin{equation}
+    \E_\pi\bigl[h_\theta(r \mid p)\bigr] = H_\pi(\cdot \mid p) + \KL(\pi \| \theta \mid p)
+\end{equation}
+
+So coherence is penalized both by genuine incoherence and by distributional distance from the base model. For the purpose of evaluating steered or finetuned policies, this is a feature: a heavily steered policy that assigns probability mass to regions $\theta$ finds implausible is penalized accordingly, reflecting that the base model's probability landscape is treated as the reference.
+
+\paragraph{Note on comparability.} Because all quantities are normalized per byte, the metric is invariant to tokenizer choice: two base models $\theta_1, \theta_2$ with different tokenizers but identical predictive distributions will yield identical $C$ values. What remains incomparable across different $\theta$'s is model quality: a better model assigns lower cross-entropy regardless of normalization. This is by design --- $\theta$'s predictive quality is the lens through which diversity is measured.
+
+\subsection{Why Not Weight Excess Entropy by Coherence?}\label{sec:why-not-weight}
+
+A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$ is the per-response coherence. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons.
+
+First, it breaks the information-theoretic interpretation. $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to the excess entropy of Crutchfield and Feldman \citeyearpar{crutchfield2003regularities}. Inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process. In particular, the derivation of $m_{\mathrm{eff}} = 2^{\bar{B} \cdot E}$ relies on $E = \log_2 m / \bar{B}$ for equally-weighted modes, and weighting breaks this equality.
+
+Second, the weights are not independent of what they weight. The weight $w_k$ uses $h_\theta(r_k \mid p)$ and the excess $e_k$ uses $h_\theta(r_k \mid r_{<k}, p)$. Both are derived from the same response $r_k$ scored by the same model $\theta$. An incoherent response from a novel mode has both high $e_k$ (novel) and low $w_k$ (incoherent), which partially cancel, but \emph{how much} they cancel depends on the specific relationship between unconditional and conditional surprise for that response, which varies in ways that lack a clean characterization.
+
+Third, it makes the noise floor $a_\infty$ ambiguous. In the unweighted version, $a_\infty$ is simply the asymptotic conditional surprise. In the weighted version, it is unclear whether $a_\infty$ should also be weighted, and if so, by what. The separate-terms approach avoids this because $a_\infty$ lives purely in the information-theoretic layer and $C$ lives purely in the plausibility layer.
+
+\section{Reporting the Metric}
+
+\subsection{The Curve Is the Metric}
+
+The $a_k$ curve is the primary output of this framework. It reveals the number of effective modes (the elbow location), within-mode variation ($a_\infty$), unconditional surprise ($a_1$), and the rate at which $\theta$ learns the policy's structure. Overlaying curves from different policies on the same axes provides immediate visual diagnosis of how an intervention (steering, finetuning) changes the output distribution, just as comparing scree plots does in PCA.
+
+Everything below is a lossy summary of this curve. We develop these summaries because curves are difficult to rank, average across prompt suites, or report in tables, but the reader should understand that each successive compression discards information.
+
+\subsection{The $(E, C, \sigma_\ell)$ Triple}
+
+The excess entropy $E$ and the coherence $C$ answer genuinely different questions:
+\begin{itemize}[nosep]
+    \item $E$ (bits/byte): ``How much learnable structure does $\theta$ find among $\pi$'s outputs?''
+    \item $C$ (dimensionless, in $(0,1)$): ``How plausible does $\theta$ find $\pi$'s outputs, per byte?''
+\end{itemize}
+
+Since $(E, C)$ is a two-dimensional summary, any scalar function $f(E, C)$ discards information: knowing both $E$ and $C$ always permits recovering the scalar, but not vice versa.
+
+This separation enables diagnostic reasoning. For instance, when comparing a base policy against a steered variant, one might observe that steering reduces $E$ (fewer modes) while maintaining $C$ (individually coherent outputs), or at high steering magnitudes, that $C$ drops (incoherent outputs) while $E$ remains nonzero (multiple incoherent modes). These are qualitatively different failure modes that a single scalar would conflate.
+
+Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(E, C, \sigma_\ell)$.
+
+\subsection{Scalar Summary: Plausibility-Weighted Structural Diversity}
+
+When a single number is required (e.g., for ranking policies in a table), we define the \textbf{diversity score}:
+\begin{equation}\label{eq:D}
+    D = C \times E = 2^{-\frac{1}{n}\sum_i h_\theta(r_i \mid p)} \times \hat{E}_n
+\end{equation}
+
+This product is dimensionally consistent: $C$ is a per-byte probability (dimensionless but per-byte in character) and $E$ is in bits/byte, so $D$ is in bits/byte --- coherence-weighted structural information per byte. Its interpretation is ``how much learnable mode structure is there, discounted by how plausible the outputs are in the first place.''
+
+\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. This is considerably less compressed than the per-token range, because bytes are a finer-grained unit than tokens. Consequently, $D = C \times E$ is less dominated by $C$ than it would be in per-token units. Nonetheless, two mitigation strategies remain available for cases where coherence variation dominates diversity variation:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Normalization}: Replace $C$ with $C / C_{\mathrm{base}}$, where $C_{\mathrm{base}}$ is the coherence of $\theta$'s own samples given the same prompt. The ratio lives in $(0, 1]$ and equals 1 when $\pi$ is as coherent as $\theta$, removing the baseline suppression. This has a clean interpretation as ``what fraction of baseline coherence does $\pi$ retain?''
+    \item \textbf{Fractional exponent}: Replace $C$ with $C^\alpha$ for $\alpha \in (0, 1)$, which compresses the coherence penalty. This softens the dominance of $C$ but introduces a free hyperparameter without information-theoretic motivation.
+\end{enumerate}
+
+We recommend normalization when a single-scalar ranking is the primary use case, and the unmodified $C$ when the goal is diagnostic (reporting $E$ and $C$ separately).
+
+The edge cases behave correctly:
+\begin{enumerate}[nosep]
+    \item \textbf{Pure noise}: $C \approx 0$, $E \approx 0$, so $D \approx 0$.
+    \item \textbf{Multiple incoherent modes}: $C$ low, $E > 0$, so $D$ is suppressed.
+    \item \textbf{Many coherent modes}: $C$ high, $E$ high, so $D$ is high.
+    \item \textbf{One coherent mode}: $C$ high, $E \approx 0$, so $D \approx 0$.
+    \item \textbf{Decomposable}: One can always factor $D$ back into $C$ and $E$ to identify which term drove a change.
+\end{enumerate}
+
+\paragraph{Limitations of the scalar summary.} $D$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure} (discrete modes), not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, because no recurring pattern exists for $\theta$ to learn. This yields $E \approx 0$ and $D \approx 0$ despite maximal diversity. In practice, LLM output distributions tend toward discrete modes (stories cluster into genres, arguments cluster into strategies), so this is unlikely to cause problems for typical evaluations. The diagnostic is high $C$ with low $E$: if $\pi$'s outputs are individually plausible but $\theta$ finds no inter-response structure, the diversity may be continuous rather than absent. The $a_k$ curve distinguishes these cases by its height ($a_1$), which $D$ discards.
+
+Second, $E$ measures statistical independence of strings as perceived by $\theta$, not semantic diversity of content. A policy that always conveys the same information in different phrasings would ideally score as low-diversity. We expect a capable $\theta$ to compress paraphrases effectively --- recognizing ``I have seen this fact/plot before'' from context is precisely the kind of in-context learning the metric relies on --- but the degree of compression is an empirical property of $\theta$. This is arguably a strength over embedding-based diversity metrics, which may register paraphrases as distant because the surface strings differ.
+
+\subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
+
+The coherence $C$ summarizes the plausibility of $\pi$'s outputs as a single number, but a policy may mix coherent and incoherent modes. A policy with 5 coherent modes and 3 incoherent modes will have $E$ reflecting all 8 modes (since $\theta$ learns to predict all of them from context), while $C$ is dragged down by the incoherent samples. The pair $(E, C)$ cannot distinguish ``8 modes, 3 of which are junk'' from ``8 uniformly mediocre modes.''
+
+To diagnose this, we report the \textbf{coherence spread} $\sigma_\ell$, defined as the standard deviation of the per-response cross-entropies:
+\begin{equation}
+    \sigma_\ell = \mathrm{std}\bigl(\{h_\theta(r_i \mid p)\}_{i=1}^n\bigr)
+\end{equation}
+
+Since $C = 2^{-\bar{\ell}}$ where $\bar{\ell} = \frac{1}{n}\sum_i h_\theta(r_i \mid p)$, the spread $\sigma_\ell$ induces a multiplicative coherence interval. Define:
+\begin{equation}
+    C_+ = 2^{-(\bar{\ell} - \sigma_\ell)} = C \cdot 2^{\sigma_\ell}, \qquad C_- = 2^{-(\bar{\ell} + \sigma_\ell)} = C \cdot 2^{-\sigma_\ell}
+\end{equation}
+
+$C_+$ is the coherence of the better-than-average responses and $C_-$ is the coherence of the worse-than-average responses. These yield a \textbf{diversity uncertainty band}:
+\begin{equation}
+    D_\pm = C_\pm \times E
+\end{equation}
+
+The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \times E$, is zero when all responses have equal coherence and large when the policy mixes coherent and incoherent modes. A wide band is the diagnostic signal for mixed-quality mode structure.
+
+\paragraph{What to report.} We recommend reporting $(E, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D = C \times E$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).\footnote{Two more aggressive diagnostic strategies are available when $\sigma_\ell$ is large. First, \emph{threshold-and-recompute}: set a coherence floor $c_{\min}$ (e.g., derived from $\theta$'s own output distribution), discard responses with $c_i < c_{\min}$, and recompute $E$ on the surviving subset. This directly answers ``how diverse is $\pi$ among its coherent outputs?'' at the cost of introducing a hyperparameter and reducing the effective sample size. Second, \emph{coherence-stratified $a_k$ curves}: sort responses by coherence, then compute separate $a_k$ curves for the top-$k$ most coherent responses and for the full set. If the curves diverge, incoherent modes are inflating $E$. Both strategies are complementary to the $(E, C, \sigma_\ell)$ triple and can be applied post hoc without modifying the core metric.}
+
+\subsection{Effective Mode Count}\label{sec:meff-revisited}
+
+For intuition, it is useful to convert $E$ into an effective mode count. In the idealized case of $m$ equally-weighted, near-deterministic modes with a base model $\theta$ that performs perfect Bayesian in-context learning, the excess entropy is $E = \log_2 m / \bar{B}$ (Section~\ref{sec:meff}). Inverting:
+\begin{equation}
+    m_{\mathrm{eff}} = 2^{\bar{B} \cdot E}
+\end{equation}
+
+This is analogous to perplexity exponentiating cross-entropy to obtain an effective vocabulary size. We recommend $m_{\mathrm{eff}}$ as an interpretive aid rather than a primary metric, since it requires the idealized ICL assumption and introduces $\bar{B}$ as a unit-conversion factor.
+
+Note that $m_{\mathrm{eff}}$ operates at the response level while $C$ operates per-byte, so combining them as $C \times m_{\mathrm{eff}}$ mixes granularities. The product $D = C \times E$ avoids this issue because both factors are per-byte quantities.\footnote{One could instead define a coherence-adjusted mode count as $m_{\mathrm{eff}}^C = 2^{\bar{B} \cdot C \cdot E}$. In the idealized case this simplifies to $m^C$, which smoothly interpolates between all modes counting ($C = 1$) and no modes counting ($C = 0$). However, $C$ is never exactly 1 even for perfectly coherent text, so this systematically undercounts modes. More fundamentally, raising $m$ to the power $C$ lacks an information-theoretic derivation --- $C$ measures per-byte plausibility, not the fraction of structural information that is trustworthy. We note the formula for its elegance but do not adopt it.}
+
+\subsection{Aggregation Across Prompts}\label{sec:aggregation}
+
+The diversity score $D$ is defined relative to a single prompt $p$. To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, we average:
+\begin{equation}
+    \bar{D}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D(\pi, p_j)
+\end{equation}
+
+This is well-defined because $D$ is in bits/byte for every prompt. Open-ended prompts (e.g., ``write a story'') naturally contribute more than constrained ones (e.g., ``what is $2+2$''), which is correct behavior: a prompt that admits no diversity should contribute $D \approx 0$ rather than being excluded or normalized away.
+
+To compare two policies (e.g., a base model against a steered variant), the natural scalar is the difference:
+\begin{equation}
+    \Delta D = \bar{D}(\pi_{\mathrm{base}}) - \bar{D}(\pi_{\mathrm{steered}}) = \frac{1}{M}\sum_{j=1}^{M}\bigl[D(\pi_{\mathrm{base}}, p_j) - D(\pi_{\mathrm{steered}}, p_j)\bigr]
+\end{equation}
+
+$\Delta D$ answers ``how much structural diversity did steering remove, on average, in bits/byte?'' For constrained prompts where both policies have $D \approx 0$, the per-prompt contribution is $\approx 0$, which is correct: there was no diversity to remove. For open-ended prompts where steering collapses modes, the contribution is large and positive. No division is involved, so $\Delta D$ is stable even when $D_{\mathrm{base}}$ is near zero.
+
+\paragraph{Why not a ratio?} The relative measure $D_{\mathrm{steered}} / D_{\mathrm{base}}$ is appealing (``what fraction of diversity survived steering?'') but requires division by $D_{\mathrm{base}}$, which is near zero for any constrained prompt. Clamping the denominator (e.g., $\max(D_{\mathrm{base}}, \epsilon)$) introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference $\Delta D$ avoids these issues and has a direct interpretation in bits/byte.
+
+\subsection{What to Report}
+
+In order of informativeness:
+\begin{enumerate}[nosep]
+    \item The $a_k$ curve (the primary metric), which reveals mode count, within-mode variation, unconditional surprise, and learning dynamics. When comparing policies, overlaying curves on the same axes provides immediate visual insight.
+    \item The $(E, C, \sigma_\ell)$ triple, for tabular comparisons across many policies or prompts. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
+    \item $D = C \times E$ when a single per-prompt number is needed and $\sigma_\ell$ is small. $\bar{D}$ averaged across a prompt suite for a single-policy summary.
+    \item $\Delta D = \bar{D}_{\mathrm{base}} - \bar{D}_{\mathrm{steered}}$ when comparing two policies across a prompt suite.
+    \item $m_{\mathrm{eff}}$ as an interpretive aid (``effective number of modes as perceived by $\theta$'').
+\end{enumerate}
+
+\section{Practical Considerations}\label{sec:practical}
+
+\subsection{Formatting the Conditioning Context}
+
+Computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a context containing the prompt and previous responses. The formatting choice affects results. We recommend using a base (non-instruction-tuned) model as $\theta$ and formatting as:
+
+\begin{verbatim}
+    [prompt p]
+
+    Response A: [r_1]
+
+    Response B: [r_2]
+
+    Response C: [r_3]
+\end{verbatim}
+
+This leverages the base model's in-context learning to treat the responses as parallel completions. An instruction-tuned model might instead interpret previous responses as conversation turns, confounding the measurement. The formatting choice should be ablated.
+
+\paragraph{Base vs.\ instruction-tuned models.} There is a tension between two desiderata for $\theta$. On one hand, an independent base model provides a cleaner external reference frame: instruction-tuned models have had their output distribution shaped by RLHF or similar procedures, so using one as $\theta$ reintroduces the kind of distributional bias we seek to avoid. On the other hand, instruction-tuned models are specifically trained for structured multi-example reasoning, which could make them better at the in-context pattern recognition the metric requires.
+
+We believe base models are the better default for three reasons. First, modern base models already exhibit strong in-context learning --- the capability emerges from pretraining and does not require instruction tuning. Second, the formatting of the conditioning context (labeling responses as ``Response A'', ``Response B'', etc.) can be designed to elicit ICL behavior from base models via few-shot-style prompting, effectively leveraging their ICL capabilities without the distributional confounds of instruction tuning. Third, an instruction-tuned $\theta$ may assign systematically different probabilities to text that follows or violates its alignment training, introducing a confound between coherence-as-fluency and coherence-as-alignment that the metric should not conflate.
+
+That said, if the base model's ICL proves inadequate for a particular evaluation (diagnosed by non-monotone $a_k$ curves or implausible $m_{\mathrm{eff}}$ values), an instruction-tuned $\theta$ is a reasonable fallback. The key requirement is consistency: the same $\theta$ must be used across all policies being compared.
+
+\subsection{Computational Cost}
+
+Computing the full $a_k$ curve requires $n$ forward passes through $\theta$, each with increasing context length ($|p| + \sum_{j<k}|r_j| + |r_k|$ tokens for the $k$-th pass). This is $O(n)$ in forward passes but $O(n^2)$ in total tokens processed (due to growing context). This compares favorably to all-pairs PMI, which requires $O(n^2)$ forward passes.
+
+\subsection{Dependence on Sample Ordering}
+
+The $a_k$ values depend on the ordering of $\{r_i\}$. In expectation over random permutations the summary statistics ($E$, $m_{\mathrm{eff}}$) are invariant, but for a single evaluation run there is ordering noise. Averaging over a small number of random permutations (e.g., 3--5) reduces this variance at a proportional increase in cost.
+
+\subsection{Choice of $n$}
+
+The excess entropy estimator $\hat{E}_n$ depends on $n$ through both the summation range and the estimate $a_n \approx a_\infty$. We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency. A practical choice is $n = 10$--20, which suffices for policies with a modest number of modes.
+
+\paragraph{Detectable mode weight.} Modes with weight $w \lesssim 1/n$ will rarely appear in the sample, and even when they do, $\theta$ has insufficient examples to learn the pattern. As a rough guide, modes with weight below $1/n$ are invisible to the metric. For $n = 15$, this means modes contributing less than $\sim$7\% of the probability mass are unlikely to be captured. If rare modes are of interest (e.g., when evaluating whether steering eliminates low-frequency behaviors), $n$ should be increased accordingly, subject to the context-length constraints discussed above.
+
+\section{Related Concepts}
+
+\paragraph{Excess entropy.} The quantity $E = \sum_k (a_k - a_\infty)$ is related to the excess entropy of stationary stochastic processes studied in computational mechanics \citep{crutchfield2003regularities}. In that setting, it measures the mutual information between the past and future of a process, or equivalently the statistical complexity beyond the irreducible entropy rate. Our application differs in that the ``process'' is a sequence of i.i.d.\ responses from $\pi$, assessed by $\theta$, rather than a single time series, and the conditioning is performed via the base model's in-context learning rather than explicit state estimation.
+
+\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric. The effective mode count $m_{\mathrm{eff}} = 2^{\bar{B} \cdot E}$ applies the same exponentiation principle at the response level. The primary scalar $D = C \times E$ remains at the per-byte level, avoiding the unit conversion.
+
+\paragraph{Total correlation.} The total correlation $\TC_n$ relates to our quantities via $\TC_n = \sum_{k=1}^n [h_\theta(r_k \mid p) - a_k]$. Note that since these are cross-entropies under $\theta$ rather than true entropies of $\pi$'s output distribution, $\TC_n$ is a $\theta$-relative quantity that measures the total correlation \emph{as perceived by} $\theta$; it equals the true total correlation only to the extent that $\theta$ approximates $\pi$'s joint distribution. Unlike excess entropy, $\TC_n$ does not converge as $n$ grows, because each new term contributes a positive gap $h_\theta(r_k \mid p) - a_\infty$ even after all modes have been observed.
+
+\paragraph{Embedding-based diversity.} Prior work uses embedding distances or clustering (e.g., $k$-LLMmeans \citep{lai2024llmmeans}) to measure diversity. These approaches are complementary: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model. The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
+
+\paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{zhang2024writingprompts} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
+
+\bibliographystyle{plainnat}
+
+\begin{thebibliography}{10}
+
+\bibitem[Crutchfield and Feldman(2003)]{crutchfield2003regularities}
+James~P. Crutchfield and David~P. Feldman.
+\newblock Regularities unseen, randomness observed: The entropy convergence
+  hierarchy.
+\newblock \emph{Chaos}, 15:25--54, 2003.
+
+\bibitem[Lai et al.(2024)]{lai2024llmmeans}
+Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
+\newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
+\newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Zhang et al.(2024)]{zhang2024writingprompts}
+Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.
+\newblock Trading off diversity and quality in natural language generation.
+\newblock \emph{arXiv preprint}, 2024.
+
+\end{thebibliography}
+
+\end{document}
