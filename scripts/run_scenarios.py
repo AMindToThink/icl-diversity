@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from icl_diversity import compute_icl_diversity_metrics
@@ -45,102 +46,58 @@ def compute_all_scenarios(
     model: torch.nn.Module,
     tokenizer: Any,
     base_model: str = "gpt2",
+    n_permutations: int = N_PERMUTATIONS,
 ) -> dict[str, Any]:
     """Compute metrics for all five scenarios."""
     result: dict[str, Any] = {
         "base_model": base_model,
-        "n_permutations": N_PERMUTATIONS,
+        "n_permutations": n_permutations,
         "n_responses": N_RESPONSES,
         "seed": SEED,
         "scenarios": {},
     }
 
-    # 1. Pure noise
-    print("Computing: Pure noise")
-    prompts_metrics = []
+    # Build list of (scenario_name, prompt_label, prompt_text, responses)
+    all_items: list[tuple[str, str, str, list[str]]] = []
+
     for i, prompt in enumerate(NOISE_PROMPTS):
         responses = generate_noise_responses(n=N_RESPONSES, seed=i * 100)
-        m = compute_icl_diversity_metrics(
-            model,
-            tokenizer,
-            prompt,
-            responses,
-            n_permutations=N_PERMUTATIONS,
-            seed=SEED,
-        )
-        m["prompt_label"] = f"Prompt {i}"
-        m["prompt_text"] = prompt
-        prompts_metrics.append(m)
-    result["scenarios"]["pure_noise"] = prompts_metrics
+        all_items.append(("pure_noise", f"Prompt {i}", prompt, responses))
 
-    # 2. Multi incoherent
-    print("Computing: Multi incoherent")
-    prompts_metrics = []
     for i, prompt in enumerate(INCOHERENT_PROMPTS):
         responses = generate_multi_incoherent_responses(n=N_RESPONSES, seed=i * 100)
-        m = compute_icl_diversity_metrics(
-            model,
-            tokenizer,
-            prompt,
-            responses,
-            n_permutations=N_PERMUTATIONS,
-            seed=SEED,
-        )
-        m["prompt_label"] = f"Prompt {i}"
-        m["prompt_text"] = prompt
-        prompts_metrics.append(m)
-    result["scenarios"]["multi_incoherent"] = prompts_metrics
+        all_items.append(("multi_incoherent", f"Prompt {i}", prompt, responses))
 
-    # 3. Multi mode (3 modes)
-    print("Computing: Multi mode (3 modes)")
-    prompts_metrics = []
     for i, (prompt, responses) in enumerate(MULTI_MODE_PROMPTS_AND_RESPONSES):
-        m = compute_icl_diversity_metrics(
-            model,
-            tokenizer,
-            prompt,
-            responses[:N_RESPONSES],
-            n_permutations=N_PERMUTATIONS,
-            seed=SEED,
+        all_items.append(
+            ("multi_mode", MULTI_MODE_PROMPT_LABELS[i], prompt, responses[:N_RESPONSES])
         )
-        m["prompt_label"] = MULTI_MODE_PROMPT_LABELS[i]
-        m["prompt_text"] = prompt
-        prompts_metrics.append(m)
-    result["scenarios"]["multi_mode"] = prompts_metrics
 
-    # 4. One mode (paraphrase)
-    print("Computing: One mode (paraphrase)")
-    prompts_metrics = []
     for i, (prompt, responses) in enumerate(ONE_MODE_PROMPTS_AND_RESPONSES):
-        m = compute_icl_diversity_metrics(
-            model,
-            tokenizer,
-            prompt,
-            responses[:N_RESPONSES],
-            n_permutations=N_PERMUTATIONS,
-            seed=SEED,
+        all_items.append(
+            ("one_mode", ONE_MODE_PROMPT_LABELS[i], prompt, responses[:N_RESPONSES])
         )
-        m["prompt_label"] = ONE_MODE_PROMPT_LABELS[i]
-        m["prompt_text"] = prompt
-        prompts_metrics.append(m)
-    result["scenarios"]["one_mode"] = prompts_metrics
 
-    # 5. Mixed coherent+incoherent
-    print("Computing: Mixed coherent+incoherent")
-    prompts_metrics = []
     for i, (prompt, responses) in enumerate(MIXED_PROMPTS_AND_RESPONSES):
+        all_items.append(
+            ("mixed", MIXED_PROMPT_LABELS[i], prompt, responses[:N_RESPONSES])
+        )
+
+    # Compute metrics with progress bar
+    for scenario_name, prompt_label, prompt_text, responses in tqdm(
+        all_items, desc="scenarios/prompts"
+    ):
         m = compute_icl_diversity_metrics(
             model,
             tokenizer,
-            prompt,
-            responses[:N_RESPONSES],
-            n_permutations=N_PERMUTATIONS,
+            prompt_text,
+            responses,
+            n_permutations=n_permutations,
             seed=SEED,
         )
-        m["prompt_label"] = MIXED_PROMPT_LABELS[i]
-        m["prompt_text"] = prompt
-        prompts_metrics.append(m)
-    result["scenarios"]["mixed"] = prompts_metrics
+        m["prompt_label"] = prompt_label
+        m["prompt_text"] = prompt_text
+        result["scenarios"].setdefault(scenario_name, []).append(m)
 
     return result
 
@@ -166,6 +123,12 @@ def main() -> None:
         help="Model dtype: float16, bfloat16, float32 (default: model's native dtype)",
     )
     parser.add_argument(
+        "--n-permutations",
+        type=int,
+        default=N_PERMUTATIONS,
+        help=f"Number of permutations to average over (default: {N_PERMUTATIONS})",
+    )
+    parser.add_argument(
         "--offline",
         action="store_true",
         help="Set HF_HUB_OFFLINE=1 to prevent downloads",
@@ -185,12 +148,16 @@ def main() -> None:
         }
         torch_dtype = dtype_map.get(args.torch_dtype)
         if torch_dtype is None:
-            print(f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32.")
+            print(
+                f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32."
+            )
             sys.exit(1)
 
     # Load model
     use_device_map = args.device == "auto"
-    print(f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})...")
+    print(
+        f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})..."
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     load_kwargs: dict[str, Any] = {}
@@ -205,7 +172,13 @@ def main() -> None:
     model.eval()
 
     print("Computing metrics for all scenarios...")
-    results = compute_all_scenarios(model, tokenizer, base_model=args.base_model)
+    print(f"n_permutations={args.n_permutations}")
+    results = compute_all_scenarios(
+        model,
+        tokenizer,
+        base_model=args.base_model,
+        n_permutations=args.n_permutations,
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w") as f:

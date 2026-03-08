@@ -66,10 +66,10 @@ class TestSingleVsMultiPass:
     original n-forward-pass implementation."""
 
     def test_five_responses(self) -> None:
-        a_k_multi = compute_progressive_surprise_curve(
+        a_k_multi, bc_multi = compute_progressive_surprise_curve(
             _model, _tokenizer, PROMPT, RESPONSES
         )
-        a_k_single = compute_progressive_surprise_curve_single_pass(
+        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT, RESPONSES
         )
 
@@ -87,11 +87,14 @@ class TestSingleVsMultiPass:
             err_msg="Single-pass and multi-pass a_k values diverged",
         )
 
+        # Byte counts should be identical
+        assert bc_multi == bc_single
+
     def test_two_responses(self) -> None:
-        a_k_multi = compute_progressive_surprise_curve(
+        a_k_multi, bc_multi = compute_progressive_surprise_curve(
             _model, _tokenizer, PROMPT_SHORT, RESPONSES_SHORT
         )
-        a_k_single = compute_progressive_surprise_curve_single_pass(
+        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT_SHORT, RESPONSES_SHORT
         )
 
@@ -101,14 +104,15 @@ class TestSingleVsMultiPass:
             atol=1e-4,
             err_msg="Single-pass and multi-pass a_k values diverged (2 responses)",
         )
+        assert bc_multi == bc_single
 
     def test_single_response(self) -> None:
         """Edge case: only one response."""
         responses = [RESPONSES[0]]
-        a_k_multi = compute_progressive_surprise_curve(
+        a_k_multi, bc_multi = compute_progressive_surprise_curve(
             _model, _tokenizer, PROMPT, responses
         )
-        a_k_single = compute_progressive_surprise_curve_single_pass(
+        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT, responses
         )
 
@@ -117,12 +121,15 @@ class TestSingleVsMultiPass:
             np.array(a_k_multi),
             atol=1e-4,
         )
+        assert bc_multi == bc_single
 
     def test_empty_responses(self) -> None:
         """Edge case: no responses."""
-        assert compute_progressive_surprise_curve_single_pass(
+        curve, byte_counts = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT, []
-        ) == []
+        )
+        assert curve == []
+        assert byte_counts == []
 
 
 # ============================================================================
@@ -158,13 +165,9 @@ class TestBoundaryRoundtrip:
         boundaries: list[tuple[int, int]] = []
         running_text = prompt + f"\n\nResponse {_response_label(0)}: "
         for k in range(len(responses)):
-            n_prefix = len(
-                _tokenizer.encode(running_text, add_special_tokens=False)
-            )
+            n_prefix = len(_tokenizer.encode(running_text, add_special_tokens=False))
             running_text += responses[k]
-            n_with_resp = len(
-                _tokenizer.encode(running_text, add_special_tokens=False)
-            )
+            n_with_resp = len(_tokenizer.encode(running_text, add_special_tokens=False))
             boundaries.append((n_prefix, n_with_resp))
             if k < len(responses) - 1:
                 running_text += f"\n\nResponse {_response_label(k + 1)}: "
@@ -193,8 +196,7 @@ class TestBoundaryRoundtrip:
             # The decoded text should end with the response (possibly with
             # leading whitespace/characters absorbed into delimiter token)
             assert RESPONSES[i].endswith(decoded.lstrip()), (
-                f"Response {i}: decoded {decoded!r} is not a suffix of "
-                f"{RESPONSES[i]!r}"
+                f"Response {i}: decoded {decoded!r} is not a suffix of {RESPONSES[i]!r}"
             )
             # At most a few characters should be missing
             assert len(decoded.strip()) >= len(RESPONSES[i]) - 5, (
@@ -215,29 +217,29 @@ class TestBoundaryRoundtrip:
 
 
 class TestA1Consistency:
-    """a_1 from single-pass should equal unconditional cross-entropy of r_1,
+    """a_1 from single-pass should equal unconditional total bits of r_1,
     since r_1 is conditioned only on the prompt in both cases (same formatting)."""
 
     def test_a1_equals_unconditional(self) -> None:
-        a_k_single = compute_progressive_surprise_curve_single_pass(
+        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT, RESPONSES
         )
-        unconditional = compute_unconditional_surprises(
+        per_byte, total_bits, byte_counts = compute_unconditional_surprises(
             _model, _tokenizer, PROMPT, RESPONSES
         )
 
-        a1 = a_k_single[0]
-        h1 = unconditional[0]
+        a1 = a_k_single[0]  # total bits
+        h1_total = total_bits[0]  # total bits
 
-        print(f"\n  a_1 (single-pass): {a1:.6f}")
-        print(f"  h(r_1|p) (unconditional): {h1:.6f}")
-        print(f"  diff: {abs(a1 - h1):.8f}")
+        print(f"\n  a_1 (single-pass, total bits): {a1:.6f}")
+        print(f"  h(r_1|p) (unconditional, total bits): {h1_total:.6f}")
+        print(f"  diff: {abs(a1 - h1_total):.8f}")
 
         # These should match because the formatting for the first response
         # is identical: prompt + "\n\nResponse A: " + response
         np.testing.assert_allclose(
             a1,
-            h1,
+            h1_total,
             atol=1e-4,
             err_msg="a_1 from single-pass should match unconditional h(r_1|p)",
         )

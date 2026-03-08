@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Implementation of the ICL (in-context learning) diversity metric from `paper/in_context_diversity_metric.pdf`. The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
 
-All information quantities are in **bits/byte** (not bits/token), making the metric tokenizer-agnostic.
+The primary a_k curve is in **total bits**. Per-byte normalized quantities (E_rate, C, D) provide tokenizer-agnostic comparisons. Total-bits quantities (E, C_total, D_total) capture absolute information content.
 
 ## Commands
 
@@ -55,13 +55,13 @@ uv run calculate-icl-diversity --input responses.jsonl --base-model gpt2 --n-per
 
 The metric flows through these stages, all in one file:
 
-1. **`compute_per_byte_cross_entropy(model, tokenizer, text, prefix)`** — Tokenizes prefix+text, runs a forward pass, extracts log-probs for just the text tokens, converts to bits/byte. This is the atomic building block.
+1. **`compute_cross_entropy(model, tokenizer, text, prefix)`** — Tokenizes prefix+text, runs a forward pass, extracts log-probs for just the text tokens. Returns `(total_bits, byte_count)`. This is the atomic building block. `compute_per_byte_cross_entropy` is a thin wrapper that divides by byte count.
 
-2. **`compute_progressive_surprise_curve_single_pass(model, tokenizer, prompt, responses)`** — Single forward pass over the full concatenated context, extracting per-response log-probs by token boundary detection. This is the default used by `compute_icl_diversity_metrics`. The old multi-pass version `compute_progressive_surprise_curve` is retained for testing/comparison.
+2. **`compute_progressive_surprise_curve_single_pass(model, tokenizer, prompt, responses)`** — Single forward pass over the full concatenated context, extracting per-response log-probs by token boundary detection. Returns `(curve_total_bits, byte_counts)`. This is the default used by `compute_icl_diversity_metrics`. The old multi-pass version `compute_progressive_surprise_curve` is retained for testing/comparison.
 
-3. **`compute_unconditional_surprises(model, tokenizer, prompt, responses)`** — Per-byte cross-entropy of each response conditioned only on the prompt (no other responses).
+3. **`compute_unconditional_surprises(model, tokenizer, prompt, responses)`** — Returns `(per_byte_surprises, total_bits, byte_counts)` for each response conditioned only on the prompt (no other responses).
 
-4. **`_compute_metrics_from_curves(a_k_curve, unconditional_surprises, responses)`** — Pure math, no model calls. Derives E, C, D, σ, m_eff, uncertainty bands from the curves.
+4. **`_compute_metrics_from_curves(...)`** — Pure math, no model calls. Derives E, E_rate, C, C_total, D, D_total, σ, uncertainty bands from the curves. E_rate is passed in by the caller (computed in the permutation loop).
 
 5. **`compute_icl_diversity_metrics(...)`** — Top-level entry point. Orchestrates the above. When `n_permutations > 1`, shuffles response order, computes curves for each permutation, averages them, and stores per-permutation data.
 

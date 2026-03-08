@@ -9,8 +9,9 @@ Key idea: if a base model theta can predict response r_k more easily after
 seeing responses r_1..r_{k-1}, then those responses share structure (low
 diversity). The progressive conditional surprise curve a_k captures this.
 
-All information quantities are in bits/byte (not bits/token), making the
-metric tokenizer-agnostic. Uses log base 2 throughout.
+The primary a_k curve is in total bits. Per-byte normalized quantities
+(E_rate, C, D) provide tokenizer-agnostic comparisons. Uses log base 2
+throughout.
 
 Assumptions:
 - theta must have strong in-context learning capability
@@ -20,11 +21,13 @@ Assumptions:
 
 Reference equations from the paper:
 - Eq 1: per-byte cross-entropy h_theta(r | p)
-- Eq 4: progressive conditional surprise a_k = h_theta(r_k | r_{<k}, p)
-- Eq 6: excess entropy E_hat_n = sum(a_k - a_n)
-- Eq 7: effective mode count m_eff = 2^{B_bar * E}
-- Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))}
-- Eq 11: diversity score D = C * E
+- Eq 4: progressive conditional surprise a_k (total bits)
+- Eq 6: excess entropy E = sum(a_k - a_n) in total bits
+- Eq: excess entropy rate E_rate = sum of per-byte normalized excess
+- Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))} (per-byte)
+- Eq: total coherence C_total = 2^{mean(log2(P(r_i | p)))} (total bits)
+- Eq 11: diversity score D = C * E_rate (per-byte)
+- Eq: total diversity score D_total = C_total * E (total bits)
 """
 
 import math
@@ -34,6 +37,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 
@@ -99,18 +103,16 @@ def format_conditioning_context(
     return prefix, current_response
 
 
-def compute_per_byte_cross_entropy(
+def compute_cross_entropy(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
     text: str,
     prefix: str,
-) -> float:
-    """Compute per-byte cross-entropy of text conditioned on prefix.
-
-    Eq 1: h_theta(r | p) = (1/||r||) * sum_t -log2 theta(r^t | r^{<t}, p)
+) -> tuple[float, int]:
+    """Compute total cross-entropy (in bits) and byte count of text conditioned on prefix.
 
     Tokenizes prefix+text together, computes log-probs only for tokens
-    corresponding to `text`, then normalizes by the byte count of `text`.
+    corresponding to `text`, returns total bits and byte count separately.
 
     Args:
         model: The base model theta.
@@ -119,11 +121,12 @@ def compute_per_byte_cross_entropy(
         prefix: Everything before the response (prompt + previous responses).
 
     Returns:
-        Per-byte cross-entropy in bits/byte.
+        Tuple of (total_bits, byte_count) where total_bits = -sum(log2(p))
+        for all tokens in `text`, and byte_count = len(text.encode("utf-8")).
     """
     byte_count = len(text.encode("utf-8"))
     if byte_count == 0:
-        return 0.0
+        return 0.0, 0
 
     # Tokenize prefix and full sequence separately to find where text tokens start
     prefix_ids = tokenizer.encode(prefix, add_special_tokens=False)
@@ -133,7 +136,7 @@ def compute_per_byte_cross_entropy(
     n_full_tokens = len(full_ids)
 
     if n_full_tokens <= n_prefix_tokens:
-        return 0.0
+        return 0.0, byte_count
 
     input_ids = torch.tensor([full_ids], device=model.device)
 
@@ -156,9 +159,34 @@ def compute_per_byte_cross_entropy(
     # Convert from nats (ln) to bits (log2): log2(x) = ln(x) / ln(2)
     total_log2_prob = total_log_prob / math.log(2)
 
-    # Per-byte cross-entropy (Eq 1)
-    h = -total_log2_prob / byte_count
-    return h
+    # Total cross-entropy in bits (Eq 1 without the 1/||r|| normalization)
+    total_bits = -total_log2_prob
+    return total_bits, byte_count
+
+
+def compute_per_byte_cross_entropy(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    text: str,
+    prefix: str,
+) -> float:
+    """Compute per-byte cross-entropy of text conditioned on prefix.
+
+    Eq 1: h_theta(r | p) = (1/||r||) * sum_t -log2 theta(r^t | r^{<t}, p)
+
+    Thin wrapper around compute_cross_entropy that divides by byte count.
+
+    Args:
+        model: The base model theta.
+        tokenizer: Tokenizer for theta.
+        text: The response r whose cross-entropy we compute.
+        prefix: Everything before the response (prompt + previous responses).
+
+    Returns:
+        Per-byte cross-entropy in bits/byte.
+    """
+    total_bits, byte_count = compute_cross_entropy(model, tokenizer, text, prefix)
+    return total_bits / byte_count if byte_count > 0 else 0.0
 
 
 def compute_progressive_surprise_curve(
@@ -166,10 +194,10 @@ def compute_progressive_surprise_curve(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
-) -> list[float]:
+) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve.
 
-    Eq 4: a_k = h_theta(r_k | r_{<k}, p) for k=1..n
+    Eq 4: a_k = -log2 P(r_k | r_{<k}, p) for k=1..n (total bits)
 
     Performs n forward passes with growing context.
 
@@ -180,16 +208,19 @@ def compute_progressive_surprise_curve(
         responses: List of n responses [r_1, ..., r_n].
 
     Returns:
-        List of a_k values (progressive conditional surprise curve).
+        Tuple of (curve, byte_counts) where curve is a list of a_k values
+        in total bits, and byte_counts is the byte count of each response.
     """
     curve: list[float] = []
+    byte_counts: list[int] = []
     for k in range(len(responses)):
         previous = responses[:k]
         current = responses[k]
         prefix, target = format_conditioning_context(prompt, previous, current)
-        a_k = compute_per_byte_cross_entropy(model, tokenizer, target, prefix)
-        curve.append(a_k)
-    return curve
+        total_bits, bc = compute_cross_entropy(model, tokenizer, target, prefix)
+        curve.append(total_bits)
+        byte_counts.append(bc)
+    return curve, byte_counts
 
 
 def compute_progressive_surprise_curve_single_pass(
@@ -197,14 +228,14 @@ def compute_progressive_surprise_curve_single_pass(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
-) -> list[float]:
+) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve using a single forward pass.
 
     Equivalent to :func:`compute_progressive_surprise_curve` but concatenates all
     responses into one sequence and runs a single forward pass, then extracts
     per-response log-probs by locating token boundaries.
 
-    The boundary-finding logic mirrors :func:`compute_per_byte_cross_entropy`:
+    The boundary-finding logic mirrors :func:`compute_cross_entropy`:
     we tokenize progressive prefixes to determine where each response's tokens
     start and end in the full token sequence.
 
@@ -215,11 +246,12 @@ def compute_progressive_surprise_curve_single_pass(
         responses: List of n responses [r_1, ..., r_n].
 
     Returns:
-        List of a_k values (progressive conditional surprise curve) in bits/byte.
+        Tuple of (curve, byte_counts) where curve is a list of a_k values
+        in total bits, and byte_counts is the byte count of each response.
     """
     n = len(responses)
     if n == 0:
-        return []
+        return [], []
 
     # Build the full concatenated context
     parts = [prompt]
@@ -231,7 +263,7 @@ def compute_progressive_surprise_curve_single_pass(
     full_ids = tokenizer.encode(full_text, add_special_tokens=False)
 
     # Find response token boundaries using progressive prefix tokenization.
-    # This mirrors the boundary logic in compute_per_byte_cross_entropy:
+    # This mirrors the boundary logic in compute_cross_entropy:
     # tokenize prefix alone to get start index, then prefix+response to get end.
     boundaries: list[tuple[int, int]] = []
     running_text = prompt + f"\n\nResponse {_response_label(0)}: "
@@ -263,8 +295,10 @@ def compute_progressive_surprise_curve_single_pass(
 
     # Extract per-response a_k values
     curve: list[float] = []
+    byte_counts_list: list[int] = []
     for k, (start, end) in enumerate(boundaries):
         byte_count = len(responses[k].encode("utf-8"))
+        byte_counts_list.append(byte_count)
         if byte_count == 0 or end <= start:
             curve.append(0.0)
             continue
@@ -278,12 +312,12 @@ def compute_progressive_surprise_curve_single_pass(
         # log_probs[t-1] gives the prediction for position t
         total_log_prob = log_probs[token_positions - 1, token_ids].sum().item()
 
-        # Convert nats → bits, normalize by bytes
+        # Convert nats → bits (total, not per-byte)
         total_log2_prob = total_log_prob / math.log(2)
-        a_k = -total_log2_prob / byte_count
+        a_k = -total_log2_prob
         curve.append(a_k)
 
-    return curve
+    return curve, byte_counts_list
 
 
 def compute_unconditional_surprises(
@@ -291,8 +325,8 @@ def compute_unconditional_surprises(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
-) -> list[float]:
-    """Compute unconditional per-byte cross-entropy for each response.
+) -> tuple[list[float], list[float], list[int]]:
+    """Compute unconditional cross-entropy for each response.
 
     h_theta(r_i | p) for each response scored independently against just
     the prompt (no conditioning on other responses).
@@ -304,71 +338,108 @@ def compute_unconditional_surprises(
         responses: List of responses.
 
     Returns:
-        List of h_theta(r_i | p) values in bits/byte.
+        Tuple of (per_byte_surprises, total_bits_list, byte_counts):
+        - per_byte_surprises: h_theta(r_i | p) in bits/byte
+        - total_bits_list: -log2 P(r_i | p) in total bits
+        - byte_counts: byte count of each response
     """
-    surprises: list[float] = []
+    per_byte_surprises: list[float] = []
+    total_bits_list: list[float] = []
+    byte_counts: list[int] = []
     for resp in responses:
         prefix, target = format_conditioning_context(prompt, [], resp)
-        h = compute_per_byte_cross_entropy(model, tokenizer, target, prefix)
-        surprises.append(h)
-    return surprises
+        total_bits, bc = compute_cross_entropy(model, tokenizer, target, prefix)
+        byte_counts.append(bc)
+        total_bits_list.append(total_bits)
+        per_byte_surprises.append(total_bits / bc if bc > 0 else 0.0)
+    return per_byte_surprises, total_bits_list, byte_counts
 
 
 def _compute_metrics_from_curves(
-    a_k_curve: list[float],
-    unconditional_surprises: list[float],
+    a_k_curve_total_bits: list[float],
+    a_k_byte_counts: list[int],
+    unconditional_per_byte: list[float],
+    unconditional_total_bits: list[float],
+    unconditional_byte_counts: list[int],
+    e_rate: float,
     responses: list[str],
 ) -> dict[str, Any]:
-    """Compute all derived metrics from the a_k curve and unconditional surprises.
+    """Compute all derived metrics from curves and pre-computed E_rate.
 
     Args:
-        a_k_curve: Progressive conditional surprise curve.
-        unconditional_surprises: h_theta(r_i | p) for each response.
+        a_k_curve_total_bits: Progressive conditional surprise curve in total bits.
+        a_k_byte_counts: Byte count per response in the a_k curve.
+        unconditional_per_byte: h_theta(r_i | p) per-byte for each response.
+        unconditional_total_bits: -log2 P(r_i | p) total bits for each response.
+        unconditional_byte_counts: Byte count per response for unconditional.
+        e_rate: Pre-computed E_rate (per-byte excess entropy, Option B).
         responses: The response texts (needed for byte length).
 
     Returns:
         Dict with all metric values.
     """
-    n = len(a_k_curve)
-    a_n = a_k_curve[-1]  # estimate of a_infinity
+    n = len(a_k_curve_total_bits)
+    a_n = a_k_curve_total_bits[-1]  # estimate of a_infinity
 
-    # Eq 6: excess entropy E_hat_n = sum(a_k - a_n)
-    excess_entropy_E = sum(a_k - a_n for a_k in a_k_curve)
+    # Eq 6: excess entropy E = sum(a_k - a_n) in total bits
+    excess_entropy_E = sum(a_k - a_n for a_k in a_k_curve_total_bits)
 
-    # Mean unconditional surprise
-    mean_h = sum(unconditional_surprises) / n
+    # Per-byte a_k curve (for plotting and backward compat)
+    a_k_curve_per_byte = [
+        t / b if b > 0 else 0.0 for t, b in zip(a_k_curve_total_bits, a_k_byte_counts)
+    ]
 
-    # Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))}
+    # Mean unconditional surprise (per-byte)
+    mean_h = sum(unconditional_per_byte) / n
+
+    # Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))} (per-byte)
     coherence_C = 2.0 ** (-mean_h)
 
-    # Coherence spread (Section 6.4): std of h_theta(r_i | p)
-    coherence_spread_sigma = float(np.std(unconditional_surprises, ddof=0))
+    # Total coherence C_total = 2^{mean(log2(P(r_i | p)))}
+    # log2(P(r_i | p)) = -total_bits_i
+    mean_log2_prob = sum(-tb for tb in unconditional_total_bits) / n
+    coherence_C_total = 2.0**mean_log2_prob
 
-    # Eq 11: diversity score D = C * E
-    diversity_score_D = coherence_C * excess_entropy_E
+    # Coherence spread (Section 6.4): std of h_theta(r_i | p) (per-byte)
+    coherence_spread_sigma = float(np.std(unconditional_per_byte, ddof=0))
 
-    # Eq 7: effective mode count m_eff = 2^{B_bar * E}
+    # E_rate stored from caller
+    excess_entropy_E_rate = e_rate
+
+    # Eq 11: diversity score D = C * E_rate (per-byte)
+    diversity_score_D = coherence_C * excess_entropy_E_rate
+
+    # Total diversity score D_total = C_total * E (total bits)
+    diversity_score_D_total = coherence_C_total * excess_entropy_E
+
+    # Mean byte length
     byte_lengths = [len(r.encode("utf-8")) for r in responses]
     mean_byte_length = sum(byte_lengths) / n
-    effective_mode_count = 2.0 ** (mean_byte_length * excess_entropy_E)
 
-    # Uncertainty band (Section 6.4)
+    # Uncertainty band (Section 6.4) — uses E_rate
     C_plus = coherence_C * (2.0**coherence_spread_sigma)
     C_minus = coherence_C * (2.0 ** (-coherence_spread_sigma))
-    D_plus = C_plus * excess_entropy_E
-    D_minus = C_minus * excess_entropy_E
+    D_plus = C_plus * excess_entropy_E_rate
+    D_minus = C_minus * excess_entropy_E_rate
 
     # Diagnostic: is the curve monotonically non-increasing?
-    is_monotone = all(a_k_curve[i] >= a_k_curve[i + 1] for i in range(n - 1))
+    is_monotone = all(
+        a_k_curve_total_bits[i] >= a_k_curve_total_bits[i + 1] for i in range(n - 1)
+    )
 
     return {
-        "a_k_curve": a_k_curve,
-        "unconditional_surprises": unconditional_surprises,
+        "a_k_curve": a_k_curve_total_bits,
+        "a_k_curve_per_byte": a_k_curve_per_byte,
+        "a_k_byte_counts": a_k_byte_counts,
+        "unconditional_surprises": unconditional_per_byte,
+        "unconditional_total_bits": unconditional_total_bits,
         "excess_entropy_E": excess_entropy_E,
+        "excess_entropy_E_rate": excess_entropy_E_rate,
         "coherence_C": coherence_C,
+        "coherence_C_total": coherence_C_total,
         "coherence_spread_sigma": coherence_spread_sigma,
         "diversity_score_D": diversity_score_D,
-        "effective_mode_count": effective_mode_count,
+        "diversity_score_D_total": diversity_score_D_total,
         "mean_byte_length": mean_byte_length,
         "D_plus": D_plus,
         "D_minus": D_minus,
@@ -403,65 +474,112 @@ def compute_icl_diversity_metrics(
 
     Returns:
         Dict with:
-        - a_k_curve: list[float]           # progressive conditional surprise
-        - unconditional_surprises: list[float]  # h_theta(r_i | p) for each response
-        - excess_entropy_E: float          # Eq 6
-        - coherence_C: float               # Eq 8
+        - a_k_curve: list[float]           # total bits (progressive conditional surprise)
+        - a_k_curve_per_byte: list[float]  # per-byte normalized
+        - a_k_byte_counts: list[int]       # byte count per response
+        - unconditional_surprises: list[float]  # h_theta(r_i | p) per-byte
+        - unconditional_total_bits: list[float] # -log2 P(r_i | p) total bits
+        - excess_entropy_E: float          # total bits excess entropy
+        - excess_entropy_E_rate: float     # per-byte excess entropy rate (Option B)
+        - coherence_C: float               # per-byte coherence
+        - coherence_C_total: float         # total coherence
         - coherence_spread_sigma: float    # std of h_theta(r_i|p)
-        - diversity_score_D: float         # Eq 11: C * E
-        - effective_mode_count: float      # Eq 7: 2^{B_bar * E}
+        - diversity_score_D: float         # C * E_rate
+        - diversity_score_D_total: float   # C_total * E
         - mean_byte_length: float          # B_bar
-        - D_plus: float                    # C+ * E
-        - D_minus: float                   # C- * E
+        - D_plus: float                    # C+ * E_rate
+        - D_minus: float                   # C- * E_rate
         - C_plus: float                    # C * 2^sigma
         - C_minus: float                   # C * 2^{-sigma}
         - is_monotone: bool                # diagnostic
         - per_permutation_a_k_curves: list[list[float]] | None
-            Raw a_k curve from each permutation (only when n_permutations > 1).
+            Raw a_k curve (total bits) from each permutation.
+        - per_permutation_byte_counts: list[list[int]] | None
+            Byte counts from each permutation.
         - permutation_orders: list[list[int]] | None
-            The ordering used for each permutation (only when n_permutations > 1).
+            The ordering used for each permutation.
     """
     # Unconditional surprises are order-independent, compute once
-    unconditional_surprises = compute_unconditional_surprises(
-        model, tokenizer, prompt, responses
+    unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
+        compute_unconditional_surprises(model, tokenizer, prompt, responses)
     )
 
     if n_permutations <= 1:
         # Single ordering — single forward pass
-        a_k_curve = compute_progressive_surprise_curve_single_pass(
+        a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
             model, tokenizer, prompt, responses
         )
+        # Compute E_rate: normalize per response, then sum excess
+        per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
+        e_rate = sum(pb - per_byte[-1] for pb in per_byte)
+
         metrics = _compute_metrics_from_curves(
-            a_k_curve, unconditional_surprises, responses
+            a_k_total,
+            byte_counts,
+            unconditional_per_byte,
+            unconditional_total_bits,
+            unconditional_byte_counts,
+            e_rate,
+            responses,
         )
         metrics["per_permutation_a_k_curves"] = None
+        metrics["per_permutation_byte_counts"] = None
         metrics["permutation_orders"] = None
         return metrics
 
     # Multiple permutations: average a_k curves
     rng = random.Random(seed)
     n = len(responses)
-    all_curves: list[list[float]] = []
+    all_total_bits_curves: list[list[float]] = []
+    all_byte_counts: list[list[int]] = []
+    all_per_byte_curves: list[list[float]] = []
     all_perms: list[list[int]] = []
 
-    for _ in range(n_permutations):
+    perm_iter = range(n_permutations)
+    if n_permutations > 5:
+        perm_iter = tqdm(perm_iter, desc="  permutations", leave=False)
+
+    for _ in perm_iter:
         perm = list(range(n))
         rng.shuffle(perm)
         all_perms.append(list(perm))
         permuted_responses = [responses[i] for i in perm]
-        curve = compute_progressive_surprise_curve_single_pass(
+        total_bits, byte_counts = compute_progressive_surprise_curve_single_pass(
             model, tokenizer, prompt, permuted_responses
         )
-        all_curves.append(curve)
+        all_total_bits_curves.append(total_bits)
+        all_byte_counts.append(byte_counts)
+        all_per_byte_curves.append(
+            [t / b if b > 0 else 0.0 for t, b in zip(total_bits, byte_counts)]
+        )
 
     # Average across permutations
-    avg_curve = [
-        sum(curves[k] for curves in all_curves) / n_permutations for k in range(n)
+    avg_total_bits = [
+        sum(curves[k] for curves in all_total_bits_curves) / n_permutations
+        for k in range(n)
+    ]
+    avg_per_byte = [
+        sum(curves[k] for curves in all_per_byte_curves) / n_permutations
+        for k in range(n)
+    ]
+    # Use average byte counts for reference
+    avg_byte_counts = [
+        round(sum(bcs[k] for bcs in all_byte_counts) / n_permutations) for k in range(n)
     ]
 
+    # E_rate from averaged per-byte curve (Option B)
+    e_rate = sum(avg_per_byte[k] - avg_per_byte[-1] for k in range(n))
+
     metrics = _compute_metrics_from_curves(
-        avg_curve, unconditional_surprises, responses
+        avg_total_bits,
+        avg_byte_counts,
+        unconditional_per_byte,
+        unconditional_total_bits,
+        unconditional_byte_counts,
+        e_rate,
+        responses,
     )
-    metrics["per_permutation_a_k_curves"] = all_curves
+    metrics["per_permutation_a_k_curves"] = all_total_bits_curves
+    metrics["per_permutation_byte_counts"] = all_byte_counts
     metrics["permutation_orders"] = all_perms
     return metrics

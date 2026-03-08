@@ -164,10 +164,12 @@ def main() -> None:
         print(f"\n=== Scale: {scale} ===")
         scale_results: list[dict[str, Any]] = []
         ds = []
+        d_totals = []
         es = []
+        e_rates = []
         cs = []
+        c_totals = []
         sigmas = []
-        m_effs = []
 
         for prompt_idx, (prompt_text, responses) in sorted(prompts.items()):
             print(
@@ -193,25 +195,30 @@ def main() -> None:
             scale_results.append(per_prompt_result)
 
             ds.append(metrics["diversity_score_D"])
+            d_totals.append(metrics["diversity_score_D_total"])
             es.append(metrics["excess_entropy_E"])
+            e_rates.append(metrics["excess_entropy_E_rate"])
             cs.append(metrics["coherence_C"])
+            c_totals.append(metrics["coherence_C_total"])
             sigmas.append(metrics["coherence_spread_sigma"])
-            m_effs.append(metrics["effective_mode_count"])
 
             print(
                 f"    D={metrics['diversity_score_D']:.4f}, "
-                f"E={metrics['excess_entropy_E']:.4f}, "
+                f"D_total={metrics['diversity_score_D_total']:.4e}, "
+                f"E={metrics['excess_entropy_E']:.2f}, "
+                f"E_rate={metrics['excess_entropy_E_rate']:.4f}, "
                 f"C={metrics['coherence_C']:.4f}, "
-                f"m_eff={metrics['effective_mode_count']:.2f}, "
                 f"monotone={metrics['is_monotone']}"
             )
 
         aggregate = {
             "mean_D": float(np.mean(ds)) if ds else 0.0,
+            "mean_D_total": float(np.mean(d_totals)) if d_totals else 0.0,
             "mean_E": float(np.mean(es)) if es else 0.0,
+            "mean_E_rate": float(np.mean(e_rates)) if e_rates else 0.0,
             "mean_C": float(np.mean(cs)) if cs else 0.0,
+            "mean_C_total": float(np.mean(c_totals)) if c_totals else 0.0,
             "mean_sigma": float(np.mean(sigmas)) if sigmas else 0.0,
-            "mean_m_eff": float(np.mean(m_effs)) if m_effs else 0.0,
         }
 
         all_results["scales"][str(scale)] = {
@@ -221,7 +228,8 @@ def main() -> None:
 
         print(
             f"  Aggregate: mean_D={aggregate['mean_D']:.4f}, "
-            f"mean_E={aggregate['mean_E']:.4f}, "
+            f"mean_E={aggregate['mean_E']:.2f}, "
+            f"mean_E_rate={aggregate['mean_E_rate']:.4f}, "
             f"mean_C={aggregate['mean_C']:.4f}"
         )
 

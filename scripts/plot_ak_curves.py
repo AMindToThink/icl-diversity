@@ -54,11 +54,19 @@ def plot_single_scenario(
     metrics_list: list[dict[str, Any]],
     ax: plt.Axes,
 ) -> None:
-    """Plot a_k curves for one scenario on the given axes."""
-    n_responses = len(metrics_list[0]["a_k_curve"])
+    """Plot a_k curves for one scenario on the given axes.
+
+    Uses per-byte normalized curves for human-readable y-axis.
+    Falls back to a_k_curve if a_k_curve_per_byte is not available
+    (backward compat with old JSON files).
+    """
+    curve_key = (
+        "a_k_curve_per_byte" if "a_k_curve_per_byte" in metrics_list[0] else "a_k_curve"
+    )
+    n_responses = len(metrics_list[0][curve_key])
 
     for i, m in enumerate(metrics_list):
-        curve = m["a_k_curve"]
+        curve = m[curve_key]
         k = np.arange(1, len(curve) + 1)
         label = m.get("prompt_label", f"Prompt {i}")
         color = COLORS[i % len(COLORS)]
@@ -68,8 +76,17 @@ def plot_single_scenario(
 
         # Show per-permutation curves as faint lines
         if m.get("per_permutation_a_k_curves") is not None:
-            for perm_curve in m["per_permutation_a_k_curves"]:
-                ax.plot(k, perm_curve, linewidth=0.5, alpha=0.25, color=color)
+            perm_byte_counts = m.get("per_permutation_byte_counts")
+            for j, perm_curve in enumerate(m["per_permutation_a_k_curves"]):
+                if perm_byte_counts is not None:
+                    # Convert total bits to per-byte for plotting
+                    perm_per_byte = [
+                        t / b if b > 0 else 0.0
+                        for t, b in zip(perm_curve, perm_byte_counts[j])
+                    ]
+                else:
+                    perm_per_byte = perm_curve
+                ax.plot(k, perm_per_byte, linewidth=0.5, alpha=0.25, color=color)
 
     ax.set_title(scenario_name, fontsize=12, fontweight="bold")
     ax.set_xlabel("k (response index)")
@@ -159,18 +176,30 @@ def generate_comparison_plots(
         title = SCENARIO_TITLES.get(key, key)
         fig, axes = plt.subplots(1, n_models, figsize=(7 * n_models, 5), squeeze=False)
 
-        # Compute shared y-axis limits across models for this scenario
+        # Compute shared y-axis limits across models for this scenario (per-byte)
         y_min, y_max = float("inf"), float("-inf")
         for data in datasets:
             if key in data.get("scenarios", {}):
                 for m in data["scenarios"][key]:
-                    curve = m["a_k_curve"]
+                    ck = (
+                        "a_k_curve_per_byte"
+                        if "a_k_curve_per_byte" in m
+                        else "a_k_curve"
+                    )
+                    curve = m[ck]
                     y_min = min(y_min, min(curve))
                     y_max = max(y_max, max(curve))
                     if m.get("per_permutation_a_k_curves") is not None:
-                        for pc in m["per_permutation_a_k_curves"]:
-                            y_min = min(y_min, min(pc))
-                            y_max = max(y_max, max(pc))
+                        pbc = m.get("per_permutation_byte_counts")
+                        for j, pc in enumerate(m["per_permutation_a_k_curves"]):
+                            if pbc is not None:
+                                pb = [
+                                    t / b if b > 0 else 0.0 for t, b in zip(pc, pbc[j])
+                                ]
+                            else:
+                                pb = pc
+                            y_min = min(y_min, min(pb))
+                            y_max = max(y_max, max(pb))
         y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
         y_range = (y_min - y_pad, y_max + y_pad)
 
@@ -179,9 +208,17 @@ def generate_comparison_plots(
             if key in data.get("scenarios", {}):
                 plot_single_scenario(title, data["scenarios"][key], ax)
             else:
-                ax.text(0.5, 0.5, "No data", ha="center", va="center",
-                        transform=ax.transAxes)
-            ax.set_title(f"{title}\n({model_names[col]})", fontsize=11, fontweight="bold")
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+            ax.set_title(
+                f"{title}\n({model_names[col]})", fontsize=11, fontweight="bold"
+            )
             ax.set_ylim(y_range)
 
         fig.tight_layout()
@@ -199,18 +236,30 @@ def generate_comparison_plots(
     for row, key in enumerate(all_keys):
         title = SCENARIO_TITLES.get(key, key)
 
-        # Shared y-axis per scenario row
+        # Shared y-axis per scenario row (per-byte)
         y_min, y_max = float("inf"), float("-inf")
         for data in datasets:
             if key in data.get("scenarios", {}):
                 for m in data["scenarios"][key]:
-                    curve = m["a_k_curve"]
+                    ck = (
+                        "a_k_curve_per_byte"
+                        if "a_k_curve_per_byte" in m
+                        else "a_k_curve"
+                    )
+                    curve = m[ck]
                     y_min = min(y_min, min(curve))
                     y_max = max(y_max, max(curve))
                     if m.get("per_permutation_a_k_curves") is not None:
-                        for pc in m["per_permutation_a_k_curves"]:
-                            y_min = min(y_min, min(pc))
-                            y_max = max(y_max, max(pc))
+                        pbc = m.get("per_permutation_byte_counts")
+                        for j, pc in enumerate(m["per_permutation_a_k_curves"]):
+                            if pbc is not None:
+                                pb = [
+                                    t / b if b > 0 else 0.0 for t, b in zip(pc, pbc[j])
+                                ]
+                            else:
+                                pb = pc
+                            y_min = min(y_min, min(pb))
+                            y_max = max(y_max, max(pb))
         y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
         y_range = (y_min - y_pad, y_max + y_pad)
 
@@ -219,8 +268,14 @@ def generate_comparison_plots(
             if key in data.get("scenarios", {}):
                 plot_single_scenario(title, data["scenarios"][key], ax)
             else:
-                ax.text(0.5, 0.5, "No data", ha="center", va="center",
-                        transform=ax.transAxes)
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
             ax.set_ylim(y_range)
             if row == 0:
                 ax.set_title(

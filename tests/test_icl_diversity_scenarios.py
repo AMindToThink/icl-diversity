@@ -207,39 +207,34 @@ class TestCoherenceOrdering:
 
 
 class TestExcessEntropyOrdering:
-    """E(multi_mode) > E(one_mode).
+    """E_rate(multi_mode) > E_rate(one_mode).
 
     A policy with 3 recognizable modes has more learnable structure
-    than one with only 1 mode. Both should have positive E (the a_k
+    than one with only 1 mode. Both should have positive E_rate (the a_k
     curve drops as θ learns the pattern), but multi-mode should have
-    higher E because there's more inter-mode structure to learn.
-
-    Note: With n=5 per group, Mann-Whitney U has limited power when
-    the multi-mode E has high cross-prompt variance (the effect size
-    varies by prompt). We use a direction check (mean comparison)
-    rather than requiring p < 0.05.
+    higher E_rate because there's more inter-mode structure to learn.
     """
 
     def test_multi_mode_gt_one_mode(
         self, multi_mode_metrics: list[dict], one_mode_metrics: list[dict]
     ) -> None:
-        e_multi = _extract(multi_mode_metrics, "excess_entropy_E")
-        e_one = _extract(one_mode_metrics, "excess_entropy_E")
+        e_multi = _extract(multi_mode_metrics, "excess_entropy_E_rate")
+        e_one = _extract(one_mode_metrics, "excess_entropy_E_rate")
         # Direction check — means should be in the right order
         print(
-            f"\n  E(multi_mode): mean={np.mean(e_multi):.4f}, values={np.round(e_multi, 4)}"
+            f"\n  E_rate(multi_mode): mean={np.mean(e_multi):.4f}, values={np.round(e_multi, 4)}"
         )
         print(
-            f"  E(one_mode):   mean={np.mean(e_one):.4f}, values={np.round(e_one, 4)}"
+            f"  E_rate(one_mode):   mean={np.mean(e_one):.4f}, values={np.round(e_one, 4)}"
         )
         assert np.mean(e_multi) > np.mean(e_one), (
-            f"Expected mean E(multi_mode)={np.mean(e_multi):.4f} > "
-            f"mean E(one_mode)={np.mean(e_one):.4f}"
+            f"Expected mean E_rate(multi_mode)={np.mean(e_multi):.4f} > "
+            f"mean E_rate(one_mode)={np.mean(e_one):.4f}"
         )
 
 
 class TestDiversityScoreOrdering:
-    """D = C × E should rank scenarios correctly.
+    """D = C × E_rate should rank scenarios correctly.
 
     D(multi_mode) > D(one_mode):  more modes, both coherent
     D(multi_mode) > D(noise):     noise has C ≈ 0
@@ -313,8 +308,8 @@ class TestCoherenceSpread:
         """Mixed scenario should have D+ > D- (nonzero band width)."""
         for i, m in enumerate(mixed_metrics):
             print(f"\n  Prompt {i}: D+={m['D_plus']:.4f}, D-={m['D_minus']:.4f}")
-            # Band width is always non-negative when σ > 0 and E > 0,
-            # but E could be negative with weak ICL. Just check D+ != D-.
+            # Band width is always non-negative when σ > 0 and E_rate > 0,
+            # but E_rate could be negative with weak ICL. Just check D+ != D-.
             assert abs(m["D_plus"] - m["D_minus"]) > 1e-6, (
                 f"Prompt {i}: Expected nonzero uncertainty band for mixed scenario"
             )
@@ -324,6 +319,8 @@ class TestAkCurveShape:
     """The a_k curve for template-based multi-mode responses should
     show a decreasing trend (Kendall's τ < 0) for at least a majority
     of prompts, since GPT-2 can learn surface patterns.
+
+    Note: a_k_curve is now in total bits, but the trend direction is preserved.
     """
 
     def test_multi_mode_decreasing_trend(self, multi_mode_metrics: list[dict]) -> None:
@@ -334,7 +331,7 @@ class TestAkCurveShape:
             tau, p = scipy_stats.kendalltau(k, curve)
             taus.append(tau)
             print(f"\n  Prompt {i}: tau={tau:.3f}, p={p:.3f}")
-            print(f"    a_k: {[f'{v:.3f}' for v in curve]}")
+            print(f"    a_k (total bits): {[f'{v:.1f}' for v in curve]}")
 
         n_decreasing = sum(1 for t in taus if t < 0)
         print(f"\n  {n_decreasing}/{len(taus)} prompts have decreasing a_k trend")
@@ -345,8 +342,8 @@ class TestAkCurveShape:
 
 
 class TestOneModeProperties:
-    """One-mode scenario: high C, E still positive (GPT-2 learns the
-    repeated template quickly), but lower E than multi-mode.
+    """One-mode scenario: high C, E_rate still positive (GPT-2 learns the
+    repeated template quickly), but lower E_rate than multi-mode.
     """
 
     def test_high_coherence(self, one_mode_metrics: list[dict]) -> None:
@@ -355,11 +352,11 @@ class TestOneModeProperties:
         # Coherent English should have C > 0.1 under GPT-2
         assert np.mean(c) > 0.1, f"Expected C > 0.1, got {np.mean(c):.4f}"
 
-    def test_positive_e(self, one_mode_metrics: list[dict]) -> None:
-        """Even one-mode has positive E because θ learns the template."""
-        e = _extract(one_mode_metrics, "excess_entropy_E")
-        print(f"\n  E(one_mode): mean={np.mean(e):.4f}, values={np.round(e, 4)}")
-        assert np.mean(e) > 0, f"Expected E > 0 for one-mode, got {np.mean(e):.4f}"
+    def test_positive_e_rate(self, one_mode_metrics: list[dict]) -> None:
+        """Even one-mode has positive E_rate because θ learns the template."""
+        e = _extract(one_mode_metrics, "excess_entropy_E_rate")
+        print(f"\n  E_rate(one_mode): mean={np.mean(e):.4f}, values={np.round(e, 4)}")
+        assert np.mean(e) > 0, f"Expected E_rate > 0 for one-mode, got {np.mean(e):.4f}"
 
 
 class TestNoiseProperties:
@@ -390,33 +387,35 @@ class TestDiagnosticSummary:
             "Mixed coh+incoh": mixed_metrics,
         }
 
-        print("\n" + "=" * 95)
+        print("\n" + "=" * 120)
         print(
-            f"{'Scenario':<25} {'E':>8} {'C':>8} {'D':>8} {'sigma':>8} "
-            f"{'m_eff':>10} {'mono':>6}"
+            f"{'Scenario':<25} {'E(bits)':>10} {'E_rate':>8} {'C':>8} "
+            f"{'D':>8} {'D_total':>12} {'sigma':>8} {'mono':>6}"
         )
-        print("-" * 95)
+        print("-" * 120)
 
         for name, metrics in scenarios.items():
             e = _extract(metrics, "excess_entropy_E")
+            e_rate = _extract(metrics, "excess_entropy_E_rate")
             c = _extract(metrics, "coherence_C")
             d = _extract(metrics, "diversity_score_D")
+            d_total = _extract(metrics, "diversity_score_D_total")
             s = _extract(metrics, "coherence_spread_sigma")
-            m = _extract(metrics, "effective_mode_count")
             mono = [met["is_monotone"] for met in metrics]
             n_mono = sum(mono)
 
             print(
                 f"{name:<25} "
-                f"{np.mean(e):>8.4f} "
+                f"{np.mean(e):>10.2f} "
+                f"{np.mean(e_rate):>8.4f} "
                 f"{np.mean(c):>8.4f} "
                 f"{np.mean(d):>8.4f} "
+                f"{np.mean(d_total):>12.4e} "
                 f"{np.mean(s):>8.4f} "
-                f"{np.mean(m):>10.1f} "
                 f"{n_mono}/{len(mono):>4}"
             )
 
-        print("=" * 95)
+        print("=" * 120)
         print("\nExpected (paper Section 6.3):")
         print("  Pure noise:       C≈0, E≈0,  D≈0")
         print("  Multi incoherent: C low, E>0, D suppressed (low C kills it)")
