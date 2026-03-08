@@ -141,7 +141,7 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
-        torch_dtype=torch_dtype,
+        dtype=torch_dtype,
         device_map=device if device == "auto" else None,
     )
     if device != "auto":
