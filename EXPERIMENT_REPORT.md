@@ -162,6 +162,49 @@ monotone (0/5 pass `is_monotone`), which is consistent with GPT-2's imperfect
 ICL — the paper notes that non-monotonicity in the a_k curve is a diagnostic
 signal that theta's ICL is imperfect (Section 3.3).
 
+### 4.4 a_k Curve Plots
+
+The figures below show the progressive conditional surprise curves for all
+five scenarios. Bold lines show the averaged a_k curve (across 3 permutations);
+faint lines show the individual per-permutation curves.
+
+**Combined overview:**
+
+![All scenarios](figures/ak_curves_all_scenarios.png)
+
+**Per-scenario detail:**
+
+| Scenario | Figure |
+|----------|--------|
+| Pure noise | ![Pure noise](figures/ak_curve_pure_noise.png) |
+| Multi incoherent | ![Multi incoherent](figures/ak_curve_multi_incoherent.png) |
+| Multi mode (3 modes) | ![Multi mode](figures/ak_curve_multi_mode.png) |
+| One mode (paraphrase) | ![One mode](figures/ak_curve_one_mode.png) |
+| Mixed coherent+incoherent | ![Mixed](figures/ak_curve_mixed.png) |
+
+Key observations from the plots:
+
+- **Pure noise:** Flat, high a_k (~7 bits/byte) with no decreasing trend.
+  The per-permutation curves are nearly identical because random noise has
+  no ordering dependence.
+
+- **Multi incoherent:** Erratic a_k curves that increase on average. GPT-2's
+  predictions degrade as the conditioning context fills with garbage. Wide
+  spread between per-permutation curves reflects ordering sensitivity.
+
+- **Multi mode (3 modes):** Clear decreasing trend from ~1.0-1.3 down to
+  ~0.3-0.7 bits/byte. The per-permutation curves show moderate spread,
+  indicating some ordering sensitivity, but the trend is consistent across
+  permutations.
+
+- **One mode (paraphrase):** Sharp initial drop (a_1 to a_2) then flattening
+  at a low floor (~0.1-0.3). GPT-2 learns the repeated template quickly.
+  The per-permutation spread is narrow because the responses are near-identical.
+
+- **Mixed coherent+incoherent:** Irregular curves with high variance. The
+  coherent responses pull a_k down while incoherent ones push it up,
+  creating the noisy zigzag pattern visible in the plots.
+
 ## 5. Discussion
 
 ### 5.1 What Worked
@@ -266,8 +309,19 @@ within the regime where GPT-2's ICL is effective.
 ## Appendix: Reproducibility
 
 - **Code:** `tests/test_icl_diversity_scenarios.py`
+- **Scenario data:** `src/icl_diversity/scenarios.py`
+- **Compute script:** `scripts/run_scenarios.py` → `results/scenario_metrics.json`
+- **Plot script:** `scripts/plot_ak_curves.py` → `figures/ak_curve_*.png`
 - **Model:** `gpt2` (HuggingFace, 124M params, loaded in offline mode from cache)
 - **Hardware:** Apple Silicon CPU (no GPU)
 - **Runtime:** ~109 seconds for the full suite
 - **Random seed:** 42 (for permutation ordering)
-- **Command:** `HF_HUB_OFFLINE=1 uv run pytest tests/test_icl_diversity_scenarios.py -v -s`
+- **Commands:**
+  ```bash
+  # Run statistical tests
+  HF_HUB_OFFLINE=1 uv run pytest tests/test_icl_diversity_scenarios.py -v -s
+  # Compute metrics and save JSON
+  uv run python scripts/run_scenarios.py
+  # Generate plots from saved JSON
+  uv run python scripts/plot_ak_curves.py
+  ```

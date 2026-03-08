@@ -5,9 +5,8 @@ All tests run on CPU with mock models to avoid GPU dependency.
 
 import math
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 import torch
 
@@ -244,7 +243,7 @@ class TestUncertaintyBand:
 
         C = result["coherence_C"]
         sigma = result["coherence_spread_sigma"]
-        assert result["C_plus"] == pytest.approx(C * 2.0 ** sigma)
+        assert result["C_plus"] == pytest.approx(C * 2.0**sigma)
         assert result["C_minus"] == pytest.approx(C * 2.0 ** (-sigma))
 
 
@@ -368,6 +367,8 @@ class TestWithMockModel:
             "C_plus",
             "C_minus",
             "is_monotone",
+            "per_permutation_a_k_curves",
+            "permutation_orders",
         }
         assert set(result.keys()) == expected_keys
 
@@ -417,6 +418,41 @@ class TestPermutationAveraging:
 
         assert r1["a_k_curve"] == pytest.approx(r2["a_k_curve"])
         assert r1["excess_entropy_E"] == pytest.approx(r2["excess_entropy_E"])
+
+    def test_per_permutation_curves_none_when_single(self) -> None:
+        """New keys should be None when n_permutations <= 1."""
+        model, tokenizer = _make_mock_model_and_tokenizer(uniform=True)
+        result = compute_icl_diversity_metrics(
+            model, tokenizer, "prompt", ["aaa", "bbb", "ccc"], n_permutations=1
+        )
+        assert result["per_permutation_a_k_curves"] is None
+        assert result["permutation_orders"] is None
+
+    def test_per_permutation_curves_stored(self) -> None:
+        """New keys should have correct shapes when n_permutations > 1."""
+        model, tokenizer = _make_mock_model_and_tokenizer(uniform=True)
+        n_perm = 3
+        n_resp = 4
+        result = compute_icl_diversity_metrics(
+            model,
+            tokenizer,
+            "prompt",
+            ["a", "b", "c", "d"],
+            n_permutations=n_perm,
+            seed=42,
+        )
+
+        curves = result["per_permutation_a_k_curves"]
+        orders = result["permutation_orders"]
+
+        assert curves is not None
+        assert orders is not None
+        assert len(curves) == n_perm
+        assert len(orders) == n_perm
+        for curve in curves:
+            assert len(curve) == n_resp
+        for order in orders:
+            assert sorted(order) == list(range(n_resp))
 
 
 class TestBitsNotNats:

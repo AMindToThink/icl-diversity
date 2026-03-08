@@ -259,7 +259,7 @@ def _compute_metrics_from_curves(
     effective_mode_count = 2.0 ** (mean_byte_length * excess_entropy_E)
 
     # Uncertainty band (Section 6.4)
-    C_plus = coherence_C * (2.0 ** coherence_spread_sigma)
+    C_plus = coherence_C * (2.0**coherence_spread_sigma)
     C_minus = coherence_C * (2.0 ** (-coherence_spread_sigma))
     D_plus = C_plus * excess_entropy_E
     D_minus = C_minus * excess_entropy_E
@@ -322,6 +322,10 @@ def compute_icl_diversity_metrics(
         - C_plus: float                    # C * 2^sigma
         - C_minus: float                   # C * 2^{-sigma}
         - is_monotone: bool                # diagnostic
+        - per_permutation_a_k_curves: list[list[float]] | None
+            Raw a_k curve from each permutation (only when n_permutations > 1).
+        - permutation_orders: list[list[int]] | None
+            The ordering used for each permutation (only when n_permutations > 1).
     """
     # Unconditional surprises are order-independent, compute once
     unconditional_surprises = compute_unconditional_surprises(
@@ -333,16 +337,23 @@ def compute_icl_diversity_metrics(
         a_k_curve = compute_progressive_surprise_curve(
             model, tokenizer, prompt, responses
         )
-        return _compute_metrics_from_curves(a_k_curve, unconditional_surprises, responses)
+        metrics = _compute_metrics_from_curves(
+            a_k_curve, unconditional_surprises, responses
+        )
+        metrics["per_permutation_a_k_curves"] = None
+        metrics["permutation_orders"] = None
+        return metrics
 
     # Multiple permutations: average a_k curves
     rng = random.Random(seed)
     n = len(responses)
     all_curves: list[list[float]] = []
+    all_perms: list[list[int]] = []
 
     for _ in range(n_permutations):
         perm = list(range(n))
         rng.shuffle(perm)
+        all_perms.append(list(perm))
         permuted_responses = [responses[i] for i in perm]
         curve = compute_progressive_surprise_curve(
             model, tokenizer, prompt, permuted_responses
@@ -351,8 +362,12 @@ def compute_icl_diversity_metrics(
 
     # Average across permutations
     avg_curve = [
-        sum(curves[k] for curves in all_curves) / n_permutations
-        for k in range(n)
+        sum(curves[k] for curves in all_curves) / n_permutations for k in range(n)
     ]
 
-    return _compute_metrics_from_curves(avg_curve, unconditional_surprises, responses)
+    metrics = _compute_metrics_from_curves(
+        avg_curve, unconditional_surprises, responses
+    )
+    metrics["per_permutation_a_k_curves"] = all_curves
+    metrics["permutation_orders"] = all_perms
+    return metrics
