@@ -1,3 +1,16 @@
+> **⚠️ Notation and definition changes since these experiments were run.**
+> 
+> The accompanying paper has been updated since this experimental report was produced. The key differences:
+> 
+> - **$E$ (excess entropy)**: The experiments compute the unweighted sum $\hat{E} = \sum_k (a_k - a_n)$. The paper now defines $E$ as the **byte-weighted average** excess rate: $E = \frac{\sum_k \|r_k\| \cdot (a_k - a_n)}{\sum_k \|r_k\|}$. When all responses are roughly the same length, the two are approximately proportional.
+> - **$\mathcal{E}$ (total structural information)**: New quantity not computed in these experiments. $\mathcal{E} = \sum_k \|r_k\| \cdot (a_k - a_n)$, in bits. This is the headline "total learnable structure" number.
+> - **$\mathcal{C}$ (total coherence)** and **$\mathcal{D}$ (total diversity score)**: New non-length-normalized quantities not computed in these experiments.
+> - **$D$ (diversity score)**: Now defined as $D = C \times E$ using the byte-weighted $E$. The experimental values use the unweighted $E$, so $D$ values here are slightly different.
+> - **$m_{\text{eff}}$**: Reported in these experiments but **demoted** in the paper. The values are unreliable for real LLM outputs (see paper §4.2 footnote and §6.5). Disregard.
+> - **$\sigma_\ell$ (coherence spread)**: New diagnostic not computed in these experiments.
+> 
+> The $a_k$ curve, $C$, and all qualitative conclusions about curve shape, elbow location, and relative comparisons between policies remain valid.
+
 # ICL Diversity Metric: Validation Experiment Report
 
 ## 1. Objective

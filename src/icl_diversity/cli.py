@@ -66,8 +66,7 @@ def load_responses_with_prompts(
         result[scale] = {}
         for prompt_idx, entry in sorted(prompts.items()):
             responses_sorted = [
-                entry["responses"][i]
-                for i in sorted(entry["responses"].keys())
+                entry["responses"][i] for i in sorted(entry["responses"].keys())
             ]
             result[scale][prompt_idx] = (entry["prompt"], responses_sorted)
 
@@ -136,7 +135,9 @@ def main() -> None:
         sys.exit(1)
 
     # Load model
-    print(f"Loading model: {args.base_model} (dtype={args.torch_dtype}, device={device})")
+    print(
+        f"Loading model: {args.base_model} (dtype={args.torch_dtype}, device={device})"
+    )
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
@@ -169,8 +170,10 @@ def main() -> None:
         m_effs = []
 
         for prompt_idx, (prompt_text, responses) in sorted(prompts.items()):
-            print(f"  Prompt {prompt_idx}: {len(responses)} responses, "
-                  f"computing ICL diversity...")
+            print(
+                f"  Prompt {prompt_idx}: {len(responses)} responses, "
+                f"computing ICL diversity..."
+            )
 
             metrics = compute_icl_diversity_metrics(
                 model=model,
@@ -195,11 +198,13 @@ def main() -> None:
             sigmas.append(metrics["coherence_spread_sigma"])
             m_effs.append(metrics["effective_mode_count"])
 
-            print(f"    D={metrics['diversity_score_D']:.4f}, "
-                  f"E={metrics['excess_entropy_E']:.4f}, "
-                  f"C={metrics['coherence_C']:.4f}, "
-                  f"m_eff={metrics['effective_mode_count']:.2f}, "
-                  f"monotone={metrics['is_monotone']}")
+            print(
+                f"    D={metrics['diversity_score_D']:.4f}, "
+                f"E={metrics['excess_entropy_E']:.4f}, "
+                f"C={metrics['coherence_C']:.4f}, "
+                f"m_eff={metrics['effective_mode_count']:.2f}, "
+                f"monotone={metrics['is_monotone']}"
+            )
 
         aggregate = {
             "mean_D": float(np.mean(ds)) if ds else 0.0,
@@ -214,9 +219,11 @@ def main() -> None:
             "aggregate": aggregate,
         }
 
-        print(f"  Aggregate: mean_D={aggregate['mean_D']:.4f}, "
-              f"mean_E={aggregate['mean_E']:.4f}, "
-              f"mean_C={aggregate['mean_C']:.4f}")
+        print(
+            f"  Aggregate: mean_D={aggregate['mean_D']:.4f}, "
+            f"mean_E={aggregate['mean_E']:.4f}, "
+            f"mean_C={aggregate['mean_C']:.4f}"
+        )
 
     # Write output
     output_path.parent.mkdir(parents=True, exist_ok=True)
