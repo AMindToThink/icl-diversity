@@ -5,16 +5,16 @@ Output: results/scenario_metrics.json
 
 Usage:
     uv run scripts/run_scenarios.py
+    uv run scripts/run_scenarios.py --base-model Qwen/Qwen2.5-32B --device auto --torch-dtype float16
     uv run scripts/run_scenarios.py --output results/my_run.json
 """
 
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
-
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -44,10 +44,11 @@ DEFAULT_OUTPUT = (
 def compute_all_scenarios(
     model: torch.nn.Module,
     tokenizer: Any,
+    base_model: str = "gpt2",
 ) -> dict[str, Any]:
     """Compute metrics for all five scenarios."""
     result: dict[str, Any] = {
-        "base_model": "gpt2",
+        "base_model": base_model,
         "n_permutations": N_PERMUTATIONS,
         "n_responses": N_RESPONSES,
         "seed": SEED,
@@ -151,15 +152,60 @@ def main() -> None:
     parser.add_argument(
         "--output", type=Path, default=DEFAULT_OUTPUT, help="Output JSON path"
     )
+    parser.add_argument(
+        "--base-model", default="gpt2", help="HuggingFace model ID (default: gpt2)"
+    )
+    parser.add_argument(
+        "--device",
+        default="cpu",
+        help='Device: cpu, cuda, cuda:0, or auto (multi-GPU via device_map="auto")',
+    )
+    parser.add_argument(
+        "--torch-dtype",
+        default=None,
+        help="Model dtype: float16, bfloat16, float32 (default: model's native dtype)",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Set HF_HUB_OFFLINE=1 to prevent downloads",
+    )
     args = parser.parse_args()
 
-    print("Loading GPT-2...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    model = AutoModelForCausalLM.from_pretrained("gpt2")
+    if args.offline:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+
+    # Resolve dtype
+    torch_dtype = None
+    if args.torch_dtype is not None:
+        dtype_map = {
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+            "float32": torch.float32,
+        }
+        torch_dtype = dtype_map.get(args.torch_dtype)
+        if torch_dtype is None:
+            print(f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32.")
+            sys.exit(1)
+
+    # Load model
+    use_device_map = args.device == "auto"
+    print(f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})...")
+
+    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    load_kwargs: dict[str, Any] = {}
+    if torch_dtype is not None:
+        load_kwargs["dtype"] = torch_dtype
+    if use_device_map:
+        load_kwargs["device_map"] = "auto"
+
+    model = AutoModelForCausalLM.from_pretrained(args.base_model, **load_kwargs)
+    if not use_device_map and args.device != "cpu":
+        model = model.to(args.device)
     model.eval()
 
     print("Computing metrics for all scenarios...")
-    results = compute_all_scenarios(model, tokenizer)
+    results = compute_all_scenarios(model, tokenizer, base_model=args.base_model)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w") as f:

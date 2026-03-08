@@ -192,6 +192,100 @@ def compute_progressive_surprise_curve(
     return curve
 
 
+def compute_progressive_surprise_curve_single_pass(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+) -> list[float]:
+    """Compute the progressive conditional surprise curve using a single forward pass.
+
+    Equivalent to :func:`compute_progressive_surprise_curve` but concatenates all
+    responses into one sequence and runs a single forward pass, then extracts
+    per-response log-probs by locating token boundaries.
+
+    The boundary-finding logic mirrors :func:`compute_per_byte_cross_entropy`:
+    we tokenize progressive prefixes to determine where each response's tokens
+    start and end in the full token sequence.
+
+    Args:
+        model: The base model theta.
+        tokenizer: Tokenizer for theta.
+        prompt: The original prompt p.
+        responses: List of n responses [r_1, ..., r_n].
+
+    Returns:
+        List of a_k values (progressive conditional surprise curve) in bits/byte.
+    """
+    n = len(responses)
+    if n == 0:
+        return []
+
+    # Build the full concatenated context
+    parts = [prompt]
+    for i, resp in enumerate(responses):
+        label = _response_label(i)
+        parts.append(f"\n\nResponse {label}: {resp}")
+    full_text = "".join(parts)
+
+    full_ids = tokenizer.encode(full_text, add_special_tokens=False)
+
+    # Find response token boundaries using progressive prefix tokenization.
+    # This mirrors the boundary logic in compute_per_byte_cross_entropy:
+    # tokenize prefix alone to get start index, then prefix+response to get end.
+    boundaries: list[tuple[int, int]] = []
+    running_text = prompt + f"\n\nResponse {_response_label(0)}: "
+    for k in range(n):
+        n_prefix = len(tokenizer.encode(running_text, add_special_tokens=False))
+        running_text += responses[k]
+        n_with_resp = len(tokenizer.encode(running_text, add_special_tokens=False))
+        boundaries.append((n_prefix, n_with_resp))
+        if k < n - 1:
+            running_text += f"\n\nResponse {_response_label(k + 1)}: "
+
+    # Sanity check: final running_text should equal full_text
+    assert len(tokenizer.encode(running_text, add_special_tokens=False)) == len(
+        full_ids
+    ), (
+        f"Tokenization mismatch: progressive="
+        f"{len(tokenizer.encode(running_text, add_special_tokens=False))}, "
+        f"full={len(full_ids)}"
+    )
+
+    # Single forward pass
+    input_ids = torch.tensor([full_ids], device=model.device)
+    with torch.no_grad():
+        outputs = model(input_ids)
+        logits = outputs.logits[0]  # (seq_len, vocab_size)
+
+    # Compute log-probs once for the full sequence
+    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+
+    # Extract per-response a_k values
+    curve: list[float] = []
+    for k, (start, end) in enumerate(boundaries):
+        byte_count = len(responses[k].encode("utf-8"))
+        if byte_count == 0 or end <= start:
+            curve.append(0.0)
+            continue
+
+        # Causal shift: logits[t-1] predicts token at position t
+        # Gather log-probs for token IDs at positions start..end-1
+        token_positions = torch.arange(start, end, device=logits.device)
+        token_ids = torch.tensor(
+            full_ids[start:end], device=logits.device, dtype=torch.long
+        )
+        # log_probs[t-1] gives the prediction for position t
+        total_log_prob = log_probs[token_positions - 1, token_ids].sum().item()
+
+        # Convert nats → bits, normalize by bytes
+        total_log2_prob = total_log_prob / math.log(2)
+        a_k = -total_log2_prob / byte_count
+        curve.append(a_k)
+
+    return curve
+
+
 def compute_unconditional_surprises(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
@@ -333,8 +427,8 @@ def compute_icl_diversity_metrics(
     )
 
     if n_permutations <= 1:
-        # Single ordering
-        a_k_curve = compute_progressive_surprise_curve(
+        # Single ordering — single forward pass
+        a_k_curve = compute_progressive_surprise_curve_single_pass(
             model, tokenizer, prompt, responses
         )
         metrics = _compute_metrics_from_curves(
@@ -355,7 +449,7 @@ def compute_icl_diversity_metrics(
         rng.shuffle(perm)
         all_perms.append(list(perm))
         permuted_responses = [responses[i] for i in perm]
-        curve = compute_progressive_surprise_curve(
+        curve = compute_progressive_surprise_curve_single_pass(
             model, tokenizer, prompt, permuted_responses
         )
         all_curves.append(curve)

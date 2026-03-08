@@ -1,11 +1,13 @@
 """Generate a_k curve plots from saved scenario metrics JSON.
 
 Reads results/scenario_metrics.json (produced by run_scenarios.py) and
-generates per-scenario and combined a_k curve plots.
+generates per-scenario and combined a_k curve plots. When multiple input
+files are provided, generates side-by-side comparison plots.
 
 Usage:
     uv run scripts/plot_ak_curves.py
     uv run scripts/plot_ak_curves.py --input results/my_run.json
+    uv run scripts/plot_ak_curves.py --input results/scenario_metrics.json results/scenario_metrics_qwen.json --output-dir figures/comparison
 """
 
 import argparse
@@ -37,6 +39,9 @@ SCENARIO_TITLES = {
     "one_mode": "One mode (paraphrase)",
     "mixed": "Mixed coherent+incoherent",
 }
+
+# Canonical scenario order for consistent plot layout
+SCENARIO_ORDER = ["pure_noise", "multi_incoherent", "multi_mode", "one_mode", "mixed"]
 
 DEFAULT_INPUT = (
     Path(__file__).resolve().parent.parent / "results" / "scenario_metrics.json"
@@ -134,24 +139,142 @@ def generate_plots(data: dict[str, Any], figures_dir: Path) -> None:
     print(f"  Saved: {path}")
 
 
+def generate_comparison_plots(
+    datasets: list[dict[str, Any]],
+    figures_dir: Path,
+) -> None:
+    """Generate side-by-side comparison plots for multiple models."""
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    n_models = len(datasets)
+    model_names = [d.get("base_model", f"Model {i}") for i, d in enumerate(datasets)]
+
+    # Collect all scenario keys across datasets (use canonical order)
+    all_keys = []
+    for key in SCENARIO_ORDER:
+        if any(key in d.get("scenarios", {}) for d in datasets):
+            all_keys.append(key)
+
+    # Per-scenario comparison: 1 row x N models columns
+    for key in all_keys:
+        title = SCENARIO_TITLES.get(key, key)
+        fig, axes = plt.subplots(1, n_models, figsize=(7 * n_models, 5), squeeze=False)
+
+        # Compute shared y-axis limits across models for this scenario
+        y_min, y_max = float("inf"), float("-inf")
+        for data in datasets:
+            if key in data.get("scenarios", {}):
+                for m in data["scenarios"][key]:
+                    curve = m["a_k_curve"]
+                    y_min = min(y_min, min(curve))
+                    y_max = max(y_max, max(curve))
+                    if m.get("per_permutation_a_k_curves") is not None:
+                        for pc in m["per_permutation_a_k_curves"]:
+                            y_min = min(y_min, min(pc))
+                            y_max = max(y_max, max(pc))
+        y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
+        y_range = (y_min - y_pad, y_max + y_pad)
+
+        for col, data in enumerate(datasets):
+            ax = axes[0, col]
+            if key in data.get("scenarios", {}):
+                plot_single_scenario(title, data["scenarios"][key], ax)
+            else:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center",
+                        transform=ax.transAxes)
+            ax.set_title(f"{title}\n({model_names[col]})", fontsize=11, fontweight="bold")
+            ax.set_ylim(y_range)
+
+        fig.tight_layout()
+        path = figures_dir / f"comparison_ak_curve_{key}.png"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  Saved: {path}")
+
+    # Combined overview: scenarios (rows) x models (columns)
+    n_scenarios = len(all_keys)
+    fig, axes = plt.subplots(
+        n_scenarios, n_models, figsize=(7 * n_models, 4 * n_scenarios), squeeze=False
+    )
+
+    for row, key in enumerate(all_keys):
+        title = SCENARIO_TITLES.get(key, key)
+
+        # Shared y-axis per scenario row
+        y_min, y_max = float("inf"), float("-inf")
+        for data in datasets:
+            if key in data.get("scenarios", {}):
+                for m in data["scenarios"][key]:
+                    curve = m["a_k_curve"]
+                    y_min = min(y_min, min(curve))
+                    y_max = max(y_max, max(curve))
+                    if m.get("per_permutation_a_k_curves") is not None:
+                        for pc in m["per_permutation_a_k_curves"]:
+                            y_min = min(y_min, min(pc))
+                            y_max = max(y_max, max(pc))
+        y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
+        y_range = (y_min - y_pad, y_max + y_pad)
+
+        for col, data in enumerate(datasets):
+            ax = axes[row, col]
+            if key in data.get("scenarios", {}):
+                plot_single_scenario(title, data["scenarios"][key], ax)
+            else:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center",
+                        transform=ax.transAxes)
+            ax.set_ylim(y_range)
+            if row == 0:
+                ax.set_title(
+                    f"{model_names[col]}\n{title}", fontsize=11, fontweight="bold"
+                )
+            else:
+                ax.set_title(title, fontsize=11, fontweight="bold")
+
+    fig.suptitle(
+        "Progressive Conditional Surprise Curves: Model Comparison",
+        fontsize=14,
+        fontweight="bold",
+        y=0.99,
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    path = figures_dir / "comparison_ak_curves_all.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Plot a_k curves from scenario metrics JSON"
     )
     parser.add_argument(
-        "--input", type=Path, default=DEFAULT_INPUT, help="Input JSON path"
+        "--input",
+        type=Path,
+        nargs="+",
+        default=[DEFAULT_INPUT],
+        help="Input JSON path(s). Multiple files generate comparison plots.",
     )
     parser.add_argument(
         "--output-dir", type=Path, default=FIGURES_DIR, help="Output figures directory"
     )
     args = parser.parse_args()
 
-    print(f"Loading metrics from: {args.input}")
-    with open(args.input) as f:
-        data = json.load(f)
+    if len(args.input) == 1:
+        # Single file: existing behavior
+        print(f"Loading metrics from: {args.input[0]}")
+        with open(args.input[0]) as f:
+            data = json.load(f)
+        print("Generating plots...")
+        generate_plots(data, args.output_dir)
+    else:
+        # Multiple files: comparison mode
+        datasets = []
+        for path in args.input:
+            print(f"Loading metrics from: {path}")
+            with open(path) as f:
+                datasets.append(json.load(f))
+        print(f"Generating comparison plots for {len(datasets)} models...")
+        generate_comparison_plots(datasets, args.output_dir)
 
-    print("Generating plots...")
-    generate_plots(data, args.output_dir)
     print("Done!")
 
 

@@ -23,11 +23,23 @@ uv run pytest tests/test_icl_diversity.py::TestExcessEntropy::test_zero_for_cons
 # GPT-2 integration tests (~100s on CPU)
 uv run pytest tests/test_icl_diversity_scenarios.py -v -s
 
+# Single-pass equivalence tests (requires GPT-2)
+uv run pytest tests/test_single_pass.py -v -s
+
 # Compute validation scenario metrics → results/scenario_metrics.json
 uv run python scripts/run_scenarios.py
 
+# Compute with a different model (e.g., Qwen2.5-32B on multi-GPU)
+uv run python scripts/run_scenarios.py --base-model Qwen/Qwen2.5-32B --device auto --torch-dtype float16 --output results/scenario_metrics_qwen2.5-32b.json
+
 # Generate a_k curve plots from saved JSON → figures/
 uv run python scripts/plot_ak_curves.py
+
+# Generate comparison plots (multiple models)
+uv run python scripts/plot_ak_curves.py --input results/scenario_metrics.json results/scenario_metrics_qwen2.5-32b.json --output-dir figures/comparison
+
+# Run cross-model hypothesis tests
+uv run python scripts/test_hypotheses.py
 
 # Lint and format
 uv run ruff check .
@@ -45,7 +57,7 @@ The metric flows through these stages, all in one file:
 
 1. **`compute_per_byte_cross_entropy(model, tokenizer, text, prefix)`** — Tokenizes prefix+text, runs a forward pass, extracts log-probs for just the text tokens, converts to bits/byte. This is the atomic building block.
 
-2. **`compute_progressive_surprise_curve(model, tokenizer, prompt, responses)`** — Calls `compute_per_byte_cross_entropy` for each response conditioned on all previous responses (formatted via `format_conditioning_context`). Returns the a_k curve (list of floats).
+2. **`compute_progressive_surprise_curve_single_pass(model, tokenizer, prompt, responses)`** — Single forward pass over the full concatenated context, extracting per-response log-probs by token boundary detection. This is the default used by `compute_icl_diversity_metrics`. The old multi-pass version `compute_progressive_surprise_curve` is retained for testing/comparison.
 
 3. **`compute_unconditional_surprises(model, tokenizer, prompt, responses)`** — Per-byte cross-entropy of each response conditioned only on the prompt (no other responses).
 
