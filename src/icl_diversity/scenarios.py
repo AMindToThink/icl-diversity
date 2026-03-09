@@ -9,11 +9,25 @@ Scenarios:
 3. Many coherent modes:      C high, E high, D high
 4. One coherent mode:        C high, E moderate, D moderate
 5. Mixed coherent+incoherent: high σ_ℓ, wide [D-, D+] band
+6. High diversity (15 modes): Very high D, slow a_k convergence
+7. Open creative (15 format/genre modes): Format-diverse responses to same topic
+8. Problem-solving (15 approach modes): Different languages/algorithms/styles
 """
 
 import random
 import string
 from typing import Callable
+
+# Scenarios 7 & 8 are defined in _new_scenarios.py (pre-defined choice tuples
+# to work around Python 3.10 f-string backslash restriction).
+from icl_diversity._new_scenarios import (  # noqa: E402, F401
+    OPEN_CREATIVE_N_RESPONSES,
+    OPEN_CREATIVE_PROMPT_LABELS,
+    OPEN_CREATIVE_PROMPTS_AND_RESPONSES,
+    PROBLEM_SOLVING_N_RESPONSES,
+    PROBLEM_SOLVING_PROMPT_LABELS,
+    PROBLEM_SOLVING_PROMPTS_AND_RESPONSES,
+)
 
 N_RESPONSES = 10
 N_PERMUTATIONS = 3
@@ -331,9 +345,155 @@ MIXED_PROMPTS_AND_RESPONSES: list[tuple[str, list[str]]] = [
 ]
 
 # ============================================================================
+# Scenario 6: High diversity — 15 coherent modes, 100 responses
+# ============================================================================
+# Each prompt has 100 responses drawn from 15 distinct templates.
+# Responses cycle through modes with slot variation. With many modes,
+# a_k should converge slowly and D should be very high.
+
+# Mode templates: each takes a random.Random and returns a response string.
+# Templates are designed to be surface-distinguishable by a base LM.
+
+_HIGH_DIV_ANIMAL_MODES: list[Callable[[random.Random], str]] = [
+    # Mode 1: Cat behavior
+    lambda rng: f"The cat {rng.choice(['sat', 'lay', 'curled up', 'stretched'])} on the {rng.choice(['mat', 'sofa', 'windowsill', 'rug'])}. It was a {rng.choice(['warm', 'sunny', 'quiet', 'lazy'])} afternoon and the cat purred softly.",
+    # Mode 2: Dog at the park
+    lambda rng: f"The dog {rng.choice(['ran', 'sprinted', 'trotted', 'dashed'])} through the {rng.choice(['park', 'field', 'meadow', 'yard'])}. It {rng.choice(['chased a ball', 'fetched a stick', 'jumped over logs', 'splashed in puddles'])} with boundless energy.",
+    # Mode 3: Bird in flight
+    lambda rng: f"A {rng.choice(['blue', 'red', 'golden', 'white'])} bird soared above the {rng.choice(['forest', 'lake', 'valley', 'hills'])}. Its wings caught the {rng.choice(['morning', 'evening', 'afternoon', 'midday'])} light beautifully.",
+    # Mode 4: Fish underwater
+    lambda rng: f"The {rng.choice(['silver', 'spotted', 'striped', 'colorful'])} fish swam through the {rng.choice(['coral reef', 'kelp forest', 'clear stream', 'deep ocean'])}. It darted between {rng.choice(['rocks', 'plants', 'anemones', 'shadows'])} gracefully.",
+    # Mode 5: Horse running
+    lambda rng: f"The {rng.choice(['brown', 'black', 'white', 'gray'])} horse galloped across the {rng.choice(['open plain', 'rolling hills', 'sandy beach', 'grassy field'])}. Its mane {rng.choice(['flowed', 'streamed', 'whipped', 'rippled'])} in the wind.",
+    # Mode 6: Owl at night
+    lambda rng: f"An owl {rng.choice(['perched', 'sat', 'waited', 'watched'])} silently in the {rng.choice(['oak tree', 'pine tree', 'old barn', 'church tower'])}. Its {rng.choice(['amber', 'golden', 'bright', 'piercing'])} eyes scanned the darkness below.",
+    # Mode 7: Rabbit in garden
+    lambda rng: f"A small rabbit {rng.choice(['hopped', 'nibbled', 'crouched', 'scurried'])} in the {rng.choice(['garden', 'vegetable patch', 'backyard', 'meadow'])}. It {rng.choice(['twitched its nose', 'perked its ears', 'froze in place', 'munched on clover'])} cautiously.",
+    # Mode 8: Dolphin playing
+    lambda rng: f"A pod of dolphins {rng.choice(['leaped', 'jumped', 'arced', 'surfaced'])} through the {rng.choice(['waves', 'calm water', 'ocean spray', 'surf'])}. They {rng.choice(['clicked', 'whistled', 'chattered', 'called'])} to each other playfully.",
+    # Mode 9: Eagle hunting
+    lambda rng: f"The eagle {rng.choice(['circled', 'soared', 'glided', 'hovered'])} high above the {rng.choice(['canyon', 'river', 'mountain ridge', 'desert floor'])}. With {rng.choice(['incredible', 'remarkable', 'stunning', 'breathtaking'])} precision it dove toward its prey.",
+    # Mode 10: Turtle on shore
+    lambda rng: f"The {rng.choice(['sea', 'old', 'giant', 'ancient'])} turtle {rng.choice(['crawled', 'lumbered', 'crept', 'trudged'])} along the {rng.choice(['sandy beach', 'rocky shore', 'warm coastline', 'moonlit beach'])}. It moved with {rng.choice(['patient', 'quiet', 'steady', 'calm'])} determination.",
+    # Mode 11: Bear foraging
+    lambda rng: f"A {rng.choice(['large', 'massive', 'young', 'grizzly'])} bear {rng.choice(['foraged', 'searched', 'rummaged', 'rooted'])} along the {rng.choice(['riverbank', 'forest edge', 'berry bushes', 'fallen logs'])}. It {rng.choice(['sniffed the air', 'turned over stones', 'pawed at the ground', 'shook its heavy head'])} hungrily.",
+    # Mode 12: Butterfly in meadow
+    lambda rng: f"A {rng.choice(['monarch', 'painted', 'swallowtail', 'blue'])} butterfly {rng.choice(['fluttered', 'drifted', 'floated', 'danced'])} among the {rng.choice(['wildflowers', 'daisies', 'sunflowers', 'lavender'])}. Its {rng.choice(['delicate', 'vibrant', 'patterned', 'iridescent'])} wings caught the sunlight.",
+    # Mode 13: Wolf howling
+    lambda rng: f"The {rng.choice(['lone', 'gray', 'timber', 'arctic'])} wolf {rng.choice(['howled', 'called', 'cried', 'sang'])} from the {rng.choice(['hilltop', 'ridge', 'snowy peak', 'forest clearing'])}. The {rng.choice(['moonlight', 'starlight', 'twilight', 'darkness'])} cast long shadows across the land.",
+    # Mode 14: Penguin colony
+    lambda rng: f"A colony of penguins {rng.choice(['huddled', 'gathered', 'waddled', 'shuffled'])} on the {rng.choice(['icy shore', 'frozen coast', 'snow-covered beach', 'glacier edge'])}. They {rng.choice(['called', 'squawked', 'trumpeted', 'chirped'])} loudly in the {rng.choice(['bitter', 'freezing', 'harsh', 'biting'])} cold.",
+    # Mode 15: Elephant herd
+    lambda rng: f"The elephant herd {rng.choice(['marched', 'traveled', 'migrated', 'walked'])} across the {rng.choice(['savanna', 'dusty plain', 'dry riverbed', 'golden grassland'])}. The {rng.choice(['matriarch', 'eldest female', 'lead cow', 'mother'])} guided them toward {rng.choice(['water', 'the watering hole', 'shade', 'fresh grazing'])}.",
+]
+
+_HIGH_DIV_HOBBY_MODES: list[Callable[[random.Random], str]] = [
+    # Mode 1: Painting
+    lambda rng: f"I spent the afternoon painting {rng.choice(['a landscape', 'a portrait', 'a still life', 'an abstract piece'])} with {rng.choice(['watercolors', 'oils', 'acrylics', 'pastels'])}. The {rng.choice(['colors', 'textures', 'brushstrokes', 'layers'])} came together {rng.choice(['beautifully', 'gradually', 'unexpectedly', 'harmoniously'])}.",
+    # Mode 2: Playing guitar
+    lambda rng: f"I picked up my {rng.choice(['acoustic', 'electric', 'classical', 'bass'])} guitar and played {rng.choice(['a blues riff', 'some folk songs', 'a jazz progression', 'a rock anthem'])}. The {rng.choice(['melody', 'rhythm', 'chords', 'notes'])} filled the {rng.choice(['room', 'house', 'garage', 'studio'])}.",
+    # Mode 3: Gardening
+    lambda rng: f"I worked in the garden, {rng.choice(['planting', 'pruning', 'weeding', 'watering'])} the {rng.choice(['roses', 'tomatoes', 'herbs', 'vegetables'])}. The {rng.choice(['soil', 'earth', 'dirt', 'ground'])} was {rng.choice(['rich', 'dark', 'moist', 'warm'])} and smelled of {rng.choice(['spring', 'rain', 'compost', 'growth'])}.",
+    # Mode 4: Chess
+    lambda rng: f"I played a {rng.choice(['long', 'quick', 'tense', 'brilliant'])} game of chess against {rng.choice(['my friend', 'the computer', 'my neighbor', 'a stranger online'])}. The {rng.choice(['opening', 'middlegame', 'endgame', 'final position'])} was {rng.choice(['complex', 'elegant', 'surprising', 'decisive'])}.",
+    # Mode 5: Photography
+    lambda rng: f"I took my camera to the {rng.choice(['park', 'waterfront', 'old town', 'countryside'])} and photographed {rng.choice(['the sunset', 'street scenes', 'wildflowers', 'architecture'])}. The {rng.choice(['lighting', 'composition', 'shadows', 'contrast'])} was {rng.choice(['perfect', 'dramatic', 'soft', 'stunning'])}.",
+    # Mode 6: Woodworking
+    lambda rng: f"I spent hours in the workshop {rng.choice(['carving', 'sanding', 'joining', 'shaping'])} a {rng.choice(['bookshelf', 'cutting board', 'picture frame', 'small box'])} from {rng.choice(['oak', 'walnut', 'maple', 'cherry'])}. The {rng.choice(['grain', 'wood', 'finish', 'surface'])} was {rng.choice(['smooth', 'beautiful', 'perfect', 'satisfying'])}.",
+    # Mode 7: Knitting
+    lambda rng: f"I sat by the window knitting a {rng.choice(['scarf', 'sweater', 'hat', 'blanket'])} from {rng.choice(['soft wool', 'merino yarn', 'cotton thread', 'alpaca fiber'])}. The {rng.choice(['pattern', 'stitches', 'rows', 'design'])} {rng.choice(['grew steadily', 'took shape', 'progressed nicely', 'came along well'])}.",
+    # Mode 8: Astronomy
+    lambda rng: f"I set up my telescope and observed {rng.choice(['Jupiter', 'Saturn', 'the Orion Nebula', 'the Andromeda Galaxy'])} on a {rng.choice(['clear', 'cloudless', 'moonless', 'crisp'])} night. The {rng.choice(['stars', 'sky', 'cosmos', 'heavens'])} were {rng.choice(['breathtaking', 'spectacular', 'magnificent', 'awe-inspiring'])}.",
+    # Mode 9: Baking bread
+    lambda rng: f"I baked a loaf of {rng.choice(['sourdough', 'whole wheat', 'rye', 'ciabatta'])} bread from scratch. The {rng.choice(['crust', 'crumb', 'aroma', 'texture'])} was {rng.choice(['golden', 'perfect', 'crispy', 'wonderful'])} and the house smelled {rng.choice(['amazing', 'incredible', 'heavenly', 'fantastic'])}.",
+    # Mode 10: Bird watching
+    lambda rng: f"I went birdwatching at the {rng.choice(['nature reserve', 'wetlands', 'forest trail', 'lakeside'])} and spotted a {rng.choice(['kingfisher', 'heron', 'warbler', 'woodpecker'])}. It {rng.choice(['perched quietly', 'sang loudly', 'preened its feathers', 'dove into the water'])} as I watched through binoculars.",
+    # Mode 11: Writing poetry
+    lambda rng: f"I sat at my desk and wrote a {rng.choice(['sonnet', 'haiku', 'free verse poem', 'limerick'])} about {rng.choice(['autumn leaves', 'the passing of time', 'a childhood memory', 'the night sky'])}. The {rng.choice(['words', 'lines', 'stanzas', 'verses'])} {rng.choice(['flowed easily', 'came slowly', 'surprised me', 'felt right'])}.",
+    # Mode 12: Rock climbing
+    lambda rng: f"I went rock climbing at the {rng.choice(['indoor gym', 'local crag', 'granite cliff', 'sandstone wall'])} and tackled a {rng.choice(['challenging', 'technical', 'overhanging', 'vertical'])} route. The {rng.choice(['holds', 'moves', 'crux', 'finish'])} required {rng.choice(['precision', 'strength', 'balance', 'focus'])}.",
+    # Mode 13: Pottery
+    lambda rng: f"I threw a {rng.choice(['bowl', 'vase', 'mug', 'plate'])} on the pottery wheel using {rng.choice(['stoneware', 'porcelain', 'earthenware', 'terracotta'])} clay. The {rng.choice(['shape', 'form', 'piece', 'vessel'])} {rng.choice(['emerged slowly', 'took form', 'grew under my hands', 'came together'])} as the wheel spun.",
+    # Mode 14: Cycling
+    lambda rng: f"I went for a {rng.choice(['long', 'brisk', 'leisurely', 'challenging'])} bike ride along the {rng.choice(['canal path', 'coastal road', 'mountain trail', 'country lane'])}. The {rng.choice(['wind', 'breeze', 'air', 'weather'])} was {rng.choice(['refreshing', 'cool', 'warm', 'perfect'])} and the views were {rng.choice(['stunning', 'lovely', 'spectacular', 'gorgeous'])}.",
+    # Mode 15: Stargazing
+    lambda rng: f"I lay on a blanket in the {rng.choice(['backyard', 'open field', 'hilltop', 'desert'])} and gazed at the {rng.choice(['Milky Way', 'constellations', 'shooting stars', 'northern lights'])}. The {rng.choice(['silence', 'stillness', 'darkness', 'vastness'])} was {rng.choice(['profound', 'humbling', 'peaceful', 'overwhelming'])}.",
+]
+
+_HIGH_DIV_TRAVEL_MODES: list[Callable[[random.Random], str]] = [
+    # Mode 1: Beach vacation
+    lambda rng: f"We arrived at the {rng.choice(['tropical', 'secluded', 'pristine', 'popular'])} beach and {rng.choice(['swam in the turquoise water', 'built sandcastles', 'collected seashells', 'lounged under umbrellas'])}. The {rng.choice(['sand', 'water', 'waves', 'sunset'])} was {rng.choice(['perfect', 'gorgeous', 'incredible', 'unforgettable'])}.",
+    # Mode 2: Mountain hiking
+    lambda rng: f"We hiked up the {rng.choice(['steep', 'winding', 'rugged', 'scenic'])} mountain trail through {rng.choice(['pine forests', 'alpine meadows', 'rocky terrain', 'wildflower fields'])}. At the summit we {rng.choice(['took photos', 'ate lunch', 'rested quietly', 'cheered'])} and enjoyed the panoramic view.",
+    # Mode 3: European city
+    lambda rng: f"We wandered the {rng.choice(['cobblestone', 'narrow', 'bustling', 'charming'])} streets of {rng.choice(['Paris', 'Rome', 'Prague', 'Barcelona'])} and visited {rng.choice(['a cathedral', 'an art museum', 'a palace', 'a historic square'])}. The {rng.choice(['architecture', 'atmosphere', 'history', 'culture'])} was {rng.choice(['magnificent', 'captivating', 'enchanting', 'remarkable'])}.",
+    # Mode 4: Safari
+    lambda rng: f"On safari we spotted a {rng.choice(['pride of lions', 'herd of elephants', 'family of giraffes', 'pack of zebras'])} crossing the {rng.choice(['savanna', 'grassland', 'dusty road', 'dry riverbed'])}. Our guide {rng.choice(['explained their behavior', 'kept a safe distance', 'took amazing photos', 'whispered in excitement'])}.",
+    # Mode 5: Train journey
+    lambda rng: f"The train {rng.choice(['wound', 'rolled', 'sped', 'chugged'])} through the {rng.choice(['Swiss Alps', 'Scottish Highlands', 'Japanese countryside', 'Indian plains'])}. We watched the {rng.choice(['landscape', 'scenery', 'villages', 'rivers'])} pass by from the {rng.choice(['observation car', 'dining car', 'window seat', 'open platform'])}.",
+    # Mode 6: Island exploration
+    lambda rng: f"We explored the {rng.choice(['volcanic', 'tiny', 'lush', 'remote'])} island by {rng.choice(['renting scooters', 'hiking trails', 'taking a boat tour', 'walking barefoot'])}. The {rng.choice(['jungle', 'coastline', 'waterfalls', 'villages'])} {rng.choice(['amazed us', 'took our breath away', 'felt untouched', 'were magical'])}.",
+    # Mode 7: Desert adventure
+    lambda rng: f"We drove across the {rng.choice(['vast', 'endless', 'scorching', 'golden'])} desert in a {rng.choice(['jeep', 'truck', 'four-wheel drive', 'caravan'])}. The {rng.choice(['sand dunes', 'rock formations', 'starlit sky', 'silence'])} made us feel {rng.choice(['tiny', 'humbled', 'alive', 'free'])}.",
+    # Mode 8: River cruise
+    lambda rng: f"We took a {rng.choice(['sunset', 'morning', 'leisurely', 'guided'])} cruise down the {rng.choice(['Danube', 'Rhine', 'Mekong', 'Nile'])}. The {rng.choice(['riverbanks', 'castles', 'temples', 'villages'])} {rng.choice(['drifted past', 'unfolded before us', 'reflected in the water', 'told stories of the past'])}.",
+    # Mode 9: Winter skiing
+    lambda rng: f"We hit the {rng.choice(['powder', 'groomed', 'steep', 'wide open'])} slopes at {rng.choice(['dawn', 'midday', 'sunset', 'first light'])} and skied until our legs {rng.choice(['ached', 'burned', 'gave out', 'trembled'])}. The {rng.choice(['snow', 'mountain air', 'views', 'fresh powder'])} was absolutely {rng.choice(['perfect', 'exhilarating', 'magical', 'glorious'])}.",
+    # Mode 10: Ancient ruins
+    lambda rng: f"We visited the ancient {rng.choice(['Roman', 'Greek', 'Mayan', 'Egyptian'])} ruins and walked among {rng.choice(['crumbling columns', 'stone temples', 'weathered statues', 'mosaic floors'])}. The {rng.choice(['history', 'scale', 'craftsmanship', 'age'])} of the site was {rng.choice(['humbling', 'astonishing', 'moving', 'impressive'])}.",
+    # Mode 11: Food tour
+    lambda rng: f"We joined a {rng.choice(['street food', 'market', 'culinary', 'walking'])} tour and tasted {rng.choice(['local cheeses', 'fresh seafood', 'handmade pasta', 'exotic spices'])}. Every {rng.choice(['bite', 'dish', 'flavor', 'course'])} told a story about the {rng.choice(['region', 'culture', 'traditions', 'people'])}.",
+    # Mode 12: Rainforest trek
+    lambda rng: f"We trekked through the {rng.choice(['dense', 'misty', 'humid', 'ancient'])} rainforest, {rng.choice(['crossing rope bridges', 'following animal tracks', 'wading through streams', 'climbing muddy slopes'])}. The {rng.choice(['canopy', 'birdcalls', 'insects', 'biodiversity'])} was {rng.choice(['extraordinary', 'overwhelming', 'incredible', 'mesmerizing'])}.",
+    # Mode 13: Northern lights
+    lambda rng: f"We drove {rng.choice(['hours', 'far from the city', 'into the wilderness', 'north'])} to see the northern lights. The {rng.choice(['green', 'purple', 'shimmering', 'dancing'])} aurora {rng.choice(['filled the sky', 'rippled overhead', 'swirled across the horizon', 'pulsed with light'])} and left us speechless.",
+    # Mode 14: Coastal village
+    lambda rng: f"We spent a {rng.choice(['lazy', 'quiet', 'sunny', 'windy'])} day in a {rng.choice(['tiny', 'colorful', 'fishing', 'cliffside'])} village along the coast. The {rng.choice(['harbor', 'houses', 'boats', 'market'])} {rng.choice(['gleamed in the sun', 'swayed gently', 'smelled of salt air', 'buzzed with locals'])}.",
+    # Mode 15: Hot air balloon
+    lambda rng: f"We floated above the {rng.choice(['valley', 'vineyards', 'fairy chimneys', 'patchwork fields'])} in a {rng.choice(['colorful', 'red and gold', 'striped', 'giant'])} hot air balloon. The {rng.choice(['silence', 'view', 'sunrise', 'landscape below'])} was {rng.choice(['surreal', 'otherworldly', 'majestic', 'serene'])}.",
+]
+
+
+def _generate_high_diversity_responses(
+    modes: list[Callable[[random.Random], str]],
+    n: int = 100,
+    seed: int = 0,
+) -> list[str]:
+    """Generate n responses cycling through all modes with slot variation."""
+    rng = random.Random(seed)
+    responses: list[str] = []
+    # Interleave modes to avoid ordering artifacts
+    indices = list(range(n))
+    rng.shuffle(indices)
+    mode_assignments = [i % len(modes) for i in indices]
+    # Sort back by original index so responses are in shuffled-mode order
+    paired = sorted(zip(indices, mode_assignments))
+    for _, mode_idx in paired:
+        responses.append(modes[mode_idx](rng))
+    return responses
+
+
+HIGH_DIVERSITY_PROMPTS_AND_RESPONSES: list[tuple[str, list[str]]] = [
+    (
+        "Tell me about an animal.",
+        _generate_high_diversity_responses(_HIGH_DIV_ANIMAL_MODES, n=100, seed=42),
+    ),
+    (
+        "Describe your favorite hobby.",
+        _generate_high_diversity_responses(_HIGH_DIV_HOBBY_MODES, n=100, seed=43),
+    ),
+    (
+        "Tell me about a trip you took.",
+        _generate_high_diversity_responses(_HIGH_DIV_TRAVEL_MODES, n=100, seed=44),
+    ),
+]
+
+HIGH_DIVERSITY_PROMPT_LABELS = ["animals", "hobbies", "travel"]
+HIGH_DIVERSITY_N_RESPONSES = 100
+
+# ============================================================================
 # Prompt labels for plotting/reporting
 # ============================================================================
-
 MULTI_MODE_PROMPT_LABELS = ["animals", "morning", "places", "food", "weekend"]
 ONE_MODE_PROMPT_LABELS = ["animals", "morning", "places", "food", "weekend"]
 MIXED_PROMPT_LABELS = ["ocean", "forest", "mountains", "weather", "city"]
