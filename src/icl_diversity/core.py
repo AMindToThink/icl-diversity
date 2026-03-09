@@ -13,6 +13,13 @@ The primary a_k curve is in total bits. Per-byte normalized quantities
 (E_rate, C, D) provide tokenizer-agnostic comparisons. Uses log base 2
 throughout.
 
+Supports:
+- **Batching**: Forward passes for unconditional surprises and permutations
+  are batched for GPU parallelism (controlled via ``batch_size``).
+- **Model ensembling** (Section 7.5): Multiple base models can be ensembled
+  at the token level by averaging softmax probabilities. All models must
+  share the same tokenizer/vocabulary.
+
 Assumptions:
 - theta must have strong in-context learning capability
 - theta should be a BASE model (not instruction-tuned) to avoid confounding
@@ -28,6 +35,7 @@ Reference equations from the paper:
 - Eq: total coherence C_total = 2^{mean(log2(P(r_i | p)))} (total bits)
 - Eq 11: diversity score D = C * E_rate (per-byte)
 - Eq: total diversity score D_total = C_total * E (total bits)
+- Eq 27: ensemble theta_bar = (1/M) * sum_j theta_j (token-level mixture)
 """
 
 import math
@@ -39,6 +47,197 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
+
+# Type alias: single model or list of models (ensemble)
+ModelInput = PreTrainedModel | list[PreTrainedModel]
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _ensure_models(model: ModelInput) -> list[PreTrainedModel]:
+    """Normalize model input to a list."""
+    if isinstance(model, list):
+        return model
+    return [model]
+
+
+def _get_pad_token_id(tokenizer: PreTrainedTokenizerBase) -> int:
+    """Return pad token id, falling back to eos_token_id."""
+    if tokenizer.pad_token_id is not None:
+        return tokenizer.pad_token_id
+    return tokenizer.eos_token_id
+
+
+def _forward_log_probs(
+    models: list[PreTrainedModel],
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Run forward pass and return log-probabilities, supporting ensembles.
+
+    For a single model, returns log_softmax(logits).  For multiple models,
+    averages softmax probabilities at each token position (Section 7.5,
+    Eq 27), then returns log of the mixture distribution.
+
+    Args:
+        models: List of models to ensemble. For standard (non-ensemble) use,
+            pass a single-element list.
+        input_ids: ``(batch, seq_len)`` token IDs.
+        attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
+
+    Returns:
+        Log-probability tensor of shape ``(batch, seq_len, vocab_size)``.
+        On the model's device for single model, on CPU for ensemble.
+    """
+    if len(models) == 1:
+        model = models[0]
+        ids = input_ids.to(model.device)
+        mask = attention_mask.to(model.device) if attention_mask is not None else None
+        with torch.no_grad():
+            logits = model(ids, attention_mask=mask).logits
+        return torch.nn.functional.log_softmax(logits, dim=-1)
+
+    # Ensemble: average softmax probabilities across models (Eq 27)
+    accumulated_probs: torch.Tensor | None = None
+    for model in models:
+        ids = input_ids.to(model.device)
+        mask = attention_mask.to(model.device) if attention_mask is not None else None
+        with torch.no_grad():
+            logits = model(ids, attention_mask=mask).logits
+        probs = torch.softmax(logits.float(), dim=-1).cpu()
+        if accumulated_probs is None:
+            accumulated_probs = probs
+        else:
+            accumulated_probs = accumulated_probs + probs
+        del logits, probs
+    assert accumulated_probs is not None
+    accumulated_probs /= len(models)
+    return torch.log(accumulated_probs.clamp(min=1e-45))
+
+
+def _find_response_boundaries(
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+) -> tuple[list[int], list[tuple[int, int]]]:
+    """Find token boundaries for each response in a concatenated context.
+
+    Builds the full formatted context (prompt + all responses) and determines
+    which token indices correspond to each response's text.
+
+    Returns:
+        ``(full_ids, boundaries)`` where ``full_ids`` is the tokenized full
+        concatenation and ``boundaries[k] = (start, end)`` gives the token
+        range for ``responses[k]``.
+    """
+    n = len(responses)
+    parts = [prompt]
+    for i, resp in enumerate(responses):
+        parts.append(f"\n\nResponse {_response_label(i)}: {resp}")
+    full_text = "".join(parts)
+    full_ids = tokenizer.encode(full_text, add_special_tokens=False)
+
+    boundaries: list[tuple[int, int]] = []
+    running_text = prompt + f"\n\nResponse {_response_label(0)}: "
+    for k in range(n):
+        n_prefix = len(tokenizer.encode(running_text, add_special_tokens=False))
+        running_text += responses[k]
+        n_with_resp = len(tokenizer.encode(running_text, add_special_tokens=False))
+        boundaries.append((n_prefix, n_with_resp))
+        if k < n - 1:
+            running_text += f"\n\nResponse {_response_label(k + 1)}: "
+
+    assert len(tokenizer.encode(running_text, add_special_tokens=False)) == len(
+        full_ids
+    ), (
+        f"Tokenization mismatch: progressive="
+        f"{len(tokenizer.encode(running_text, add_special_tokens=False))}, "
+        f"full={len(full_ids)}"
+    )
+    return full_ids, boundaries
+
+
+def _extract_response_log_probs(
+    log_probs: torch.Tensor,
+    full_ids: list[int],
+    boundaries: list[tuple[int, int]],
+    responses: list[str],
+    pad_offset: int = 0,
+) -> tuple[list[float], list[int]]:
+    """Extract per-response total bits from a log-probs tensor.
+
+    Args:
+        log_probs: ``(seq_len, vocab_size)`` log-probs for one sequence.
+        full_ids: Token IDs of the full (unpadded) sequence.
+        boundaries: ``(start, end)`` token ranges for each response
+            (indices into ``full_ids``).
+        responses: Response texts (for byte count computation).
+        pad_offset: Number of padding tokens prepended (for left-padded
+            batches). Token ``full_ids[j]`` is at position
+            ``pad_offset + j`` in the padded sequence.
+
+    Returns:
+        ``(curve, byte_counts)`` where ``curve[k]`` is total bits for
+        response k and ``byte_counts[k]`` is its byte length.
+    """
+    curve: list[float] = []
+    byte_counts: list[int] = []
+    for k, (start, end) in enumerate(boundaries):
+        bc = len(responses[k].encode("utf-8"))
+        byte_counts.append(bc)
+        if bc == 0 or end <= start:
+            curve.append(0.0)
+            continue
+
+        actual_start = pad_offset + start
+        actual_end = pad_offset + end
+        positions = torch.arange(actual_start, actual_end, device=log_probs.device)
+        token_ids = torch.tensor(
+            full_ids[start:end], device=log_probs.device, dtype=torch.long
+        )
+        # Causal shift: log_probs[t-1] predicts token at position t
+        total_log_prob = log_probs[positions - 1, token_ids].sum().item()
+        total_log2 = total_log_prob / math.log(2)
+        curve.append(-total_log2)
+
+    return curve, byte_counts
+
+
+def _left_pad_and_batch(
+    sequences: list[list[int]],
+    pad_token_id: int,
+) -> tuple[torch.Tensor, torch.Tensor | None, list[int]]:
+    """Left-pad token sequences into a batch.
+
+    Returns:
+        ``(input_ids, attention_mask, pad_offsets)`` where ``pad_offsets[i]``
+        is the number of padding tokens prepended to sequence *i*.
+        ``attention_mask`` is ``None`` when no padding is needed.
+    """
+    max_len = max(len(ids) for ids in sequences)
+    pad_offsets: list[int] = []
+    padded: list[list[int]] = []
+    masks: list[list[int]] = []
+    needs_padding = False
+    for ids in sequences:
+        pad_len = max_len - len(ids)
+        if pad_len > 0:
+            needs_padding = True
+        pad_offsets.append(pad_len)
+        padded.append([pad_token_id] * pad_len + ids)
+        masks.append([0] * pad_len + [1] * len(ids))
+
+    input_ids = torch.tensor(padded)
+    attention_mask = torch.tensor(masks) if needs_padding else None
+    return input_ids, attention_mask, pad_offsets
+
+
+# ---------------------------------------------------------------------------
+# Public helpers
+# ---------------------------------------------------------------------------
 
 
 def _response_label(index: int) -> str:
@@ -72,7 +271,8 @@ def format_conditioning_context(
 ) -> tuple[str, str]:
     """Format conditioning context per Section 7 of the paper.
 
-    The format is:
+    The format is::
+
         [prompt p]
 
         Response A: [r_1]
@@ -103,8 +303,13 @@ def format_conditioning_context(
     return prefix, current_response
 
 
+# ---------------------------------------------------------------------------
+# Core computation functions
+# ---------------------------------------------------------------------------
+
+
 def compute_cross_entropy(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     text: str,
     prefix: str,
@@ -112,18 +317,22 @@ def compute_cross_entropy(
     """Compute total cross-entropy (in bits) and byte count of text conditioned on prefix.
 
     Tokenizes prefix+text together, computes log-probs only for tokens
-    corresponding to `text`, returns total bits and byte count separately.
+    corresponding to ``text``, returns total bits and byte count separately.
+
+    Supports model ensembling: pass a list of models to average their
+    softmax probabilities at each token position (Section 7.5, Eq 27).
 
     Args:
-        model: The base model theta.
+        model: The base model theta, or a list of models to ensemble.
         tokenizer: Tokenizer for theta.
         text: The response r whose cross-entropy we compute.
         prefix: Everything before the response (prompt + previous responses).
 
     Returns:
-        Tuple of (total_bits, byte_count) where total_bits = -sum(log2(p))
-        for all tokens in `text`, and byte_count = len(text.encode("utf-8")).
+        Tuple of ``(total_bits, byte_count)`` where total_bits = -sum(log2(p))
+        for all tokens in ``text``, and byte_count = len(text.encode("utf-8")).
     """
+    models = _ensure_models(model)
     byte_count = len(text.encode("utf-8"))
     if byte_count == 0:
         return 0.0, 0
@@ -138,23 +347,19 @@ def compute_cross_entropy(
     if n_full_tokens <= n_prefix_tokens:
         return 0.0, byte_count
 
-    input_ids = torch.tensor([full_ids], device=model.device)
+    input_ids = torch.tensor([full_ids])
+    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len, vocab)
 
-    with torch.no_grad():
-        outputs = model(input_ids)
-        # logits shape: (1, seq_len, vocab_size)
-        logits = outputs.logits[0]  # (seq_len, vocab_size)
-
-    # Compute log-probs for each position
-    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-
-    # Sum log-probs for text tokens only
-    # For token at position t, the logit at position t-1 predicts it
-    total_log_prob = 0.0
-    for t in range(n_prefix_tokens, n_full_tokens):
-        token_id = full_ids[t]
-        # logits at position t-1 predict token at position t
-        total_log_prob += log_probs[t - 1, token_id].item()
+    # Vectorized extraction of log-probs for text tokens
+    token_positions = torch.arange(
+        n_prefix_tokens, n_full_tokens, device=log_probs.device
+    )
+    token_ids = torch.tensor(
+        full_ids[n_prefix_tokens:n_full_tokens],
+        device=log_probs.device,
+        dtype=torch.long,
+    )
+    total_log_prob = log_probs[token_positions - 1, token_ids].sum().item()
 
     # Convert from nats (ln) to bits (log2): log2(x) = ln(x) / ln(2)
     total_log2_prob = total_log_prob / math.log(2)
@@ -165,7 +370,7 @@ def compute_cross_entropy(
 
 
 def compute_per_byte_cross_entropy(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     text: str,
     prefix: str,
@@ -174,10 +379,10 @@ def compute_per_byte_cross_entropy(
 
     Eq 1: h_theta(r | p) = (1/||r||) * sum_t -log2 theta(r^t | r^{<t}, p)
 
-    Thin wrapper around compute_cross_entropy that divides by byte count.
+    Thin wrapper around :func:`compute_cross_entropy` that divides by byte count.
 
     Args:
-        model: The base model theta.
+        model: The base model theta, or a list of models to ensemble.
         tokenizer: Tokenizer for theta.
         text: The response r whose cross-entropy we compute.
         prefix: Everything before the response (prompt + previous responses).
@@ -190,7 +395,7 @@ def compute_per_byte_cross_entropy(
 
 
 def compute_progressive_surprise_curve(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
@@ -199,16 +404,17 @@ def compute_progressive_surprise_curve(
 
     Eq 4: a_k = -log2 P(r_k | r_{<k}, p) for k=1..n (total bits)
 
-    Performs n forward passes with growing context.
+    Performs n forward passes with growing context. Prefer
+    :func:`compute_progressive_surprise_curve_single_pass` for efficiency.
 
     Args:
-        model: The base model theta.
+        model: The base model theta, or a list of models to ensemble.
         tokenizer: Tokenizer for theta.
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
 
     Returns:
-        Tuple of (curve, byte_counts) where curve is a list of a_k values
+        Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
         in total bits, and byte_counts is the byte count of each response.
     """
     curve: list[float] = []
@@ -224,7 +430,7 @@ def compute_progressive_surprise_curve(
 
 
 def compute_progressive_surprise_curve_single_pass(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
@@ -235,124 +441,199 @@ def compute_progressive_surprise_curve_single_pass(
     responses into one sequence and runs a single forward pass, then extracts
     per-response log-probs by locating token boundaries.
 
-    The boundary-finding logic mirrors :func:`compute_cross_entropy`:
-    we tokenize progressive prefixes to determine where each response's tokens
-    start and end in the full token sequence.
+    Supports model ensembling: pass a list of models to average their softmax
+    probabilities at each token position (Section 7.5, Eq 27).
 
     Args:
-        model: The base model theta.
+        model: The base model theta, or a list of models to ensemble.
         tokenizer: Tokenizer for theta.
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
 
     Returns:
-        Tuple of (curve, byte_counts) where curve is a list of a_k values
+        Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
         in total bits, and byte_counts is the byte count of each response.
     """
+    models = _ensure_models(model)
     n = len(responses)
     if n == 0:
         return [], []
 
-    # Build the full concatenated context
-    parts = [prompt]
-    for i, resp in enumerate(responses):
-        label = _response_label(i)
-        parts.append(f"\n\nResponse {label}: {resp}")
-    full_text = "".join(parts)
+    full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, responses)
 
-    full_ids = tokenizer.encode(full_text, add_special_tokens=False)
+    # Single forward pass (ensemble-aware)
+    input_ids = torch.tensor([full_ids])
+    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len, vocab)
 
-    # Find response token boundaries using progressive prefix tokenization.
-    # This mirrors the boundary logic in compute_cross_entropy:
-    # tokenize prefix alone to get start index, then prefix+response to get end.
-    boundaries: list[tuple[int, int]] = []
-    running_text = prompt + f"\n\nResponse {_response_label(0)}: "
-    for k in range(n):
-        n_prefix = len(tokenizer.encode(running_text, add_special_tokens=False))
-        running_text += responses[k]
-        n_with_resp = len(tokenizer.encode(running_text, add_special_tokens=False))
-        boundaries.append((n_prefix, n_with_resp))
-        if k < n - 1:
-            running_text += f"\n\nResponse {_response_label(k + 1)}: "
-
-    # Sanity check: final running_text should equal full_text
-    assert len(tokenizer.encode(running_text, add_special_tokens=False)) == len(
-        full_ids
-    ), (
-        f"Tokenization mismatch: progressive="
-        f"{len(tokenizer.encode(running_text, add_special_tokens=False))}, "
-        f"full={len(full_ids)}"
-    )
-
-    # Single forward pass
-    input_ids = torch.tensor([full_ids], device=model.device)
-    with torch.no_grad():
-        outputs = model(input_ids)
-        logits = outputs.logits[0]  # (seq_len, vocab_size)
-
-    # Compute log-probs once for the full sequence
-    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-
-    # Extract per-response a_k values
-    curve: list[float] = []
-    byte_counts_list: list[int] = []
-    for k, (start, end) in enumerate(boundaries):
-        byte_count = len(responses[k].encode("utf-8"))
-        byte_counts_list.append(byte_count)
-        if byte_count == 0 or end <= start:
-            curve.append(0.0)
-            continue
-
-        # Causal shift: logits[t-1] predicts token at position t
-        # Gather log-probs for token IDs at positions start..end-1
-        token_positions = torch.arange(start, end, device=logits.device)
-        token_ids = torch.tensor(
-            full_ids[start:end], device=logits.device, dtype=torch.long
-        )
-        # log_probs[t-1] gives the prediction for position t
-        total_log_prob = log_probs[token_positions - 1, token_ids].sum().item()
-
-        # Convert nats → bits (total, not per-byte)
-        total_log2_prob = total_log_prob / math.log(2)
-        a_k = -total_log2_prob
-        curve.append(a_k)
-
-    return curve, byte_counts_list
+    return _extract_response_log_probs(log_probs, full_ids, boundaries, responses)
 
 
 def compute_unconditional_surprises(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
+    batch_size: int = 1,
 ) -> tuple[list[float], list[float], list[int]]:
     """Compute unconditional cross-entropy for each response.
 
     h_theta(r_i | p) for each response scored independently against just
     the prompt (no conditioning on other responses).
 
+    The n forward passes are embarrassingly parallel (Section 7.2) and are
+    batched according to ``batch_size`` for GPU efficiency.
+
     Args:
-        model: The base model theta.
+        model: The base model theta, or a list of models to ensemble.
         tokenizer: Tokenizer for theta.
         prompt: The original prompt p.
         responses: List of responses.
+        batch_size: Number of responses to process in parallel. Default 1
+            (sequential). Increase for GPU acceleration.
 
     Returns:
-        Tuple of (per_byte_surprises, total_bits_list, byte_counts):
+        Tuple of ``(per_byte_surprises, total_bits_list, byte_counts)``:
         - per_byte_surprises: h_theta(r_i | p) in bits/byte
         - total_bits_list: -log2 P(r_i | p) in total bits
         - byte_counts: byte count of each response
     """
-    per_byte_surprises: list[float] = []
-    total_bits_list: list[float] = []
-    byte_counts: list[int] = []
+    models = _ensure_models(model)
+
+    # Prepare all sequences
+    all_full_ids: list[list[int]] = []
+    all_prefix_lens: list[int] = []
+    all_byte_counts: list[int] = []
     for resp in responses:
         prefix, target = format_conditioning_context(prompt, [], resp)
-        total_bits, bc = compute_cross_entropy(model, tokenizer, target, prefix)
-        byte_counts.append(bc)
-        total_bits_list.append(total_bits)
-        per_byte_surprises.append(total_bits / bc if bc > 0 else 0.0)
-    return per_byte_surprises, total_bits_list, byte_counts
+        full_ids = tokenizer.encode(prefix + target, add_special_tokens=False)
+        prefix_len = len(tokenizer.encode(prefix, add_special_tokens=False))
+        all_full_ids.append(full_ids)
+        all_prefix_lens.append(prefix_len)
+        all_byte_counts.append(len(target.encode("utf-8")))
+
+    per_byte_surprises = [0.0] * len(responses)
+    total_bits_list = [0.0] * len(responses)
+    pad_token_id = _get_pad_token_id(tokenizer)
+
+    for batch_start in range(0, len(responses), batch_size):
+        batch_end = min(batch_start + batch_size, len(responses))
+        batch_ids = all_full_ids[batch_start:batch_end]
+        batch_prefix_lens = all_prefix_lens[batch_start:batch_end]
+
+        # Left-pad and batch
+        input_ids, attention_mask, pad_offsets = _left_pad_and_batch(
+            batch_ids, pad_token_id
+        )
+        log_probs = _forward_log_probs(models, input_ids, attention_mask)
+
+        for i in range(batch_end - batch_start):
+            seq_idx = batch_start + i
+            ids = batch_ids[i]
+            prefix_len = batch_prefix_lens[i]
+            bc = all_byte_counts[seq_idx]
+
+            if bc == 0 or len(ids) <= prefix_len:
+                continue
+
+            pad_offset = pad_offsets[i]
+            start = pad_offset + prefix_len
+            end = pad_offset + len(ids)
+
+            positions = torch.arange(start, end, device=log_probs.device)
+            token_ids = torch.tensor(
+                ids[prefix_len:], device=log_probs.device, dtype=torch.long
+            )
+            total_log_prob = log_probs[i, positions - 1, token_ids].sum().item()
+            total_log2 = total_log_prob / math.log(2)
+            total_bits_list[seq_idx] = -total_log2
+            per_byte_surprises[seq_idx] = -total_log2 / bc if bc > 0 else 0.0
+
+        del log_probs
+
+    return per_byte_surprises, total_bits_list, all_byte_counts
+
+
+def _compute_permutation_curves_batched(
+    models: list[PreTrainedModel],
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+    permutations: list[list[int]],
+    batch_size: int = 1,
+) -> list[tuple[list[float], list[int]]]:
+    """Compute single-pass a_k curves for multiple permutations, batched.
+
+    Each permutation reorders the responses and produces an independent
+    concatenated context.  Permutations are processed in batches of
+    ``batch_size`` forward passes.
+
+    Args:
+        models: List of models (ensemble) or single-element list.
+        tokenizer: Tokenizer shared by all models.
+        prompt: The original prompt.
+        responses: Original (unpermuted) response list.
+        permutations: List of permutation orderings (each a list of indices).
+        batch_size: Number of permutations per batch.
+
+    Returns:
+        List of ``(total_bits_curve, byte_counts)`` per permutation.
+    """
+    pad_token_id = _get_pad_token_id(tokenizer)
+
+    # Pre-compute tokenized sequences and boundaries for every permutation
+    all_full_ids: list[list[int]] = []
+    all_boundaries: list[list[tuple[int, int]]] = []
+    all_permuted_responses: list[list[str]] = []
+
+    for perm in permutations:
+        permuted = [responses[i] for i in perm]
+        all_permuted_responses.append(permuted)
+        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, permuted)
+        all_full_ids.append(full_ids)
+        all_boundaries.append(boundaries)
+
+    results: list[tuple[list[float], list[int]]] = []
+
+    # Progress bar
+    progress = None
+    if len(permutations) > 5:
+        progress = tqdm(total=len(permutations), desc="  permutations", leave=False)
+
+    for batch_start in range(0, len(permutations), batch_size):
+        batch_end = min(batch_start + batch_size, len(permutations))
+        batch_ids = all_full_ids[batch_start:batch_end]
+
+        # Left-pad and batch
+        input_ids, attention_mask, pad_offsets = _left_pad_and_batch(
+            batch_ids, pad_token_id
+        )
+        log_probs = _forward_log_probs(models, input_ids, attention_mask)
+
+        for i in range(batch_end - batch_start):
+            perm_idx = batch_start + i
+            curve, byte_counts = _extract_response_log_probs(
+                log_probs[i],
+                all_full_ids[perm_idx],
+                all_boundaries[perm_idx],
+                all_permuted_responses[perm_idx],
+                pad_offset=pad_offsets[i],
+            )
+            results.append((curve, byte_counts))
+
+        del log_probs
+
+        if progress is not None:
+            progress.update(batch_end - batch_start)
+
+    if progress is not None:
+        progress.close()
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Derived metrics (pure math, no model calls)
+# ---------------------------------------------------------------------------
 
 
 def _compute_metrics_from_curves(
@@ -449,28 +730,46 @@ def _compute_metrics_from_curves(
     }
 
 
+# ---------------------------------------------------------------------------
+# Top-level entry point
+# ---------------------------------------------------------------------------
+
+
 def compute_icl_diversity_metrics(
-    model: PreTrainedModel,
+    model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
     n_permutations: int = 1,
     seed: int = 42,
+    batch_size: int = 1,
 ) -> dict[str, Any]:
     """Full ICL diversity metric computation for one prompt.
 
     Computes the progressive conditional surprise curve and all derived
-    metrics. If n_permutations > 1, averages over random orderings of the
+    metrics. If ``n_permutations > 1``, averages over random orderings of the
     responses per Section 7.3 of the paper.
 
+    Supports:
+
+    - **Batching** (``batch_size > 1``): unconditional surprises and
+      permutation forward passes are batched for GPU parallelism.
+    - **Model ensembling** (pass a list of models): softmax probabilities
+      are averaged at each token position per Section 7.5 (Eq 27).  All
+      models must share the same tokenizer/vocabulary.
+
     Args:
-        model: The base model theta (should be a base model, not instruction-tuned).
-        tokenizer: Tokenizer for theta.
+        model: The base model theta (should be a base model, not
+            instruction-tuned).  Pass a list of models for ensembling.
+        tokenizer: Tokenizer for theta (shared by all models in an ensemble).
         prompt: The original prompt p.
         responses: List of n responses sampled from the policy under evaluation.
         n_permutations: Number of random orderings to average over (paper
             suggests 3-5). Default 1 uses the given order.
         seed: Random seed for permutation generation.
+        batch_size: Number of forward passes to batch together. Default 1
+            (sequential). Increase for GPU acceleration.  Applies to both
+            unconditional surprises and permutation curves.
 
     Returns:
         Dict with:
@@ -499,15 +798,19 @@ def compute_icl_diversity_metrics(
         - permutation_orders: list[list[int]] | None
             The ordering used for each permutation.
     """
-    # Unconditional surprises are order-independent, compute once
+    models = _ensure_models(model)
+
+    # Unconditional surprises are order-independent, compute once (batched)
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
-        compute_unconditional_surprises(model, tokenizer, prompt, responses)
+        compute_unconditional_surprises(
+            models, tokenizer, prompt, responses, batch_size=batch_size
+        )
     )
 
     if n_permutations <= 1:
         # Single ordering — single forward pass
         a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
-            model, tokenizer, prompt, responses
+            models, tokenizer, prompt, responses
         )
         # Compute E_rate: normalize per response, then sum excess
         per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
@@ -527,31 +830,25 @@ def compute_icl_diversity_metrics(
         metrics["permutation_orders"] = None
         return metrics
 
-    # Multiple permutations: average a_k curves
+    # Multiple permutations: generate all, then batch compute
     rng = random.Random(seed)
     n = len(responses)
-    all_total_bits_curves: list[list[float]] = []
-    all_byte_counts: list[list[int]] = []
-    all_per_byte_curves: list[list[float]] = []
     all_perms: list[list[int]] = []
-
-    perm_iter = range(n_permutations)
-    if n_permutations > 5:
-        perm_iter = tqdm(perm_iter, desc="  permutations", leave=False)
-
-    for _ in perm_iter:
+    for _ in range(n_permutations):
         perm = list(range(n))
         rng.shuffle(perm)
-        all_perms.append(list(perm))
-        permuted_responses = [responses[i] for i in perm]
-        total_bits, byte_counts = compute_progressive_surprise_curve_single_pass(
-            model, tokenizer, prompt, permuted_responses
-        )
-        all_total_bits_curves.append(total_bits)
-        all_byte_counts.append(byte_counts)
-        all_per_byte_curves.append(
-            [t / b if b > 0 else 0.0 for t, b in zip(total_bits, byte_counts)]
-        )
+        all_perms.append(perm)
+
+    perm_results = _compute_permutation_curves_batched(
+        models, tokenizer, prompt, responses, all_perms, batch_size
+    )
+
+    # Unpack results
+    all_total_bits_curves = [r[0] for r in perm_results]
+    all_byte_counts = [r[1] for r in perm_results]
+    all_per_byte_curves = [
+        [t / b if b > 0 else 0.0 for t, b in zip(tb, bc)] for tb, bc in perm_results
+    ]
 
     # Average across permutations
     avg_total_bits = [
