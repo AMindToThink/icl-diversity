@@ -1,0 +1,90 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{lai2024llmmeans}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Motivation}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why a separate base model?}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Important caveat.}{1}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Setup and Notation}{2}{section.2}\protected@file@percent }
+\newlabel{eq:total-xent}{{1}{2}{Setup and Notation}{equation.1}{}}
+\newlabel{eq:pertok}{{2}{2}{Setup and Notation}{equation.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}From Mutual Information to Progressive Conditioning}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Pairwise Pointwise Mutual Information}{2}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Asymmetry.}{3}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}The Coherence Problem}{3}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:coherence-problem}{{3.2}{3}{The Coherence Problem}{subsection.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Progressive Conditional Surprise}{3}{subsection.3.3}\protected@file@percent }
+\newlabel{eq:ak}{{4}{3}{Progressive Conditional Surprise}{equation.4}{}}
+\citation{crutchfield2003regularities}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Excess Entropy}{4}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The Excess Entropy}{4}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:excess-entropy}{{4.1}{4}{The Excess Entropy}{subsection.4.1}{}}
+\newlabel{eq:excess}{{6}{4}{The Excess Entropy}{equation.6}{}}
+\newlabel{eq:excess-hat}{{7}{4}{The Excess Entropy}{equation.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Out-of-distribution risk.}{4}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Relationship to total correlation.}{5}{section*.5}\protected@file@percent }
+\newlabel{eq:tc-decomp}{{11}{5}{Relationship to total correlation}{equation.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Per-Byte Excess Entropy Rate}{5}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:per-byte-rate}{{4.2}{5}{Per-Byte Excess Entropy Rate}{subsection.4.2}{}}
+\newlabel{eq:per-byte-E}{{14}{5}{Per-Byte Excess Entropy Rate}{equation.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Decomposition of the gap between unconditional surprise $\bar  {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar  {a}_1 - a_\infty $ splits into mutual information $I_k = \bar  {a}_1 - \bar  {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar  {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\mathrm  {TC}_n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar  {a}_1 - a_\infty $ to $\mathrm  {TC}_n$, so $\mathrm  {TC}_n$ grows linearly while $E$ converges. All quantities are in bits.}}{6}{figure.1}\protected@file@percent }
+\newlabel{fig:decomposition}{{1}{6}{Decomposition of the gap between unconditional surprise $\bar {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar {a}_1 - a_\infty $ splits into mutual information $I_k = \bar {a}_1 - \bar {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\TC _n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar {a}_1 - a_\infty $ to $\TC _n$, so $\TC _n$ grows linearly while $E$ converges. All quantities are in bits}{figure.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}The Coherence Term}{6}{section.5}\protected@file@percent }
+\newlabel{sec:coherence}{{5}{6}{The Coherence Term}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Does Excess Entropy Already Handle Incoherence?}{6}{subsection.5.1}\protected@file@percent }
+\citation{crutchfield2003regularities}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Definition}{7}{subsection.5.2}\protected@file@percent }
+\newlabel{eq:coherence}{{16}{7}{Definition}{equation.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Distributional distance.}{7}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Note on comparability.}{7}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Why Not Weight Excess Entropy by Coherence?}{7}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:why-not-weight}{{5.3}{7}{Why Not Weight Excess Entropy by Coherence?}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Reporting the Metric}{8}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}The Curve Is the Metric}{8}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}The $(E, C, \sigma _\ell )$ Triple}{8}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Scalar Summary: Plausibility-Weighted Structural Diversity}{8}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:scalar}{{6.3}{8}{Scalar Summary: Plausibility-Weighted Structural Diversity}{subsection.6.3}{}}
+\newlabel{eq:D-total}{{19}{9}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.19}{}}
+\newlabel{eq:D}{{20}{9}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{Typical range of $C$.}{9}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations of the scalar summary.}{9}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Coherence Heterogeneity}{10}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:coherence-hetero}{{6.4}{10}{Coherence Heterogeneity}{subsection.6.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{What to report.}{10}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Estimating Mode Count from the Curve}{11}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:mode-count-from-curve}{{6.5}{11}{Estimating Mode Count from the Curve}{subsection.6.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Aggregation Across Prompts}{11}{subsection.6.6}\protected@file@percent }
+\newlabel{sec:aggregation}{{6.6}{11}{Aggregation Across Prompts}{subsection.6.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Length-normalized aggregation.}{11}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why not a ratio?}{11}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}What to Report}{12}{subsection.6.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Practical Considerations}{12}{section.7}\protected@file@percent }
+\newlabel{sec:practical}{{7}{12}{Practical Considerations}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Formatting the Conditioning Context}{12}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Base vs.\ instruction-tuned models.}{12}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.1.1}Dimension-Specific Prompt Structures}{13}{subsubsection.7.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Computational Cost}{13}{subsection.7.2}\protected@file@percent }
+\newlabel{sec:cost}{{7.2}{13}{Computational Cost}{subsection.7.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Dependence on Sample Ordering}{14}{subsection.7.3}\protected@file@percent }
+\newlabel{sec:ordering}{{7.3}{14}{Dependence on Sample Ordering}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Choice of $n$}{14}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Detectable mode weight.}{14}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Ensembling Base Models}{14}{subsection.7.5}\protected@file@percent }
+\newlabel{sec:ensemble}{{7.5}{14}{Ensembling Base Models}{subsection.7.5}{}}
+\citation{crutchfield2003regularities}
+\citation{lai2024llmmeans}
+\@writefile{toc}{\contentsline {paragraph}{Tokenizer compatibility.}{15}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Fallback for incompatible tokenizers.}{15}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Related Concepts}{15}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Excess entropy.}{15}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Perplexity.}{15}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Total correlation.}{15}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Embedding-based diversity.}{15}{section*.20}\protected@file@percent }
+\citation{zhang2024writingprompts}
+\bibstyle{plainnat}
+\bibcite{crutchfield2003regularities}{{1}{2003}{{Crutchfield and Feldman}}{{}}}
+\bibcite{lai2024llmmeans}{{2}{2024}{{Lai et al.}}{{}}}
+\bibcite{zhang2024writingprompts}{{3}{2024}{{Zhang et al.}}{{}}}
+\@writefile{toc}{\contentsline {paragraph}{Sampling diversity metrics.}{16}{section*.21}\protected@file@percent }
+\gdef \@abspage@last{16}
