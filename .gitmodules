@@ -1,0 +1,3 @@
+[submodule "diversity-eval"]
+	path = diversity-eval
+	url = https://github.com/GuyTevet/diversity-eval.git
