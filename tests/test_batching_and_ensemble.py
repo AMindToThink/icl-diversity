@@ -24,7 +24,7 @@ from icl_diversity.core import (
     _ensure_models,
     _forward_log_probs,
     _get_pad_token_id,
-    _left_pad_and_batch,
+    _right_pad_and_batch,
 )
 
 
@@ -34,12 +34,21 @@ from icl_diversity.core import (
 
 
 def _make_mock_model_and_tokenizer(
-    vocab_size: int = 100, uniform: bool = True
+    vocab_size: int = 100,
 ) -> tuple[MagicMock, MagicMock]:
     """Create a mock model/tokenizer pair for unit tests.
 
-    The mock model supports batched inputs and attention_mask.
-    Uses deterministic logits based on input_ids for reproducibility.
+    The mock model simulates a causal LM: logits at each position are a
+    deterministic function of the *actual* (non-padding) tokens that precede
+    it.  Specifically, a cumulative hash of input token IDs is used as a
+    per-position seed so that:
+
+    - logits vary across positions (position-sensitive),
+    - padding tokens are excluded via attention_mask, and
+    - the same prefix always produces the same logits (deterministic).
+
+    This means extracting log-probs from wrong positions (e.g. due to an
+    incorrect padding offset) will produce detectably different results.
     """
     model = MagicMock()
     model.device = torch.device("cpu")
@@ -55,12 +64,25 @@ def _make_mock_model_and_tokenizer(
 
     def model_forward(input_ids: torch.Tensor, attention_mask=None, **kwargs):
         batch_size, seq_len = input_ids.shape
-        if uniform:
-            logits = torch.zeros(batch_size, seq_len, vocab_size)
-        else:
-            # Deterministic per-position logits (seeded by position, not random)
-            torch.manual_seed(42)
-            logits = torch.randn(batch_size, seq_len, vocab_size)
+        logits = torch.zeros(batch_size, seq_len, vocab_size)
+
+        for b in range(batch_size):
+            # Build a cumulative hash over real tokens to simulate causal
+            # dependence on context.  Padding tokens (mask=0) are excluded
+            # so that right-padded batches produce the same logits for real
+            # positions as unbatched sequences.
+            h = 0
+            for t in range(seq_len):
+                is_real = (
+                    attention_mask[b, t].item() if attention_mask is not None else 1
+                )
+                if is_real:
+                    h = hash((h, input_ids[b, t].item())) & 0xFFFFFFFF
+                # Deterministic per-position logits seeded by context hash
+                gen = torch.Generator()
+                gen.manual_seed(h)
+                logits[b, t] = torch.randn(vocab_size, generator=gen)
+
         result = MagicMock()
         result.logits = logits
         return result
@@ -107,28 +129,26 @@ class TestGetPadTokenId:
 
 
 # ---------------------------------------------------------------------------
-# _left_pad_and_batch
+# _right_pad_and_batch
 # ---------------------------------------------------------------------------
 
 
-class TestLeftPadAndBatch:
+class TestRightPadAndBatch:
     def test_uniform_length(self) -> None:
         seqs = [[1, 2, 3], [4, 5, 6]]
-        ids, mask, offsets = _left_pad_and_batch(seqs, pad_token_id=0)
+        ids, mask = _right_pad_and_batch(seqs, pad_token_id=0)
         assert ids.shape == (2, 3)
         assert mask is None  # no padding needed
-        assert offsets == [0, 0]
 
     def test_variable_length(self) -> None:
         seqs = [[1, 2], [3, 4, 5, 6]]
-        ids, mask, offsets = _left_pad_and_batch(seqs, pad_token_id=0)
+        ids, mask = _right_pad_and_batch(seqs, pad_token_id=0)
         assert ids.shape == (2, 4)
         assert mask is not None
-        assert ids[0].tolist() == [0, 0, 1, 2]
-        assert mask[0].tolist() == [0, 0, 1, 1]
+        assert ids[0].tolist() == [1, 2, 0, 0]
+        assert mask[0].tolist() == [1, 1, 0, 0]
         assert ids[1].tolist() == [3, 4, 5, 6]
         assert mask[1].tolist() == [1, 1, 1, 1]
-        assert offsets == [2, 0]
 
 
 # ---------------------------------------------------------------------------
@@ -243,9 +263,8 @@ class TestBatchedPipeline:
             "excess_entropy_E",
             "excess_entropy_E_rate",
             "coherence_C",
-            "coherence_C_total",
             "diversity_score_D",
-            "diversity_score_D_total",
+            "diversity_score_D_rate",
             "coherence_spread_sigma",
         ]:
             assert r1[key] == pytest.approx(r3[key], abs=1e-5), (
@@ -314,8 +333,8 @@ class TestEnsembleSupport:
             "excess_entropy_E",
             "excess_entropy_E_rate",
             "coherence_C",
-            "coherence_C_total",
             "diversity_score_D",
+            "diversity_score_D_rate",
         ]:
             assert r_single[key] == pytest.approx(r_ensemble[key], abs=1e-4), (
                 f"{key}: single={r_single[key]}, ensemble={r_ensemble[key]}"

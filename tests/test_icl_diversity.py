@@ -146,16 +146,9 @@ def _make_metrics(
     byte_counts: list[int],
     unconditional_per_byte: list[float],
     responses: list[str],
-    unconditional_total_bits: list[float] | None = None,
     unconditional_byte_counts: list[int] | None = None,
 ) -> dict[str, Any]:
     """Helper to build metrics from total-bits a_k curve."""
-    if unconditional_total_bits is None:
-        # Derive from per_byte * byte_count
-        unconditional_total_bits = [
-            pb * len(r.encode("utf-8"))
-            for pb, r in zip(unconditional_per_byte, responses)
-        ]
     if unconditional_byte_counts is None:
         unconditional_byte_counts = [len(r.encode("utf-8")) for r in responses]
 
@@ -167,7 +160,6 @@ def _make_metrics(
         a_k_total,
         byte_counts,
         unconditional_per_byte,
-        unconditional_total_bits,
         unconditional_byte_counts,
         e_rate,
         responses,
@@ -280,80 +272,28 @@ class TestCoherence:
         assert result_low["coherence_C"] > result_high["coherence_C"]
 
 
-class TestCTotal:
-    def test_c_total_is_geometric_mean_of_total_probs(self) -> None:
-        """C_total = 2^{mean(log2(P(r_i|p)))} = 2^{mean(-total_bits)}."""
-        responses = ["test"] * 3
-        bc = [4] * 3
-        a_k = [4.0, 3.2, 2.8]
-        unconditional_per_byte = [1.0, 2.0, 3.0]
-        # total_bits = per_byte * byte_count
-        unconditional_total_bits = [4.0, 8.0, 12.0]
-        unconditional_byte_counts = [4, 4, 4]
-
-        per_byte_ak = [t / b for t, b in zip(a_k, bc)]
-        e_rate = sum(pb - per_byte_ak[-1] for pb in per_byte_ak)
-
-        result = _compute_metrics_from_curves(
-            a_k,
-            bc,
-            unconditional_per_byte,
-            unconditional_total_bits,
-            unconditional_byte_counts,
-            e_rate,
-            responses,
-        )
-
-        # C_total = 2^{mean(-4, -8, -12)} = 2^{-8}
-        expected = 2.0 ** (-8.0)
-        assert result["coherence_C_total"] == pytest.approx(expected)
-
-    def test_c_total_ordering_matches_c(self) -> None:
-        """log2(C_total) ordering should match log2(C) ordering."""
-        responses = ["hello"] * 3
-        bc = [5] * 3
-        a_k = [5.0, 4.0, 3.5]
-
-        # Low surprise → high C and C_total
-        low = [0.5, 0.5, 0.5]
-        low_total = [2.5, 2.5, 2.5]
-
-        # High surprise → low C and C_total
-        high = [2.0, 2.0, 2.0]
-        high_total = [10.0, 10.0, 10.0]
-
-        r_low = _make_metrics(
-            a_k,
-            bc,
-            low,
-            responses,
-            unconditional_total_bits=low_total,
-            unconditional_byte_counts=bc,
-        )
-        r_high = _make_metrics(
-            a_k,
-            bc,
-            high,
-            responses,
-            unconditional_total_bits=high_total,
-            unconditional_byte_counts=bc,
-        )
-
-        assert r_low["coherence_C"] > r_high["coherence_C"]
-        assert r_low["coherence_C_total"] > r_high["coherence_C_total"]
-
-
 class TestDiversityScore:
-    def test_product(self) -> None:
-        """D = C * E_rate."""
+    def test_d_equals_c_times_e(self) -> None:
+        """D = C * E (bits)."""
         responses = ["test"] * 4
         bc = [4] * 4
         a_k = [8.0, 6.0, 4.8, 4.0]
         unconditional = [1.0, 1.0, 1.0, 1.0]
         result = _make_metrics(a_k, bc, unconditional, responses)
 
-        expected_D = result["coherence_C"] * result["excess_entropy_E_rate"]
+        expected_D = result["coherence_C"] * result["excess_entropy_E"]
         assert result["diversity_score_D"] == pytest.approx(expected_D)
+
+    def test_d_rate_equals_c_times_e_rate(self) -> None:
+        """D_rate = C * E_rate (bits/byte)."""
+        responses = ["test"] * 4
+        bc = [4] * 4
+        a_k = [8.0, 6.0, 4.8, 4.0]
+        unconditional = [1.0, 1.0, 1.0, 1.0]
+        result = _make_metrics(a_k, bc, unconditional, responses)
+
+        expected_D_rate = result["coherence_C"] * result["excess_entropy_E_rate"]
+        assert result["diversity_score_D_rate"] == pytest.approx(expected_D_rate)
 
     def test_zero_when_no_structure(self) -> None:
         """D = 0 when a_k is constant (no structure)."""
@@ -363,32 +303,12 @@ class TestDiversityScore:
         unconditional = [1.5, 1.5, 1.5]
         result = _make_metrics(a_k, bc, unconditional, responses)
         assert result["diversity_score_D"] == pytest.approx(0.0)
-
-
-class TestDTotal:
-    def test_product(self) -> None:
-        """D_total = C_total * E."""
-        responses = ["test"] * 4
-        bc = [4] * 4
-        a_k = [8.0, 6.0, 4.8, 4.0]
-        unconditional_per_byte = [1.0, 1.0, 1.0, 1.0]
-        unconditional_total_bits = [4.0, 4.0, 4.0, 4.0]
-        result = _make_metrics(
-            a_k,
-            bc,
-            unconditional_per_byte,
-            responses,
-            unconditional_total_bits=unconditional_total_bits,
-            unconditional_byte_counts=bc,
-        )
-
-        expected = result["coherence_C_total"] * result["excess_entropy_E"]
-        assert result["diversity_score_D_total"] == pytest.approx(expected)
+        assert result["diversity_score_D_rate"] == pytest.approx(0.0)
 
 
 class TestUncertaintyBand:
     def test_band_when_sigma_positive(self) -> None:
-        """D+ > D > D- when sigma > 0 and E_rate > 0."""
+        """D+ > D_rate > D- when sigma > 0 and E_rate > 0."""
         responses = ["test"] * 3
         bc = [4] * 3
         a_k = [8.0, 6.0, 4.0]
@@ -396,11 +316,11 @@ class TestUncertaintyBand:
         result = _make_metrics(a_k, bc, unconditional, responses)
 
         assert result["coherence_spread_sigma"] > 0
-        assert result["D_plus"] > result["diversity_score_D"]
-        assert result["D_minus"] < result["diversity_score_D"]
+        assert result["D_plus"] > result["diversity_score_D_rate"]
+        assert result["D_minus"] < result["diversity_score_D_rate"]
 
     def test_band_zero_when_sigma_zero(self) -> None:
-        """D+ = D = D- when sigma = 0."""
+        """D+ = D_rate = D- when sigma = 0."""
         responses = ["test"] * 3
         bc = [4] * 3
         a_k = [8.0, 6.0, 4.0]
@@ -408,8 +328,8 @@ class TestUncertaintyBand:
         result = _make_metrics(a_k, bc, unconditional, responses)
 
         assert result["coherence_spread_sigma"] == pytest.approx(0.0)
-        assert result["D_plus"] == pytest.approx(result["diversity_score_D"])
-        assert result["D_minus"] == pytest.approx(result["diversity_score_D"])
+        assert result["D_plus"] == pytest.approx(result["diversity_score_D_rate"])
+        assert result["D_minus"] == pytest.approx(result["diversity_score_D_rate"])
 
     def test_c_plus_c_minus_formulas(self) -> None:
         """C+ = C * 2^sigma, C- = C * 2^{-sigma} per Section 6.4."""
@@ -547,10 +467,9 @@ class TestWithMockModel:
             "excess_entropy_E",
             "excess_entropy_E_rate",
             "coherence_C",
-            "coherence_C_total",
             "coherence_spread_sigma",
             "diversity_score_D",
-            "diversity_score_D_total",
+            "diversity_score_D_rate",
             "mean_byte_length",
             "D_plus",
             "D_minus",

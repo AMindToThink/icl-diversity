@@ -32,9 +32,8 @@ Reference equations from the paper:
 - Eq 6: excess entropy E = sum(a_k - a_n) in total bits
 - Eq: excess entropy rate E_rate = sum of per-byte normalized excess
 - Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))} (per-byte)
-- Eq: total coherence C_total = 2^{mean(log2(P(r_i | p)))} (total bits)
-- Eq 11: diversity score D = C * E_rate (per-byte)
-- Eq: total diversity score D_total = C_total * E (total bits)
+- Eq 12: diversity score D = C * E (bits)
+- Eq 13: diversity score rate D_rate = C * E_rate (bits/byte)
 - Eq 27: ensemble theta_bar = (1/M) * sum_j theta_j (token-level mixture)
 """
 
@@ -165,7 +164,6 @@ def _extract_response_log_probs(
     full_ids: list[int],
     boundaries: list[tuple[int, int]],
     responses: list[str],
-    pad_offset: int = 0,
 ) -> tuple[list[float], list[int]]:
     """Extract per-response total bits from a log-probs tensor.
 
@@ -175,9 +173,6 @@ def _extract_response_log_probs(
         boundaries: ``(start, end)`` token ranges for each response
             (indices into ``full_ids``).
         responses: Response texts (for byte count computation).
-        pad_offset: Number of padding tokens prepended (for left-padded
-            batches). Token ``full_ids[j]`` is at position
-            ``pad_offset + j`` in the padded sequence.
 
     Returns:
         ``(curve, byte_counts)`` where ``curve[k]`` is total bits for
@@ -192,9 +187,7 @@ def _extract_response_log_probs(
             curve.append(0.0)
             continue
 
-        actual_start = pad_offset + start
-        actual_end = pad_offset + end
-        positions = torch.arange(actual_start, actual_end, device=log_probs.device)
+        positions = torch.arange(start, end, device=log_probs.device)
         token_ids = torch.tensor(
             full_ids[start:end], device=log_probs.device, dtype=torch.long
         )
@@ -206,19 +199,22 @@ def _extract_response_log_probs(
     return curve, byte_counts
 
 
-def _left_pad_and_batch(
+def _right_pad_and_batch(
     sequences: list[list[int]],
     pad_token_id: int,
-) -> tuple[torch.Tensor, torch.Tensor | None, list[int]]:
-    """Left-pad token sequences into a batch.
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Right-pad token sequences into a batch.
+
+    Right-padding is preferred over left-padding for scoring (non-generation)
+    because real tokens keep their natural position IDs (starting at 0),
+    exactly matching the pretraining regime.  Padding tokens appended at the
+    end cannot influence earlier positions due to the causal attention mask.
 
     Returns:
-        ``(input_ids, attention_mask, pad_offsets)`` where ``pad_offsets[i]``
-        is the number of padding tokens prepended to sequence *i*.
-        ``attention_mask`` is ``None`` when no padding is needed.
+        ``(input_ids, attention_mask)`` where ``attention_mask`` is ``None``
+        when no padding is needed (all sequences have the same length).
     """
     max_len = max(len(ids) for ids in sequences)
-    pad_offsets: list[int] = []
     padded: list[list[int]] = []
     masks: list[list[int]] = []
     needs_padding = False
@@ -226,13 +222,12 @@ def _left_pad_and_batch(
         pad_len = max_len - len(ids)
         if pad_len > 0:
             needs_padding = True
-        pad_offsets.append(pad_len)
-        padded.append([pad_token_id] * pad_len + ids)
-        masks.append([0] * pad_len + [1] * len(ids))
+        padded.append(ids + [pad_token_id] * pad_len)
+        masks.append([1] * len(ids) + [0] * pad_len)
 
     input_ids = torch.tensor(padded)
     attention_mask = torch.tensor(masks) if needs_padding else None
-    return input_ids, attention_mask, pad_offsets
+    return input_ids, attention_mask
 
 
 # ---------------------------------------------------------------------------
@@ -520,10 +515,8 @@ def compute_unconditional_surprises(
         batch_ids = all_full_ids[batch_start:batch_end]
         batch_prefix_lens = all_prefix_lens[batch_start:batch_end]
 
-        # Left-pad and batch
-        input_ids, attention_mask, pad_offsets = _left_pad_and_batch(
-            batch_ids, pad_token_id
-        )
+        # Right-pad and batch
+        input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
         log_probs = _forward_log_probs(models, input_ids, attention_mask)
 
         for i in range(batch_end - batch_start):
@@ -535,9 +528,8 @@ def compute_unconditional_surprises(
             if bc == 0 or len(ids) <= prefix_len:
                 continue
 
-            pad_offset = pad_offsets[i]
-            start = pad_offset + prefix_len
-            end = pad_offset + len(ids)
+            start = prefix_len
+            end = len(ids)
 
             positions = torch.arange(start, end, device=log_probs.device)
             token_ids = torch.tensor(
@@ -603,10 +595,8 @@ def _compute_permutation_curves_batched(
         batch_end = min(batch_start + batch_size, len(permutations))
         batch_ids = all_full_ids[batch_start:batch_end]
 
-        # Left-pad and batch
-        input_ids, attention_mask, pad_offsets = _left_pad_and_batch(
-            batch_ids, pad_token_id
-        )
+        # Right-pad and batch
+        input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
         log_probs = _forward_log_probs(models, input_ids, attention_mask)
 
         for i in range(batch_end - batch_start):
@@ -616,7 +606,6 @@ def _compute_permutation_curves_batched(
                 all_full_ids[perm_idx],
                 all_boundaries[perm_idx],
                 all_permuted_responses[perm_idx],
-                pad_offset=pad_offsets[i],
             )
             results.append((curve, byte_counts))
 
@@ -640,7 +629,6 @@ def _compute_metrics_from_curves(
     a_k_curve_total_bits: list[float],
     a_k_byte_counts: list[int],
     unconditional_per_byte: list[float],
-    unconditional_total_bits: list[float],
     unconditional_byte_counts: list[int],
     e_rate: float,
     responses: list[str],
@@ -651,7 +639,6 @@ def _compute_metrics_from_curves(
         a_k_curve_total_bits: Progressive conditional surprise curve in total bits.
         a_k_byte_counts: Byte count per response in the a_k curve.
         unconditional_per_byte: h_theta(r_i | p) per-byte for each response.
-        unconditional_total_bits: -log2 P(r_i | p) total bits for each response.
         unconditional_byte_counts: Byte count per response for unconditional.
         e_rate: Pre-computed E_rate (per-byte excess entropy, Option B).
         responses: The response texts (needed for byte length).
@@ -676,22 +663,17 @@ def _compute_metrics_from_curves(
     # Eq 8: coherence C = 2^{-(1/n) * sum(h_theta(r_i | p))} (per-byte)
     coherence_C = 2.0 ** (-mean_h)
 
-    # Total coherence C_total = 2^{mean(log2(P(r_i | p)))}
-    # log2(P(r_i | p)) = -total_bits_i
-    mean_log2_prob = sum(-tb for tb in unconditional_total_bits) / n
-    coherence_C_total = 2.0**mean_log2_prob
-
     # Coherence spread (Section 6.4): std of h_theta(r_i | p) (per-byte)
     coherence_spread_sigma = float(np.std(unconditional_per_byte, ddof=0))
 
     # E_rate stored from caller
     excess_entropy_E_rate = e_rate
 
-    # Eq 11: diversity score D = C * E_rate (per-byte)
-    diversity_score_D = coherence_C * excess_entropy_E_rate
+    # Eq 12: diversity score D = C * E (bits)
+    diversity_score_D = coherence_C * excess_entropy_E
 
-    # Total diversity score D_total = C_total * E (total bits)
-    diversity_score_D_total = coherence_C_total * excess_entropy_E
+    # Eq 13: diversity score rate D_rate = C * E_rate (bits/byte)
+    diversity_score_D_rate = coherence_C * excess_entropy_E_rate
 
     # Mean byte length
     byte_lengths = [len(r.encode("utf-8")) for r in responses]
@@ -713,14 +695,12 @@ def _compute_metrics_from_curves(
         "a_k_curve_per_byte": a_k_curve_per_byte,
         "a_k_byte_counts": a_k_byte_counts,
         "unconditional_surprises": unconditional_per_byte,
-        "unconditional_total_bits": unconditional_total_bits,
         "excess_entropy_E": excess_entropy_E,
         "excess_entropy_E_rate": excess_entropy_E_rate,
         "coherence_C": coherence_C,
-        "coherence_C_total": coherence_C_total,
         "coherence_spread_sigma": coherence_spread_sigma,
         "diversity_score_D": diversity_score_D,
-        "diversity_score_D_total": diversity_score_D_total,
+        "diversity_score_D_rate": diversity_score_D_rate,
         "mean_byte_length": mean_byte_length,
         "D_plus": D_plus,
         "D_minus": D_minus,
@@ -781,10 +761,9 @@ def compute_icl_diversity_metrics(
         - excess_entropy_E: float          # total bits excess entropy
         - excess_entropy_E_rate: float     # per-byte excess entropy rate (Option B)
         - coherence_C: float               # per-byte coherence
-        - coherence_C_total: float         # total coherence
         - coherence_spread_sigma: float    # std of h_theta(r_i|p)
-        - diversity_score_D: float         # C * E_rate
-        - diversity_score_D_total: float   # C_total * E
+        - diversity_score_D: float         # C * E (bits)
+        - diversity_score_D_rate: float    # C * E_rate (bits/byte)
         - mean_byte_length: float          # B_bar
         - D_plus: float                    # C+ * E_rate
         - D_minus: float                   # C- * E_rate
@@ -820,11 +799,11 @@ def compute_icl_diversity_metrics(
             a_k_total,
             byte_counts,
             unconditional_per_byte,
-            unconditional_total_bits,
             unconditional_byte_counts,
             e_rate,
             responses,
         )
+        metrics["unconditional_total_bits"] = unconditional_total_bits
         metrics["per_permutation_a_k_curves"] = None
         metrics["per_permutation_byte_counts"] = None
         metrics["permutation_orders"] = None
@@ -871,11 +850,11 @@ def compute_icl_diversity_metrics(
         avg_total_bits,
         avg_byte_counts,
         unconditional_per_byte,
-        unconditional_total_bits,
         unconditional_byte_counts,
         e_rate,
         responses,
     )
+    metrics["unconditional_total_bits"] = unconditional_total_bits
     metrics["per_permutation_a_k_curves"] = all_total_bits_curves
     metrics["per_permutation_byte_counts"] = all_byte_counts
     metrics["permutation_orders"] = all_perms

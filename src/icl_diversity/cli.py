@@ -164,11 +164,10 @@ def main() -> None:
         print(f"\n=== Scale: {scale} ===")
         scale_results: list[dict[str, Any]] = []
         ds = []
-        d_totals = []
+        d_rates = []
         es = []
         e_rates = []
         cs = []
-        c_totals = []
         sigmas = []
 
         for prompt_idx, (prompt_text, responses) in sorted(prompts.items()):
@@ -195,16 +194,15 @@ def main() -> None:
             scale_results.append(per_prompt_result)
 
             ds.append(metrics["diversity_score_D"])
-            d_totals.append(metrics["diversity_score_D_total"])
+            d_rates.append(metrics["diversity_score_D_rate"])
             es.append(metrics["excess_entropy_E"])
             e_rates.append(metrics["excess_entropy_E_rate"])
             cs.append(metrics["coherence_C"])
-            c_totals.append(metrics["coherence_C_total"])
             sigmas.append(metrics["coherence_spread_sigma"])
 
             print(
                 f"    D={metrics['diversity_score_D']:.4f}, "
-                f"D_total={metrics['diversity_score_D_total']:.4e}, "
+                f"D_rate={metrics['diversity_score_D_rate']:.4f}, "
                 f"E={metrics['excess_entropy_E']:.2f}, "
                 f"E_rate={metrics['excess_entropy_E_rate']:.4f}, "
                 f"C={metrics['coherence_C']:.4f}, "
@@ -213,11 +211,10 @@ def main() -> None:
 
         aggregate = {
             "mean_D": float(np.mean(ds)) if ds else 0.0,
-            "mean_D_total": float(np.mean(d_totals)) if d_totals else 0.0,
+            "mean_D_rate": float(np.mean(d_rates)) if d_rates else 0.0,
             "mean_E": float(np.mean(es)) if es else 0.0,
             "mean_E_rate": float(np.mean(e_rates)) if e_rates else 0.0,
             "mean_C": float(np.mean(cs)) if cs else 0.0,
-            "mean_C_total": float(np.mean(c_totals)) if c_totals else 0.0,
             "mean_sigma": float(np.mean(sigmas)) if sigmas else 0.0,
         }
 

@@ -10,8 +10,7 @@ distinct modes) exists across the response set.
 ## Key Concepts
 
 The primary a_k curve is in **total bits**. Per-byte normalized quantities
-(E_rate, C, D) provide tokenizer-agnostic comparisons. Total-bits quantities
-(E, C_total, D_total) capture absolute information content.
+(E_rate, C, D_rate) provide tokenizer-agnostic comparisons.
 
 | Symbol | Name | Meaning |
 |--------|------|---------|
@@ -19,9 +18,8 @@ The primary a_k curve is in **total bits**. Per-byte normalized quantities
 | E | Excess entropy (total bits) | Sum of (a_k − a_n) — total learnable structure in bits |
 | E_rate | Excess entropy rate (bits/byte) | Per-byte normalized excess entropy, averaged across permutations |
 | C | Coherence (per-byte) | 2^{−mean(h)} where h is per-byte cross-entropy — filters out incoherent text |
-| C_total | Coherence (total) | 2^{mean(log2(P(r_i\|p)))} — geometric mean of total response probabilities |
-| D | Diversity score | C × E_rate — high only when responses are both coherent *and* diverse |
-| D_total | Diversity score (total) | C_total × E — total-bits variant |
+| D | Diversity score (bits) | C × E — high only when responses are both coherent *and* diverse |
+| D_rate | Diversity score rate (bits/byte) | C × E_rate — per-byte variant |
 | σ | Coherence spread | Std. dev. of per-response surprise — flags mixed-quality response sets |
 
 ## Repository Structure
@@ -149,8 +147,8 @@ The returned dict includes:
 - `a_k_curve` (total bits), `a_k_curve_per_byte`, `a_k_byte_counts`
 - `unconditional_surprises` (per-byte), `unconditional_total_bits`
 - `excess_entropy_E` (total bits), `excess_entropy_E_rate` (bits/byte)
-- `coherence_C` (per-byte), `coherence_C_total` (total)
-- `diversity_score_D` (C × E_rate), `diversity_score_D_total` (C_total × E)
+- `coherence_C` (per-byte)
+- `diversity_score_D` (C × E), `diversity_score_D_rate` (C × E_rate)
 - `coherence_spread_sigma`, `D_plus`, `D_minus`, `C_plus`, `C_minus`
 - `mean_byte_length`, `is_monotone`
 - `per_permutation_a_k_curves`, `per_permutation_byte_counts`, `permutation_orders`

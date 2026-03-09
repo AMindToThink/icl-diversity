@@ -390,7 +390,7 @@ class TestDiagnosticSummary:
         print("\n" + "=" * 120)
         print(
             f"{'Scenario':<25} {'E(bits)':>10} {'E_rate':>8} {'C':>8} "
-            f"{'D':>8} {'D_total':>12} {'sigma':>8} {'mono':>6}"
+            f"{'D':>8} {'D_rate':>8} {'sigma':>8} {'mono':>6}"
         )
         print("-" * 120)
 
@@ -399,7 +399,7 @@ class TestDiagnosticSummary:
             e_rate = _extract(metrics, "excess_entropy_E_rate")
             c = _extract(metrics, "coherence_C")
             d = _extract(metrics, "diversity_score_D")
-            d_total = _extract(metrics, "diversity_score_D_total")
+            d_rate = _extract(metrics, "diversity_score_D_rate")
             s = _extract(metrics, "coherence_spread_sigma")
             mono = [met["is_monotone"] for met in metrics]
             n_mono = sum(mono)
@@ -410,7 +410,7 @@ class TestDiagnosticSummary:
                 f"{np.mean(e_rate):>8.4f} "
                 f"{np.mean(c):>8.4f} "
                 f"{np.mean(d):>8.4f} "
-                f"{np.mean(d_total):>12.4e} "
+                f"{np.mean(d_rate):>8.4f} "
                 f"{np.mean(s):>8.4f} "
                 f"{n_mono}/{len(mono):>4}"
             )

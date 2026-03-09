@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Implementation of the ICL (in-context learning) diversity metric from `paper/in_context_diversity_metric.pdf`. The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
 
-The primary a_k curve is in **total bits**. Per-byte normalized quantities (E_rate, C, D) provide tokenizer-agnostic comparisons. Total-bits quantities (E, C_total, D_total) capture absolute information content.
+The primary a_k curve is in **total bits**. Per-byte normalized quantities (E_rate, C, D_rate) provide tokenizer-agnostic comparisons. D = C × E is the primary diversity score in bits; D_rate = C × E_rate is the per-byte variant.
 
 ## Commands
 
@@ -72,7 +72,7 @@ The metric flows through these stages, all in one file. All public functions acc
 
 3. **`compute_unconditional_surprises(model, tokenizer, prompt, responses, batch_size)`** — Returns `(per_byte_surprises, total_bits, byte_counts)` for each response conditioned only on the prompt (no other responses). The n forward passes are batched according to `batch_size`.
 
-4. **`_compute_metrics_from_curves(...)`** — Pure math, no model calls. Derives E, E_rate, C, C_total, D, D_total, σ, uncertainty bands from the curves. E_rate is passed in by the caller (computed in the permutation loop).
+4. **`_compute_metrics_from_curves(...)`** — Pure math, no model calls. Derives E, E_rate, C, D, D_rate, σ, uncertainty bands from the curves. E_rate is passed in by the caller (computed in the permutation loop).
 
 5. **`_compute_permutation_curves_batched(models, tokenizer, prompt, responses, permutations, batch_size)`** — Computes single-pass a_k curves for multiple permutations in batched forward passes. Each permutation is an independent sequence.
 
