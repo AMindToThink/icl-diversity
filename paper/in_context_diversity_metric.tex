@@ -87,7 +87,7 @@ Low MI (or low average PMI) means responses are approximately statistically inde
 
 Both yield $\pmi \approx 0$. The distinguishing signal lies in the marginal $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
 
-\subsection{Progressive Conditional Surprise}
+\subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
 Rather than all-pairs PMI (which costs $O(n^2)$ forward passes), we use the chain rule of mutual information. Define:
 \begin{equation}\label{eq:ak}
@@ -112,13 +112,15 @@ The $a_k$ curve is the fundamental object of interest. Its shape reveals the str
 
 This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
+\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs near $k \approx m$ and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}).
+
 \section{Excess Entropy}
 
 \subsection{The Excess Entropy}\label{sec:excess-entropy}
 
 Neither the running average $\bar{a}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is a satisfactory single scalar. The running average converges to $a_\infty$ (the uninteresting residual floor), losing sensitivity to the learnable structure above it. The total correlation grows linearly in $n$ and never saturates, because each new term contributes approximately $-\log_2 \theta(r \mid p) - a_\infty > 0$ for large $k$.
 
-The solution is to isolate the signal above the noise floor. Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:
+The solution is to isolate the signal above the noise floor. Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:\footnote{The excess entropy $E = \sum_k (a_k - a_\infty)$ is defined as a discrete sum over integer response indices, since ``conditioning on 3.5 responses'' has no direct meaning. However, a continuous extension exists: consider conditioning on a random subset of size $\alpha n$ for $\alpha \in [0,1]$, yielding a continuous curve $\bar{a}(\alpha)$. The discrete $\bar{a}_k$ would be samples at $\alpha = k/n$, and $E$ would correspond to integrating this curve (in which case trapezoidal integration would be more faithful than Riemann sums). We treat $E$ as the discrete sum throughout, but note that the continuous interpretation remains an open question, particularly in connection to the continuous excess entropy literature. The practical difference between Riemann and trapezoidal sums over $\sim$15 points is small.}
 \begin{equation}\label{eq:excess}
     E = \sum_{k=1}^{\infty}\bigl(a_k - a_\infty\bigr)
 \end{equation}
@@ -131,6 +133,12 @@ In practice, $a_\infty$ is unknown. We estimate it as $a_n$ (the last observed v
 \end{equation}
 
 This underestimates $E$ (since $a_n \geq a_\infty$), but the bias decreases with $n$.
+
+\paragraph{Parametric extrapolation of $a_\infty$.} Rather than using $a_n$ directly, one can fit a parametric model to the observed curve and extrapolate $a_\infty$. As discussed in Section~\ref{sec:progressive-conditioning}, the $a_k$ curve is theoretically expected to be sigmoidal (with concave-up/exponential decay as the degenerate case when the inflection point $k_0 < 1$). This motivates fitting a four-parameter sigmoid:
+\begin{equation}\label{eq:sigmoid-fit}
+    a_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
+\end{equation}
+where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point. This fit has several advantages: (i) it yields $a_\infty$ without requiring $n$ to be large enough for convergence, reducing the tension between wanting large $n$ for a good estimate and keeping $n$ small to avoid out-of-distribution effects; (ii) the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (see Section~\ref{sec:mode-count-from-curve}); and (iii) it unifies the exponential and sigmoidal regimes --- when the fit returns $k_0 < 1$, the curve is effectively exponential (few modes), and when $k_0 > 1$, the curve has a genuine plateau (many modes). In practice, we recommend fitting Eq.~\ref{eq:sigmoid-fit} by nonlinear least squares and using the fitted $a_\infty$ in place of $a_n$ in Eq.~\ref{eq:excess-hat}, particularly when the curve has not visibly converged by $k = n$.
 
 \paragraph{Out-of-distribution risk.} In practice, the conditioning context grows with $k$. For large $k$, the concatenation of many responses may push $\theta$ out of distribution: the context may exceed lengths seen during pretraining, or the repeated-response formatting may be sufficiently unusual that $\theta$'s predictions become unreliable. When $\theta$ goes out of distribution, $a_k$ may \emph{increase} rather than decrease (reflecting model confusion rather than genuine novelty), violating the monotonicity assumption and corrupting the excess entropy estimate. It is therefore important to monitor $a_k$ for non-monotonicity, particularly at large $k$, and to keep $n$ within a range where the total context length remains well within $\theta$'s reliable operating regime. If responses are long, $n$ may need to be reduced accordingly.
 
@@ -392,6 +400,8 @@ The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \time
 While $E$ measures the total structural information (in bits) that $\theta$ can learn from $\pi$'s outputs, it does not directly yield a mode count. The na\"ive formula $m_{\mathrm{eff}} = 2^{E}$ assumes that all learnable structure corresponds to mode identity, which holds only for near-deterministic modes. For real LLM outputs, $\theta$ learns far more from context than which mode is active --- it learns shared stylistic patterns, vocabulary, topic-specific structure, and other within-mode regularities. This inflates $E$ well beyond $\log_2 m$, making $m_{\mathrm{eff}}$ unreliable.
 
 The number of effective modes is instead read from the \textbf{elbow of the $a_k$ curve}. While $\theta$ is still discovering new modes ($k \lesssim m$), each response is likely novel and $a_k$ remains near $a_1$. Once $\theta$ has seen examples from most modes ($k \gtrsim m$), $a_k$ drops toward $a_\infty$. The transition --- the elbow --- occurs at $k \approx m$, regardless of how much within-mode structure exists. This can be identified visually when comparing a small number of policies, or via changepoint detection methods when automated estimation is needed.
+
+\paragraph{Caveat: elbow detection requires $m$ comparable to $n$.} The elbow prescription assumes that the $a_k$ curve has a visible plateau followed by a decline. As discussed in Section~\ref{sec:progressive-conditioning}, this sigmoidal shape only appears when $m$ is comparable to $n$. When $m \ll n$ (e.g., 2--3 modes among 15 samples), $\theta$ discovers all modes within the first few responses, and the curve is monotonically concave-up (exponential decay) with no identifiable elbow or plateau. In this regime, mode count cannot be directly read from curve shape. The parametric sigmoid fit (Eq.~\ref{eq:sigmoid-fit}) provides an alternative: the fitted inflection point $k_0$ estimates $m$ even when no visual elbow is present (returning $k_0 < 1$ for the few-mode case, correctly indicating that mode discovery is essentially immediate).
 
 \subsection{Aggregation Across Prompts}\label{sec:aggregation}
 
