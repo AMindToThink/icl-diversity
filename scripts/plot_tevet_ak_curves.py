@@ -7,8 +7,14 @@ Generates:
 3. Example curves: individual high-D, low-D, and edge-case response sets
 
 Usage:
+    # Plot from a specific run tag
+    uv run python scripts/plot_tevet_ak_curves.py --run-tag gpt2
+
+    # Default: auto-detect run tags under results/tevet/
     uv run python scripts/plot_tevet_ak_curves.py
-    uv run python scripts/plot_tevet_ak_curves.py --output-dir figures/tevet_validation
+
+    # Custom output directory
+    uv run python scripts/plot_tevet_ak_curves.py --run-tag gpt2 --output-dir figures/tevet_gpt2
 """
 
 from __future__ import annotations
@@ -25,7 +31,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "diversity-eval" / "data" / "with_metrics"
+RESULTS_BASE = PROJECT_ROOT / "results" / "tevet"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "figures" / "tevet_validation"
 
 TASK_LABELS = {
@@ -35,13 +41,24 @@ TASK_LABELS = {
 }
 
 
+def find_run_tags() -> list[str]:
+    """Find available run tags under results/tevet/."""
+    if not RESULTS_BASE.exists():
+        return []
+    return sorted(
+        d.name for d in RESULTS_BASE.iterdir()
+        if d.is_dir() and (d / "run_config.json").exists()
+    )
+
+
 def load_csv_and_sidecar(
     csv_path: Path,
+    tag: str,
 ) -> tuple[list[dict], dict] | None:
-    """Load CSV rows and corresponding sidecar JSON."""
-    sidecar_path = csv_path.with_suffix(".icl_curves.json")
+    """Load CSV rows and corresponding tagged sidecar JSON."""
+    sidecar_path = csv_path.with_suffix(f".icl_curves.{tag}.json")
     if not sidecar_path.exists():
-        logger.warning(f"No sidecar found for {csv_path.name}")
+        logger.warning(f"No sidecar found for {csv_path.name} (tag={tag})")
         return None
 
     with open(csv_path, newline="", encoding="utf-8") as f:
@@ -61,20 +78,20 @@ def get_task_name_from_filename(filename: str) -> str:
     return "unknown"
 
 
-def plot_contest_summary(output_dir: Path) -> None:
+def plot_contest_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Plot mean a_k curves for high vs low diversity per task (ConTest)."""
-    contest_dir = DATA_DIR / "conTest"
+    contest_dir = data_dir / "conTest"
     if not contest_dir.exists():
         logger.warning("No conTest data found")
         return
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     fig.suptitle(
-        "ConTest: Mean a_k Curves — High vs Low Content Diversity", fontsize=14
+        f"ConTest: Mean a_k Curves — High vs Low Content Diversity [{tag}]", fontsize=14
     )
 
     for ax_idx, csv_path in enumerate(sorted(contest_dir.glob("*.csv"))):
-        result = load_csv_and_sidecar(csv_path)
+        result = load_csv_and_sidecar(csv_path, tag)
         if result is None:
             continue
         rows, sidecar = result
@@ -83,9 +100,12 @@ def plot_contest_summary(output_dir: Path) -> None:
         high_curves, low_curves = [], []
         for row in rows:
             sid = row["sample_id"]
-            if sid not in sidecar:
+            if sid not in sidecar or sid.startswith("__"):
                 continue
-            curve = sidecar[sid].get("a_k_curve_per_byte")
+            entry = sidecar[sid]
+            if entry.get("skipped"):
+                continue
+            curve = entry.get("a_k_curve_per_byte")
             if curve is None:
                 continue
             label = float(row["label_value"])
@@ -103,7 +123,6 @@ def plot_contest_summary(output_dir: Path) -> None:
         ]:
             if not curves:
                 continue
-            # Pad curves to same length with NaN for averaging
             max_len = max(len(c) for c in curves)
             padded = np.full((len(curves), max_len), np.nan)
             for i, c in enumerate(curves):
@@ -127,153 +146,104 @@ def plot_contest_summary(output_dir: Path) -> None:
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out_path = output_dir / "contest_ak_curves_summary.png"
+    out_path = output_dir / f"contest_ak_curves_summary_{tag}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved {out_path}")
 
 
-def plot_dectest_temperature_sweep(output_dir: Path) -> None:
+def plot_dectest_temperature_sweep(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Plot a_k curves at representative temperatures (DecTest)."""
-    dectest_dir = DATA_DIR / "decTest"
+    dectest_dir = data_dir / "decTest"
     if not dectest_dir.exists():
         logger.warning("No decTest data found")
         return
 
-    # Use the 1000-sample no-hds files for richer data
     target_temps = [0.3, 0.5, 0.8, 1.0, 1.2]
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    fig.suptitle("DecTest: Mean a_k Curves by Temperature", fontsize=14)
+    for suffix, glob_pattern, title_extra in [
+        ("", "*1000*.csv", ""),
+        ("_200", "*200*.csv", " (200, with HDS)"),
+    ]:
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+        fig.suptitle(
+            f"DecTest{title_extra}: Mean a_k Curves by Temperature [{tag}]", fontsize=14
+        )
 
-    for ax_idx, csv_path in enumerate(sorted(dectest_dir.glob("*1000*.csv"))):
-        result = load_csv_and_sidecar(csv_path)
-        if result is None:
-            continue
-        rows, sidecar = result
-        task = get_task_name_from_filename(csv_path.name)
-
-        # Group curves by temperature
-        temp_curves: dict[float, list] = {}
-        for row in rows:
-            sid = row["sample_id"]
-            if sid not in sidecar:
+        for ax_idx, csv_path in enumerate(sorted(dectest_dir.glob(glob_pattern))[:3]):
+            result = load_csv_and_sidecar(csv_path, tag)
+            if result is None:
                 continue
-            curve = sidecar[sid].get("a_k_curve_per_byte")
-            if curve is None:
+            rows, sidecar = result
+            task = get_task_name_from_filename(csv_path.name)
+
+            temp_curves: dict[float, list] = {}
+            for row in rows:
+                sid = row["sample_id"]
+                if sid not in sidecar or sid.startswith("__"):
+                    continue
+                entry = sidecar[sid]
+                if entry.get("skipped"):
+                    continue
+                curve = entry.get("a_k_curve_per_byte")
+                if curve is None:
+                    continue
+                temp = float(row["label_value"])
+                temp_curves.setdefault(temp, []).append(curve)
+
+            ax = axes[ax_idx] if ax_idx < 3 else axes[-1]
+            task_label = TASK_LABELS.get(task, task)
+            cmap = plt.cm.coolwarm
+
+            available_temps = sorted(temp_curves.keys())
+            if not available_temps:
                 continue
-            temp = float(row["label_value"])
-            temp_curves.setdefault(temp, []).append(curve)
+            plot_temps = []
+            for target in target_temps:
+                closest = min(available_temps, key=lambda t: abs(t - target))
+                if closest not in plot_temps:
+                    plot_temps.append(closest)
 
-        ax = axes[ax_idx] if ax_idx < 3 else axes[-1]
-        task_label = TASK_LABELS.get(task, task)
-        cmap = plt.cm.coolwarm
+            for i, temp in enumerate(sorted(plot_temps)):
+                curves = temp_curves[temp]
+                max_len = max(len(c) for c in curves)
+                padded = np.full((len(curves), max_len), np.nan)
+                for j, c in enumerate(curves):
+                    padded[j, : len(c)] = c
+                mean_curve = np.nanmean(padded, axis=0)
+                x = np.arange(1, max_len + 1)
+                color = cmap(i / max(len(plot_temps) - 1, 1))
+                ax.plot(x, mean_curve, label=f"τ={temp:.1f} (n={len(curves)})", color=color)
 
-        # Find closest available temperatures to targets
-        available_temps = sorted(temp_curves.keys())
-        plot_temps = []
-        for target in target_temps:
-            closest = min(available_temps, key=lambda t: abs(t - target))
-            if closest not in plot_temps:
-                plot_temps.append(closest)
+            ax.set_xlabel("Response index k")
+            ax.set_ylabel("a_k (bits/byte)")
+            ax.set_title(task_label)
+            ax.legend(fontsize=8)
+            ax.grid(True, alpha=0.3)
 
-        for i, temp in enumerate(sorted(plot_temps)):
-            curves = temp_curves[temp]
-            max_len = max(len(c) for c in curves)
-            padded = np.full((len(curves), max_len), np.nan)
-            for j, c in enumerate(curves):
-                padded[j, : len(c)] = c
-            mean_curve = np.nanmean(padded, axis=0)
-            x = np.arange(1, max_len + 1)
-            color = cmap(i / max(len(plot_temps) - 1, 1))
-            ax.plot(x, mean_curve, label=f"τ={temp:.1f} (n={len(curves)})", color=color)
-
-        ax.set_xlabel("Response index k")
-        ax.set_ylabel("a_k (bits/byte)")
-        ax.set_title(task_label)
-        ax.legend(fontsize=8)
-        ax.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    out_path = output_dir / "dectest_ak_curves_temperature.png"
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    logger.info(f"Saved {out_path}")
-
-    # Also try with 200-sample with_hds files
-    fig2, axes2 = plt.subplots(1, 3, figsize=(18, 5))
-    fig2.suptitle(
-        "DecTest (200, with HDS): Mean a_k Curves by Temperature", fontsize=14
-    )
-
-    for ax_idx, csv_path in enumerate(sorted(dectest_dir.glob("*200*.csv"))):
-        result = load_csv_and_sidecar(csv_path)
-        if result is None:
-            continue
-        rows, sidecar = result
-        task = get_task_name_from_filename(csv_path.name)
-
-        temp_curves = {}
-        for row in rows:
-            sid = row["sample_id"]
-            if sid not in sidecar:
-                continue
-            curve = sidecar[sid].get("a_k_curve_per_byte")
-            if curve is None:
-                continue
-            temp = float(row["label_value"])
-            temp_curves.setdefault(temp, []).append(curve)
-
-        ax = axes2[ax_idx] if ax_idx < 3 else axes2[-1]
-        task_label = TASK_LABELS.get(task, task)
-        cmap = plt.cm.coolwarm
-
-        available_temps = sorted(temp_curves.keys())
-        plot_temps = []
-        for target in target_temps:
-            closest = min(available_temps, key=lambda t: abs(t - target))
-            if closest not in plot_temps:
-                plot_temps.append(closest)
-
-        for i, temp in enumerate(sorted(plot_temps)):
-            curves = temp_curves[temp]
-            max_len = max(len(c) for c in curves)
-            padded = np.full((len(curves), max_len), np.nan)
-            for j, c in enumerate(curves):
-                padded[j, : len(c)] = c
-            mean_curve = np.nanmean(padded, axis=0)
-            x = np.arange(1, max_len + 1)
-            color = cmap(i / max(len(plot_temps) - 1, 1))
-            ax.plot(x, mean_curve, label=f"τ={temp:.1f} (n={len(curves)})", color=color)
-
-        ax.set_xlabel("Response index k")
-        ax.set_ylabel("a_k (bits/byte)")
-        ax.set_title(task_label)
-        ax.legend(fontsize=8)
-        ax.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    out_path2 = output_dir / "dectest_200_ak_curves_temperature.png"
-    fig2.savefig(out_path2, dpi=150, bbox_inches="tight")
-    plt.close(fig2)
-    logger.info(f"Saved {out_path2}")
+        plt.tight_layout()
+        out_path = output_dir / f"dectest{suffix}_ak_curves_temperature_{tag}.png"
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        logger.info(f"Saved {out_path}")
 
 
-def plot_mcdiv_nuggets_summary(output_dir: Path) -> None:
+def plot_mcdiv_nuggets_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Plot mean a_k curves for high vs low diversity (McDiv_nuggets)."""
-    nuggets_dir = DATA_DIR / "McDiv_nuggets"
+    nuggets_dir = data_dir / "McDiv_nuggets"
     if not nuggets_dir.exists():
         logger.warning("No McDiv_nuggets data found")
         return
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     fig.suptitle(
-        "McDiv_nuggets: Mean a_k Curves — High vs Low Content Diversity", fontsize=14
+        f"McDiv_nuggets: Mean a_k Curves — High vs Low Content Diversity [{tag}]",
+        fontsize=14,
     )
 
     csv_files = sorted(nuggets_dir.glob("*.csv"))
     for ax_idx, csv_path in enumerate(csv_files[:3]):
-        result = load_csv_and_sidecar(csv_path)
+        result = load_csv_and_sidecar(csv_path, tag)
         if result is None:
             continue
         rows, sidecar = result
@@ -282,9 +252,12 @@ def plot_mcdiv_nuggets_summary(output_dir: Path) -> None:
         high_curves, low_curves = [], []
         for row in rows:
             sid = row["sample_id"]
-            if sid not in sidecar:
+            if sid not in sidecar or sid.startswith("__"):
                 continue
-            curve = sidecar[sid].get("a_k_curve_per_byte")
+            entry = sidecar[sid]
+            if entry.get("skipped"):
+                continue
+            curve = entry.get("a_k_curve_per_byte")
             if curve is None:
                 continue
             label = float(row["label_value"])
@@ -325,39 +298,40 @@ def plot_mcdiv_nuggets_summary(output_dir: Path) -> None:
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out_path = output_dir / "mcdiv_nuggets_ak_curves_summary.png"
+    out_path = output_dir / f"mcdiv_nuggets_ak_curves_summary_{tag}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved {out_path}")
 
 
-def plot_example_curves(output_dir: Path) -> None:
-    """Plot individual a_k curves for interesting examples (high-D, low-D, edge cases)."""
-    contest_dir = DATA_DIR / "conTest"
+def plot_example_curves(data_dir: Path, tag: str, output_dir: Path) -> None:
+    """Plot individual a_k curves for interesting examples."""
+    contest_dir = data_dir / "conTest"
     if not contest_dir.exists():
         return
 
-    # Pick story_gen as representative task
     csv_path = next(contest_dir.glob("*story_gen*.csv"), None)
     if csv_path is None:
         return
 
-    result = load_csv_and_sidecar(csv_path)
+    result = load_csv_and_sidecar(csv_path, tag)
     if result is None:
         return
     rows, sidecar = result
 
-    # Collect (sample_id, E, label, curves) for rows that have sidecar data
     examples = []
     for row in rows:
         sid = row["sample_id"]
-        if sid not in sidecar:
+        if sid not in sidecar or sid.startswith("__"):
             continue
-        metrics = sidecar[sid].get("metrics", {})
+        entry = sidecar[sid]
+        if entry.get("skipped"):
+            continue
+        metrics = entry.get("metrics", {})
         e_val = metrics.get("excess_entropy_E", 0)
         label = float(row["label_value"])
-        per_perm = sidecar[sid].get("per_permutation_a_k_curves")
-        mean_curve = sidecar[sid].get("a_k_curve_per_byte")
+        per_perm = entry.get("per_permutation_a_k_curves")
+        mean_curve = entry.get("a_k_curve_per_byte")
         if mean_curve is None:
             continue
         examples.append(
@@ -373,7 +347,6 @@ def plot_example_curves(output_dir: Path) -> None:
     if not examples:
         return
 
-    # Sort by E and pick interesting examples
     examples.sort(key=lambda x: x["E"])
     picks = {
         "Lowest E (low diversity)": examples[0],
@@ -381,7 +354,6 @@ def plot_example_curves(output_dir: Path) -> None:
         "Highest E (high diversity)": examples[-1],
     }
 
-    # Also find a misclassification edge case if possible
     high_label_low_e = [e for e in examples if e["label"] == 1.0]
     low_label_high_e = [e for e in examples if e["label"] == 0.0]
     if high_label_low_e:
@@ -390,7 +362,7 @@ def plot_example_curves(output_dir: Path) -> None:
         picks["Low-label, highest E"] = low_label_high_e[-1]
 
     fig, axes = plt.subplots(1, len(picks), figsize=(6 * len(picks), 5))
-    fig.suptitle("Example a_k Curves (ConTest storyGen)", fontsize=14)
+    fig.suptitle(f"Example a_k Curves (ConTest storyGen) [{tag}]", fontsize=14)
 
     for ax_idx, (title, ex) in enumerate(picks.items()):
         ax = axes[ax_idx] if len(picks) > 1 else axes
@@ -398,12 +370,10 @@ def plot_example_curves(output_dir: Path) -> None:
         x = np.arange(1, len(curve) + 1)
         ax.plot(x, curve, "k-", linewidth=2, label="Mean")
 
-        # Plot per-permutation curves if available
         if ex["per_perm_curves"]:
-            for pc in ex["per_perm_curves"][:20]:  # Limit to 20 for clarity
+            for pc in ex["per_perm_curves"][:20]:
                 ax.plot(
                     np.arange(1, len(pc) + 1),
-                    # Normalize to per-byte if these are total bits
                     pc,
                     alpha=0.1,
                     color="gray",
@@ -416,7 +386,7 @@ def plot_example_curves(output_dir: Path) -> None:
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out_path = output_dir / "example_ak_curves.png"
+    out_path = output_dir / f"example_ak_curves_{tag}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved {out_path}")
@@ -425,6 +395,12 @@ def plot_example_curves(output_dir: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Plot a_k curves from Tevet sidecar JSONs"
+    )
+    parser.add_argument(
+        "--run-tag",
+        type=str,
+        default=None,
+        help="Run tag to plot. Default: plot all available tags.",
     )
     parser.add_argument(
         "--output-dir",
@@ -441,10 +417,24 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    plot_contest_summary(output_dir)
-    plot_dectest_temperature_sweep(output_dir)
-    plot_mcdiv_nuggets_summary(output_dir)
-    plot_example_curves(output_dir)
+    # Determine which tags to plot
+    if args.run_tag:
+        tags = [args.run_tag]
+    else:
+        tags = find_run_tags()
+        if not tags:
+            logger.error("No run tags found under results/tevet/. Run compute_icl_metrics_for_tevet.py first.")
+            return
+        logger.info(f"Found run tags: {tags}")
+
+    for tag in tags:
+        data_dir = RESULTS_BASE / tag
+        logger.info(f"Plotting for tag: {tag}")
+
+        plot_contest_summary(data_dir, tag, output_dir)
+        plot_dectest_temperature_sweep(data_dir, tag, output_dir)
+        plot_mcdiv_nuggets_summary(data_dir, tag, output_dir)
+        plot_example_curves(data_dir, tag, output_dir)
 
     logger.info("All plots generated!")
 

@@ -7,10 +7,13 @@ each hypothesis from hypotheses/tevet_validation.md.
 
 Usage:
     # After running compute_icl_metrics_for_tevet.py and run_experiments.py:
-    uv run python scripts/analyze_tevet_validation.py
+    uv run python scripts/analyze_tevet_validation.py --run-tag gpt2
 
-    # With custom results directory:
-    uv run python scripts/analyze_tevet_validation.py --results-dir diversity-eval/results
+    # Direct CSV analysis (no run_experiments.py needed):
+    uv run python scripts/analyze_tevet_validation.py --run-tag gpt2
+
+    # Analyze all available run tags:
+    uv run python scripts/analyze_tevet_validation.py
 """
 
 from __future__ import annotations
@@ -28,9 +31,9 @@ from scipy.stats import pearsonr, spearmanr
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RESULTS_BASE = PROJECT_ROOT / "results" / "tevet"
 DIVERSITY_EVAL_DIR = PROJECT_ROOT / "diversity-eval"
-RESULTS_DIR = DIVERSITY_EVAL_DIR / "results"
-DATA_DIR = DIVERSITY_EVAL_DIR / "data" / "with_metrics"
+TEVET_RESULTS_DIR = DIVERSITY_EVAL_DIR / "results"
 OUTPUT_DIR = PROJECT_ROOT / "figures" / "tevet_validation"
 
 # Baseline results from Tevet paper (Table 2 & 4, approximate)
@@ -67,13 +70,21 @@ PAPER_BASELINES = {
     },
 }
 
-ICL_METRICS = [
-    "metric_icl_E",
-    "metric_icl_E_rate",
-    "metric_icl_C",
-    "metric_icl_D",
-    "metric_icl_D_rate",
-]
+
+def find_run_tags() -> list[str]:
+    """Find available run tags under results/tevet/."""
+    if not RESULTS_BASE.exists():
+        return []
+    return sorted(
+        d.name for d in RESULTS_BASE.iterdir()
+        if d.is_dir() and (d / "run_config.json").exists()
+    )
+
+
+def icl_metric_names(tag: str) -> list[str]:
+    """Return tagged ICL metric column names."""
+    bases = ["metric_icl_E", "metric_icl_E_rate", "metric_icl_C", "metric_icl_D", "metric_icl_D_rate"]
+    return [f"{b}_{tag}" for b in bases]
 
 
 def load_experiment_results(results_dir: Path) -> dict:
@@ -99,7 +110,7 @@ def load_csv_metrics(csv_path: Path) -> dict[str, list[float]]:
                     try:
                         val = float(row[field]) if row[field] != "" else np.nan
                     except (ValueError, TypeError):
-                        val = row[field]  # Keep string for label_name
+                        val = row[field]
                     data[field].append(val)
     return data
 
@@ -117,32 +128,33 @@ def print_results_table(all_results: dict) -> None:
 
         for sub_exp, metrics in sorted(results.items()):
             print(f"\n  {sub_exp}:")
-            # Print header
             score_types = set()
             for m_results in metrics.values():
                 score_types.update(m_results.keys())
             score_types = sorted(score_types)
 
-            header = f"    {'Metric':<40s}"
+            header = f"    {'Metric':<45s}"
             for st in score_types:
                 header += f" {st:>12s}"
             print(header)
-            print(f"    {'─' * (40 + 13 * len(score_types))}")
+            print(f"    {'─' * (45 + 13 * len(score_types))}")
 
             for metric_name, m_results in sorted(metrics.items()):
-                row = f"    {metric_name:<40s}"
+                row = f"    {metric_name:<45s}"
                 for st in score_types:
                     val = m_results.get(st, float("nan"))
                     row += f" {val:>12.4f}"
                 print(row)
 
 
-def test_hypotheses(all_results: dict) -> list[dict]:
+def test_hypotheses(all_results: dict, tag: str) -> None:
     """Test each hypothesis against the experiment results."""
-    # H1: E detects content diversity better than n-gram metrics (ConTest)
     print("\n" + "=" * 80)
-    print("HYPOTHESIS TESTING")
+    print(f"HYPOTHESIS TESTING [{tag}]")
     print("=" * 80)
+
+    e_col = f"metric_icl_E_{tag}"
+    d_col = f"metric_icl_D_{tag}"
 
     # Collect ConTest results
     contest_results = {}
@@ -156,8 +168,8 @@ def test_hypotheses(all_results: dict) -> list[dict]:
         )
         for exp_name, results in contest_results.items():
             for sub_exp, metrics in results.items():
-                e_spearman = metrics.get("metric_icl_E", {}).get("spearman_cor", None)
-                e_oca = metrics.get("metric_icl_E", {}).get("oca", None)
+                e_spearman = metrics.get(e_col, {}).get("spearman_cor", None)
+                e_oca = metrics.get(e_col, {}).get("oca", None)
                 dn_spearman = metrics.get("metric_averaged_distinct_ngrams", {}).get(
                     "spearman_cor", None
                 )
@@ -182,12 +194,11 @@ def test_hypotheses(all_results: dict) -> list[dict]:
                     if dn_oca is not None:
                         print(f"    vs distinct-n OCA={dn_oca:.3f}")
 
-        # H2: D vs E on ConTest
         print("\n--- H2: D outperforms E on ConTest ---")
         for exp_name, results in contest_results.items():
             for sub_exp, metrics in results.items():
-                e_oca = metrics.get("metric_icl_E", {}).get("oca", None)
-                d_oca = metrics.get("metric_icl_D", {}).get("oca", None)
+                e_oca = metrics.get(e_col, {}).get("oca", None)
+                d_oca = metrics.get(d_col, {}).get("oca", None)
                 if e_oca is not None and d_oca is not None:
                     diff = d_oca - e_oca
                     print(
@@ -205,7 +216,7 @@ def test_hypotheses(all_results: dict) -> list[dict]:
         print("\n--- H3: E is competitive on DecTest ---")
         for exp_name, results in dectest_results.items():
             for sub_exp, metrics in results.items():
-                e_spearman = metrics.get("metric_icl_E", {}).get("spearman_cor", None)
+                e_spearman = metrics.get(e_col, {}).get("spearman_cor", None)
                 dn_spearman = metrics.get("metric_averaged_distinct_ngrams", {}).get(
                     "spearman_cor", None
                 )
@@ -228,8 +239,8 @@ def test_hypotheses(all_results: dict) -> list[dict]:
         print("\n--- H4: E excels on McDiv_nuggets ---")
         for exp_name, results in nuggets_results.items():
             for sub_exp, metrics in results.items():
-                e_spearman = metrics.get("metric_icl_E", {}).get("spearman_cor", None)
-                e_oca = metrics.get("metric_icl_E", {}).get("oca", None)
+                e_spearman = metrics.get(e_col, {}).get("spearman_cor", None)
+                e_oca = metrics.get(e_col, {}).get("oca", None)
                 dn_spearman = metrics.get("metric_averaged_distinct_ngrams", {}).get(
                     "spearman_cor", None
                 )
@@ -248,9 +259,11 @@ def test_hypotheses(all_results: dict) -> list[dict]:
                     )
 
 
-def compute_metric_correlations(data_dir: Path, output_dir: Path) -> None:
+def compute_metric_correlations(data_dir: Path, tag: str, output_dir: Path) -> None:
     """H5: Compute correlations between E and other metrics."""
-    print("\n--- H5: E captures a different signal than existing metrics ---")
+    print(f"\n--- H5: E captures a different signal than existing metrics [{tag}] ---")
+
+    e_col = f"metric_icl_E_{tag}"
 
     all_e = []
     all_dn = []
@@ -258,14 +271,13 @@ def compute_metric_correlations(data_dir: Path, output_dir: Path) -> None:
 
     for csv_path in sorted(data_dir.rglob("*.csv")):
         data = load_csv_metrics(csv_path)
-        e_vals = data.get("metric_icl_E")
+        e_vals = data.get(e_col)
         dn_vals = data.get("metric_averaged_distinct_ngrams")
         sb_vals = data.get("metric_sent_bert")
 
         if e_vals is None or dn_vals is None:
             continue
 
-        # Filter out NaN
         valid_idx = [
             i
             for i in range(len(e_vals))
@@ -298,10 +310,9 @@ def compute_metric_correlations(data_dir: Path, output_dir: Path) -> None:
         passed = abs(r_overall) < 0.5
         print(f"  Target |r| < 0.5: {'PASS' if passed else 'FAIL'}")
 
-    # Scatter plot: E vs distinct-n
     if all_e and all_dn:
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-        fig.suptitle("H5: ICL E vs Existing Metrics", fontsize=14)
+        fig.suptitle(f"H5: ICL E vs Existing Metrics [{tag}]", fontsize=14)
 
         axes[0].scatter(all_dn, all_e, alpha=0.2, s=5)
         axes[0].set_xlabel("Averaged Distinct N-grams")
@@ -320,22 +331,26 @@ def compute_metric_correlations(data_dir: Path, output_dir: Path) -> None:
 
         plt.tight_layout()
         output_dir.mkdir(parents=True, exist_ok=True)
-        out_path = output_dir / "metric_correlations.png"
+        out_path = output_dir / f"metric_correlations_{tag}.png"
         fig.savefig(out_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
         logger.info(f"Saved {out_path}")
 
 
-def plot_metric_distributions(data_dir: Path, output_dir: Path) -> None:
+def plot_metric_distributions(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Plot distributions of ICL metrics for high vs low diversity groups."""
     output_dir.mkdir(parents=True, exist_ok=True)
     contest_dir = data_dir / "conTest"
     if not contest_dir.exists():
         return
 
+    e_col = f"metric_icl_E_{tag}"
+    d_col = f"metric_icl_D_{tag}"
+
     fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     fig.suptitle(
-        "ICL Metric Distributions: High vs Low Content Diversity (ConTest)", fontsize=14
+        f"ICL Metric Distributions: High vs Low Content Diversity (ConTest) [{tag}]",
+        fontsize=14,
     )
 
     for col_idx, csv_path in enumerate(sorted(contest_dir.glob("*.csv"))[:3]):
@@ -343,7 +358,9 @@ def plot_metric_distributions(data_dir: Path, output_dir: Path) -> None:
         labels = data.get("label_value", [])
         task = csv_path.stem.split("_")[-2] + "_" + csv_path.stem.split("_")[-1]
 
-        for row_idx, metric_name in enumerate(["metric_icl_E", "metric_icl_D"]):
+        for row_idx, (metric_name, metric_label) in enumerate(
+            [(e_col, "E"), (d_col, "D")]
+        ):
             ax = axes[row_idx][col_idx]
             vals = data.get(metric_name, [])
             if not vals:
@@ -370,32 +387,33 @@ def plot_metric_distributions(data_dir: Path, output_dir: Path) -> None:
                 )
                 ax.legend()
 
-            metric_label = "E" if "E" in metric_name else "D"
             ax.set_title(f"{metric_label} — {task}")
             ax.set_xlabel(f"{metric_label} value")
             ax.set_ylabel("Count")
 
     plt.tight_layout()
-    out_path = output_dir / "contest_metric_distributions.png"
+    out_path = output_dir / f"contest_metric_distributions_{tag}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved {out_path}")
 
 
-def plot_dectest_e_vs_temperature(data_dir: Path, output_dir: Path) -> None:
+def plot_dectest_e_vs_temperature(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Scatter plot of E vs temperature for DecTest."""
     output_dir.mkdir(parents=True, exist_ok=True)
     dectest_dir = data_dir / "decTest"
     if not dectest_dir.exists():
         return
 
+    e_col = f"metric_icl_E_{tag}"
+
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    fig.suptitle("DecTest: ICL E vs Temperature", fontsize=14)
+    fig.suptitle(f"DecTest: ICL E vs Temperature [{tag}]", fontsize=14)
 
     for ax_idx, csv_path in enumerate(sorted(dectest_dir.glob("*1000*.csv"))[:3]):
         data = load_csv_metrics(csv_path)
         temps = data.get("label_value", [])
-        e_vals = data.get("metric_icl_E", [])
+        e_vals = data.get(e_col, [])
         task = csv_path.stem.split("_")[-2] + "_" + csv_path.stem.split("_")[-1]
 
         if not temps or not e_vals:
@@ -415,19 +433,46 @@ def plot_dectest_e_vs_temperature(data_dir: Path, output_dir: Path) -> None:
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out_path = output_dir / "dectest_E_vs_temperature.png"
+    out_path = output_dir / f"dectest_E_vs_temperature_{tag}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved {out_path}")
 
 
+def analyze_tag(tag: str, output_dir: Path) -> None:
+    """Run full analysis for a single run tag."""
+    data_dir = RESULTS_BASE / tag
+    if not data_dir.exists():
+        logger.error(f"No data found for tag '{tag}' at {data_dir}")
+        return
+
+    print(f"\n{'#' * 80}")
+    print(f"# ANALYSIS FOR RUN TAG: {tag}")
+    print(f"{'#' * 80}")
+
+    # Try loading Tevet experiment results
+    all_results = load_experiment_results(TEVET_RESULTS_DIR)
+    if all_results:
+        print_results_table(all_results)
+        test_hypotheses(all_results, tag)
+    else:
+        print("No Tevet experiment results found. Run the pipeline first:")
+        print(f"  cd diversity-eval && python run_experiments.py --input_json {data_dir / 'experiments'}")
+        print("\nFalling back to direct CSV analysis...")
+
+    # Direct CSV analysis (works without run_experiments.py)
+    compute_metric_correlations(data_dir, tag, output_dir)
+    plot_metric_distributions(data_dir, tag, output_dir)
+    plot_dectest_e_vs_temperature(data_dir, tag, output_dir)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze Tevet validation results")
     parser.add_argument(
-        "--results-dir",
+        "--run-tag",
         type=str,
-        default=str(RESULTS_DIR),
-        help="Directory containing experiment results",
+        default=None,
+        help="Run tag to analyze. Default: analyze all available tags.",
     )
     parser.add_argument(
         "--output-dir",
@@ -441,24 +486,20 @@ def main() -> None:
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
 
-    results_dir = Path(args.results_dir)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load and display experiment results
-    all_results = load_experiment_results(results_dir)
-    if all_results:
-        print_results_table(all_results)
-        test_hypotheses(all_results)
+    if args.run_tag:
+        tags = [args.run_tag]
     else:
-        print("No experiment results found. Run the Tevet pipeline first:")
-        print("  cd diversity-eval && python run_experiments.py")
-        print("\nFalling back to direct CSV analysis...")
+        tags = find_run_tags()
+        if not tags:
+            logger.error("No run tags found. Run compute_icl_metrics_for_tevet.py first.")
+            return
+        logger.info(f"Found run tags: {tags}")
 
-    # Direct CSV analysis (works even without run_experiments.py)
-    compute_metric_correlations(DATA_DIR, output_dir)
-    plot_metric_distributions(DATA_DIR, output_dir)
-    plot_dectest_e_vs_temperature(DATA_DIR, output_dir)
+    for tag in tags:
+        analyze_tag(tag, output_dir)
 
     print("\n" + "=" * 80)
     print("Analysis complete!")
