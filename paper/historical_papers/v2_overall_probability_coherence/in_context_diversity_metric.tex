@@ -290,6 +290,13 @@ So coherence is penalized both by genuine incoherence and by distributional dist
 
 \paragraph{Note on comparability.} Because all quantities are normalized per byte, the per-byte coherence $C$ is invariant to tokenizer choice: two base models $\theta_1, \theta_2$ with different tokenizers but identical predictive distributions will yield identical $C$ values. What remains incomparable across different $\theta$'s is model quality: a better model assigns lower cross-entropy regardless of normalization. This is by design --- $\theta$'s predictive quality is the lens through which diversity is measured.
 
+\paragraph{Total coherence.} For the total diversity score (Section~\ref{sec:scalar}), we also define the \textbf{total coherence}:
+\begin{equation}\label{eq:total-coherence}
+    \mathcal{C} = \left(\prod_{i=1}^{n} \theta(r_i \mid p)\right)^{1/n}
+\end{equation}
+
+This is the geometric mean of the total probability $\theta(r_i \mid p)$ across responses, living in $(0,1)$. Total probability is a property of the string, not of the tokenization: by the chain rule, $\theta(r \mid p) = \prod_t \theta(r^t \mid r^{<t}, p)$ regardless of how $\theta$ factors the sequence. Consequently, $\mathcal{C}$ is comparable across base models with different tokenizers (though not across models of different quality, as with $C$).
+
 \subsection{Why Not Weight Excess Entropy by Coherence?}\label{sec:why-not-weight}
 
 A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$ is the per-response coherence. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons.
@@ -308,41 +315,41 @@ The $a_k$ curve is the primary output of this framework. It reveals the total le
 
 Everything below is a lossy summary of this curve. We develop these summaries because curves are difficult to rank, average across prompt suites, or report in tables, but the reader should understand that each successive compression discards information.
 
-\subsection{The \texorpdfstring{$(E, C, \sigma_\ell)$}{(E, C, sigma)} Triple}
+\subsection{The \texorpdfstring{$(E, \mathcal{C}, \sigma_\ell)$}{(E, C, sigma)} Triple}
 
-The excess entropy $E$ and the per-byte coherence $C$ answer genuinely different questions:
+The excess entropy $E$ and the total coherence $\mathcal{C}$ answer genuinely different questions:
 \begin{itemize}[nosep]
     \item $E$ (bits): ``How many bits of learnable structure does $\theta$ find among $\pi$'s outputs?''
-    \item $C$ (dimensionless, in $(0,1)$): ``How likely, per byte, does $\theta$ find $\pi$'s outputs?''
+    \item $\mathcal{C}$ (dimensionless, in $(0,1)$): ``How probable does $\theta$ find $\pi$'s outputs overall?''
 \end{itemize}
 
-Since $(E, C)$ is a two-dimensional summary, any scalar function $f(E, C)$ discards information: knowing both $E$ and $C$ always permits recovering the scalar, but not vice versa.
+Since $(E, \mathcal{C})$ is a two-dimensional summary, any scalar function $f(E, \mathcal{C})$ discards information: knowing both $E$ and $\mathcal{C}$ always permits recovering the scalar, but not vice versa.
 
-This separation enables diagnostic reasoning. For instance, when comparing a base policy against a steered variant, one might observe that steering reduces $E$ (less learnable structure) while maintaining $C$ (individually coherent outputs), or at high steering magnitudes, that $C$ drops (incoherent outputs) while $E$ remains nonzero (multiple types of incoherent output). These are qualitatively different failure modes that a single scalar would conflate.
+This separation enables diagnostic reasoning. For instance, when comparing a base policy against a steered variant, one might observe that steering reduces $E$ (less learnable structure) while maintaining $\mathcal{C}$ (individually coherent outputs), or at high steering magnitudes, that $\mathcal{C}$ drops (incoherent outputs) while $E$ remains nonzero (multiple types of incoherent output). These are qualitatively different failure modes that a single scalar would conflate.
 
-Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(E, C, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
+Because $\mathcal{C}$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(E, \mathcal{C}, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
 
 \subsection{Scalar Summary: Plausibility-Weighted Structural Diversity}\label{sec:scalar}
 
 When a single number is required (e.g., for ranking policies in a table), we combine coherence and excess entropy into a diversity score. This can be done at two granularities.
 
-The \textbf{diversity score}:
+The \textbf{total diversity score}:
 \begin{equation}\label{eq:D-total}
-    D = C \times E
+    \mathcal{D} = \mathcal{C} \times E
 \end{equation}
 
-Units: bits. This is the per-byte-coherence-weighted structural information across all responses: ``how many bits of learnable structure does $\theta$ find, weighted by how plausible per byte the outputs are?'' Because $E$ is not length-normalized, longer responses can score higher even at the same diversity rate, which is appropriate when longer responses genuinely carry more diverse content.
+Units: bits. This is the total coherence-weighted structural information across all responses: ``how many bits of learnable structure does $\theta$ find, weighted by how plausible the outputs are overall?'' Because $\mathcal{D}$ is not length-normalized, longer responses can score higher even at the same diversity rate, which is appropriate when longer responses genuinely carry more diverse content.
 
 The \textbf{per-byte diversity score}:
 \begin{equation}\label{eq:D}
-    D_{\mathrm{rate}} = C \times E_{\mathrm{rate}}
+    D = C \times E_{\mathrm{rate}}
 \end{equation}
 
-Units: bits/byte. This is coherence-weighted structural information per byte: ``how much learnable structure is there per byte, discounted by how plausible the outputs are?'' Because both $C$ and $E_{\mathrm{rate}}$ are length-normalized, $D_{\mathrm{rate}}$ treats long and short responses on equal footing.
+Units: bits/byte. This is coherence-weighted structural information per byte: ``how much learnable structure is there per byte, discounted by how plausible the outputs are?'' Because both $C$ and $E_{\mathrm{rate}}$ are length-normalized, $D$ treats long and short responses on equal footing.
 
-The two scores are complementary. $D$ is the right choice when the total amount of diverse information matters regardless of response length. $D_{\mathrm{rate}}$ is the right choice when comparing policies that may produce responses of different lengths on the same prompt and length variation should be normalized away.
+The two scores are complementary. $\mathcal{D}$ is the right choice when the total amount of diverse information matters regardless of response length. $D$ is the right choice when comparing policies that may produce responses of different lengths on the same prompt and length variation should be normalized away.
 
-\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. This is considerably less compressed than the per-token range, because bytes are a finer-grained unit than tokens. Consequently, $D = C \times E$ is not dominated by $C$ in the way a total-probability coherence term would be. Nonetheless, two mitigation strategies remain available for cases where coherence variation dominates diversity variation:
+\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. This is considerably less compressed than the per-token range, because bytes are a finer-grained unit than tokens. Consequently, $D = C \times E_{\mathrm{rate}}$ is less dominated by $C$ than it would be in per-token units. Nonetheless, two mitigation strategies remain available for cases where coherence variation dominates diversity variation:
 
 \begin{enumerate}[nosep]
     \item \textbf{Normalization}: Replace $C$ with $C / C_{\mathrm{base}}$, where $C_{\mathrm{base}}$ is the coherence of $\theta$'s own samples given the same prompt. The ratio lives in $(0, 1]$ and equals 1 when $\pi$ is as coherent as $\theta$, removing the baseline suppression. This has a clean interpretation as ``what fraction of baseline coherence does $\pi$ retain?''
@@ -351,13 +358,13 @@ The two scores are complementary. $D$ is the right choice when the total amount 
 
 We recommend normalization when a single-scalar ranking is the primary use case, and the unmodified $C$ when the goal is diagnostic (reporting $E$ and $C$ separately).
 
-The edge cases behave correctly for both $D$ and $D_{\mathrm{rate}}$:
+The edge cases behave correctly for both $\mathcal{D}$ and $D$:
 \begin{enumerate}[nosep]
-    \item \textbf{Pure noise}: $C \approx 0$, $E \approx 0$, so $D \approx 0$ and $D_{\mathrm{rate}} \approx 0$.
+    \item \textbf{Pure noise}: $C \approx 0$, $E \approx 0$, so $\mathcal{D} \approx 0$ and $D \approx 0$.
     \item \textbf{Multiple incoherent patterns}: $C$ low, $E > 0$, so both scores are suppressed.
     \item \textbf{Rich coherent structure}: $C$ high, $E$ high, so both scores are high.
     \item \textbf{One coherent pattern}: $C$ high, $E \approx 0$, so both scores are $\approx 0$.
-    \item \textbf{Decomposable}: One can always factor $D$ back into $C$ and $E$ (or $D_{\mathrm{rate}}$ into $C$ and $E_{\mathrm{rate}}$) to identify which term drove a change.
+    \item \textbf{Decomposable}: One can always factor $\mathcal{D}$ back into $\mathcal{C}$ and $E$ (or $D$ into $C$ and $E_{\mathrm{rate}}$) to identify which term drove a change.
 \end{enumerate}
 
 \paragraph{Limitations of the scalar summary.} $D$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure} --- recurring patterns that $\theta$ can extract from seeing multiple responses --- not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, because no recurring pattern exists for $\theta$ to learn. This yields $E \approx 0$ and $D \approx 0$ despite maximal diversity. In practice, LLM output distributions tend toward structured output (stories cluster into genres, arguments cluster into strategies, and shared stylistic conventions recur), so this is unlikely to cause problems for typical evaluations. The diagnostic is high $C$ with low $E$: if $\pi$'s outputs are individually plausible but $\theta$ finds no inter-response structure, the diversity may be continuous rather than absent. The $a_k$ curve distinguishes these cases by its height ($a_1$), which $D$ discards.
@@ -366,7 +373,7 @@ Second, $E$ measures statistical independence of strings as perceived by $\theta
 
 \subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
 
-The coherence $C$ summarizes the plausibility of $\pi$'s outputs as a single number, but a policy may mix coherent and incoherent modes. A policy with 5 coherent modes and 3 incoherent modes will have $E$ reflecting all 8 modes (since $\theta$ learns to predict all of them from context), while $C$ is dragged down by the incoherent samples. The pair $(E, C)$ cannot distinguish ``8 modes, 3 of which are junk'' from ``8 uniformly mediocre modes.''
+The coherence $\mathcal{C}$ summarizes the plausibility of $\pi$'s outputs as a single number, but a policy may mix coherent and incoherent modes. A policy with 5 coherent modes and 3 incoherent modes will have $E$ reflecting all 8 modes (since $\theta$ learns to predict all of them from context), while $\mathcal{C}$ is dragged down by the incoherent samples. The pair $(E, \mathcal{C})$ cannot distinguish ``8 modes, 3 of which are junk'' from ``8 uniformly mediocre modes.''
 
 To diagnose this, we report the \textbf{coherence spread} $\sigma_\ell$, defined as the standard deviation of the per-response cross-entropies:
 \begin{equation}
@@ -385,7 +392,7 @@ $C_+$ is the coherence of the better-than-average responses and $C_-$ is the coh
 
 The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \times E_{\mathrm{rate}}$, is zero when all responses have equal coherence and large when the policy mixes coherent and incoherent modes. A wide band is the diagnostic signal for heterogeneous output quality.
 
-\paragraph{What to report.} We recommend reporting $(E, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D = C \times E$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).\footnote{Two more aggressive diagnostic strategies are available when $\sigma_\ell$ is large. First, \emph{threshold-and-recompute}: set a coherence floor $c_{\min}$ (e.g., derived from $\theta$'s own output distribution), discard responses with $c_i < c_{\min}$, and recompute $E$ on the surviving subset. This directly answers ``how diverse is $\pi$ among its coherent outputs?'' at the cost of introducing a hyperparameter and reducing the effective sample size. Second, \emph{coherence-stratified $a_k$ curves}: sort responses by coherence, then compute separate $a_k$ curves for the top-$k$ most coherent responses and for the full set. If the curves diverge, incoherent modes are inflating $E$. Both strategies are complementary to the $(E, C, \sigma_\ell)$ triple and can be applied post hoc without modifying the core metric.}
+\paragraph{What to report.} We recommend reporting $(E, \mathcal{C}, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $\mathcal{C}$ faithfully represents the policy's coherence and $\mathcal{D} = \mathcal{C} \times E$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).\footnote{Two more aggressive diagnostic strategies are available when $\sigma_\ell$ is large. First, \emph{threshold-and-recompute}: set a coherence floor $c_{\min}$ (e.g., derived from $\theta$'s own output distribution), discard responses with $c_i < c_{\min}$, and recompute $E$ on the surviving subset. This directly answers ``how diverse is $\pi$ among its coherent outputs?'' at the cost of introducing a hyperparameter and reducing the effective sample size. Second, \emph{coherence-stratified $a_k$ curves}: sort responses by coherence, then compute separate $a_k$ curves for the top-$k$ most coherent responses and for the full set. If the curves diverge, incoherent modes are inflating $E$. Both strategies are complementary to the $(E, \mathcal{C}, \sigma_\ell)$ triple and can be applied post hoc without modifying the core metric.}
 
 \subsection{Estimating Mode Count from the Curve}\label{sec:mode-count-from-curve}
 
@@ -395,30 +402,30 @@ The number of effective modes is instead read from the \textbf{elbow of the $a_k
 
 \subsection{Aggregation Across Prompts}\label{sec:aggregation}
 
-The diversity scores are defined relative to a single prompt $p$. To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, we average. For the diversity score:
+The diversity scores are defined relative to a single prompt $p$. To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, we average. For the total diversity score:
 \begin{equation}
-    \bar{D}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D(\pi, p_j)
+    \bar{\mathcal{D}}(\pi) = \frac{1}{M}\sum_{j=1}^{M} \mathcal{D}(\pi, p_j)
 \end{equation}
 
 To compare two policies (e.g., a base model against a steered variant), the natural scalar is the difference:
 \begin{equation}
-    \Delta D = \bar{D}(\pi_{\mathrm{base}}) - \bar{D}(\pi_{\mathrm{steered}}) = \frac{1}{M}\sum_{j=1}^{M}\bigl[D(\pi_{\mathrm{base}}, p_j) - D(\pi_{\mathrm{steered}}, p_j)\bigr]
+    \Delta\mathcal{D} = \bar{\mathcal{D}}(\pi_{\mathrm{base}}) - \bar{\mathcal{D}}(\pi_{\mathrm{steered}}) = \frac{1}{M}\sum_{j=1}^{M}\bigl[\mathcal{D}(\pi_{\mathrm{base}}, p_j) - \mathcal{D}(\pi_{\mathrm{steered}}, p_j)\bigr]
 \end{equation}
 
-$\Delta D$ answers ``how many bits of structural diversity did steering remove, on average?'' For constrained prompts where both policies have $D \approx 0$, the per-prompt contribution is $\approx 0$, which is correct: there was no diversity to remove. For open-ended prompts where steering collapses structure, the contribution is large and positive. No division is involved, so $\Delta D$ is stable even when $D_{\mathrm{base}}$ is near zero.
+$\Delta\mathcal{D}$ answers ``how many bits of structural diversity did steering remove, on average?'' For constrained prompts where both policies have $\mathcal{D} \approx 0$, the per-prompt contribution is $\approx 0$, which is correct: there was no diversity to remove. For open-ended prompts where steering collapses structure, the contribution is large and positive. No division is involved, so $\Delta\mathcal{D}$ is stable even when $\mathcal{D}_{\mathrm{base}}$ is near zero.
 
-\paragraph{Length-normalized aggregation.} The per-byte score $D_{\mathrm{rate}}$ can be aggregated analogously: $\bar{D}_{\mathrm{rate}} = \frac{1}{M}\sum_j D_{\mathrm{rate}}(\pi, p_j)$ and $\Delta D_{\mathrm{rate}} = \bar{D}_{\mathrm{rate,base}} - \bar{D}_{\mathrm{rate,steered}}$, with $\Delta D_{\mathrm{rate}}$ in bits/byte. The choice between $D$ and $D_{\mathrm{rate}}$ for aggregation depends on whether length variation across prompts should be counted as part of the diversity signal (use $D$) or normalized away so that long and short responses are compared on equal footing (use $D_{\mathrm{rate}}$).
+\paragraph{Length-normalized aggregation.} The per-byte score $D$ can be aggregated analogously: $\bar{D} = \frac{1}{M}\sum_j D(\pi, p_j)$ and $\Delta D = \bar{D}_{\mathrm{base}} - \bar{D}_{\mathrm{steered}}$, with $\Delta D$ in bits/byte. The choice between $\mathcal{D}$ and $D$ for aggregation depends on whether length variation across prompts should be counted as part of the diversity signal (use $\mathcal{D}$) or normalized away so that long and short responses are compared on equal footing (use $D$).
 
-\paragraph{Why not a ratio?} The relative measure $D_{\mathrm{steered}} / D_{\mathrm{base}}$ is appealing (``what fraction of diversity survived steering?'') but requires division by $D_{\mathrm{base}}$, which is near zero for any constrained prompt. Clamping the denominator (e.g., $\max(D_{\mathrm{base}}, \epsilon)$) introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference avoids these issues.
+\paragraph{Why not a ratio?} The relative measure $\mathcal{D}_{\mathrm{steered}} / \mathcal{D}_{\mathrm{base}}$ is appealing (``what fraction of diversity survived steering?'') but requires division by $\mathcal{D}_{\mathrm{base}}$, which is near zero for any constrained prompt. Clamping the denominator (e.g., $\max(\mathcal{D}_{\mathrm{base}}, \epsilon)$) introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference avoids these issues.
 
 \subsection{What to Report}
 
 In order of informativeness:
 \begin{enumerate}[nosep]
     \item The $a_k$ curve (the primary metric), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). The elbow location indicates approximate mode count (Section~\ref{sec:mode-count-from-curve}). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
-    \item The $(E, C, \sigma_\ell)$ triple, for tabular comparisons across many policies or prompts. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
-    \item $D = C \times E$ (bits) when a single per-prompt number is needed and $\sigma_\ell$ is small. Alternatively, $D_{\mathrm{rate}} = C \times E_{\mathrm{rate}}$ (bits/byte) when long and short responses should be compared on equal footing.
-    \item $\Delta D = \bar{D}_{\mathrm{base}} - \bar{D}_{\mathrm{steered}}$ (or $\Delta D_{\mathrm{rate}}$) when comparing two policies across a prompt suite.
+    \item The $(E, \mathcal{C}, \sigma_\ell)$ triple, for tabular comparisons across many policies or prompts. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
+    \item $\mathcal{D} = \mathcal{C} \times E$ (bits) when a single per-prompt number is needed and $\sigma_\ell$ is small. Alternatively, $D = C \times E_{\mathrm{rate}}$ (bits/byte) when long and short responses should be compared on equal footing.
+    \item $\Delta\mathcal{D} = \bar{\mathcal{D}}_{\mathrm{base}} - \bar{\mathcal{D}}_{\mathrm{steered}}$ (or $\Delta D$) when comparing two policies across a prompt suite.
 \end{enumerate}
 
 \section{Practical Considerations}\label{sec:practical}
@@ -512,7 +519,7 @@ The na\"ive alternative --- computing $a_k$ curves independently per model and a
 
 \paragraph{Excess entropy.} The quantity $E = \sum_k (a_k - a_\infty)$ is related to the excess entropy of stationary stochastic processes studied in computational mechanics \citep{crutchfield2003regularities}. In that setting, it measures the mutual information between the past and future of a process, or equivalently the statistical complexity beyond the irreducible entropy rate. Our application differs in that the ``process'' is a sequence of i.i.d.\ responses from $\pi$, assessed by $\theta$, rather than a single time series, and the conditioning is performed via the base model's in-context learning rather than explicit state estimation.
 
-\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric. The diversity score $D = C \times E$ operates in bits, while the per-byte diversity score $D_{\mathrm{rate}} = C \times E_{\mathrm{rate}}$ provides a length-normalized variant.
+\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric. The total diversity score $\mathcal{D} = \mathcal{C} \times E$ operates in bits, while the per-byte diversity score $D = C \times E_{\mathrm{rate}}$ provides a length-normalized variant.
 
 \paragraph{Total correlation.} The total correlation $\TC_n$ relates to the excess entropy via Eq.~\eqref{eq:tc-decomp}: $\TC_n = n(\bar{a}_1 - a_\infty) - E_n$. See Section~\ref{sec:excess-entropy} and Figure~\ref{fig:decomposition} for the full derivation and a visual decomposition. Note that since all quantities are cross-entropies under $\theta$ rather than true entropies of $\pi$'s output distribution, $\TC_n$ is a $\theta$-relative quantity that measures the total correlation \emph{as perceived by} $\theta$; it equals the true total correlation only to the extent that $\theta$ approximates $\pi$'s joint distribution.
 
