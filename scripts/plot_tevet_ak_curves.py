@@ -78,6 +78,33 @@ def get_task_name_from_filename(filename: str) -> str:
     return "unknown"
 
 
+def plot_mean_with_bands(
+    ax: plt.Axes,
+    curves: list[list[float]],
+    label: str,
+    color: str,
+) -> None:
+    """Plot mean curve with ±1 SD (light) and ±1 SEM (dark) bands."""
+    max_len = max(len(c) for c in curves)
+    padded = np.full((len(curves), max_len), np.nan)
+    for i, c in enumerate(curves):
+        padded[i, : len(c)] = c
+    n = np.sum(~np.isnan(padded), axis=0)
+    mean_curve = np.nanmean(padded, axis=0)
+    std_curve = np.nanstd(padded, axis=0)
+    sem_curve = std_curve / np.sqrt(np.maximum(n, 1))
+    x = np.arange(1, max_len + 1)
+    ax.plot(x, mean_curve, label=f"{label} (n={len(curves)})", color=color)
+    ax.fill_between(
+        x, mean_curve - std_curve, mean_curve + std_curve,
+        alpha=0.1, color=color, label="  ±1 SD",
+    )
+    ax.fill_between(
+        x, mean_curve - sem_curve, mean_curve + sem_curve,
+        alpha=0.3, color=color, label="  ±1 SEM",
+    )
+
+
 def plot_contest_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
     """Plot mean a_k curves for high vs low diversity per task (ConTest)."""
     contest_dir = data_dir / "conTest"
@@ -123,21 +150,7 @@ def plot_contest_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
         ]:
             if not curves:
                 continue
-            max_len = max(len(c) for c in curves)
-            padded = np.full((len(curves), max_len), np.nan)
-            for i, c in enumerate(curves):
-                padded[i, : len(c)] = c
-            mean_curve = np.nanmean(padded, axis=0)
-            std_curve = np.nanstd(padded, axis=0)
-            x = np.arange(1, max_len + 1)
-            ax.plot(x, mean_curve, label=f"{label} (n={len(curves)})", color=color)
-            ax.fill_between(
-                x,
-                mean_curve - std_curve,
-                mean_curve + std_curve,
-                alpha=0.2,
-                color=color,
-            )
+            plot_mean_with_bands(ax, curves, label, color)
 
         ax.set_xlabel("Response index k")
         ax.set_ylabel("a_k (total bits)")
@@ -275,21 +288,7 @@ def plot_mcdiv_nuggets_summary(data_dir: Path, tag: str, output_dir: Path) -> No
         ]:
             if not curves:
                 continue
-            max_len = max(len(c) for c in curves)
-            padded = np.full((len(curves), max_len), np.nan)
-            for i, c in enumerate(curves):
-                padded[i, : len(c)] = c
-            mean_curve = np.nanmean(padded, axis=0)
-            std_curve = np.nanstd(padded, axis=0)
-            x = np.arange(1, max_len + 1)
-            ax.plot(x, mean_curve, label=f"{label} (n={len(curves)})", color=color)
-            ax.fill_between(
-                x,
-                mean_curve - std_curve,
-                mean_curve + std_curve,
-                alpha=0.2,
-                color=color,
-            )
+            plot_mean_with_bands(ax, curves, label, color)
 
         ax.set_xlabel("Response index k")
         ax.set_ylabel("a_k (total bits)")
