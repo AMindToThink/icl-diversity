@@ -7,3 +7,7 @@ build/
 *.egg
 .pytest_cache/
 .ruff_cache/
+
+# Large sidecar JSON caches (regenerable via --migrate-from-sidecars)
+results/tevet/**/*.icl_curves.*.json
+diversity-eval/data/with_metrics/**/*.icl_curves.json

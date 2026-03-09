@@ -1,0 +1,7 @@
+{
+  "base_model": "gpt2",
+  "run_tag": "gpt2",
+  "n_permutations": 50,
+  "torch_dtype": "float32",
+  "batch_size": 8
+}

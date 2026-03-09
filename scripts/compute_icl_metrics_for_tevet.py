@@ -3,19 +3,27 @@ Bridge script: compute ICL diversity metrics for Tevet's diversity-eval CSVs.
 
 Reads CSV files from diversity-eval/data/with_metrics/, computes ICL diversity
 metrics (E, E_rate, C, D, D_rate) for each row's response set, and writes
-the metrics back as new columns. Also saves per-row a_k curves and
-per-permutation data to a sidecar JSON for later plotting.
+enriched copies to results/tevet/<run-tag>/ (keeping the submodule clean).
+
+Each run is identified by a run tag (auto-derived from model name or specified
+via --run-tag). Column names are suffixed with the tag (e.g. metric_icl_E_gpt2)
+so multiple model runs coexist in the same CSV. Sidecar JSONs carry the tag
+in their filename and include run_config metadata.
 
 Usage:
-    # Process all with_metrics CSVs
-    uv run python scripts/compute_icl_metrics_for_tevet.py
+    # GPT-2 (default tag: gpt2)
+    uv run python scripts/compute_icl_metrics_for_tevet.py --device cuda:0 --batch-size 8
 
-    # Process specific CSV(s)
+    # Qwen 2.5 (auto-tag: qwen25)
     uv run python scripts/compute_icl_metrics_for_tevet.py \
-        --input diversity-eval/data/with_metrics/conTest/con_test_200_with_hds_story_gen.csv
+        --base-model Qwen/Qwen2.5-32B --device auto --torch-dtype float16 \
+        --n-permutations 20
 
-    # Use a different base model
-    uv run python scripts/compute_icl_metrics_for_tevet.py --base-model gpt2-medium --device cuda
+    # Custom tag
+    uv run python scripts/compute_icl_metrics_for_tevet.py --run-tag gpt2_50perm
+
+    # Migrate existing sidecar data (no GPU needed)
+    uv run python scripts/compute_icl_metrics_for_tevet.py --migrate-from-sidecars
 """
 
 from __future__ import annotations
@@ -24,11 +32,13 @@ import argparse
 import csv
 import json
 import logging
+import re
 import sys
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
@@ -42,16 +52,10 @@ from icl_diversity.core import format_conditioning_context  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-# ICL metric columns to add to CSVs
-ICL_METRIC_COLUMNS = [
-    "metric_icl_E",
-    "metric_icl_E_rate",
-    "metric_icl_C",
-    "metric_icl_D",
-    "metric_icl_D_rate",
-]
+# Base ICL metric names (before tag suffix)
+ICL_METRIC_BASES = ["metric_icl_E", "metric_icl_E_rate", "metric_icl_C", "metric_icl_D", "metric_icl_D_rate"]
 
-# Mapping from column name to key in compute_icl_diversity_metrics() output
+# Mapping from base column name to key in compute_icl_diversity_metrics() output
 METRIC_KEY_MAP = {
     "metric_icl_E": "excess_entropy_E",
     "metric_icl_E_rate": "excess_entropy_E_rate",
@@ -59,6 +63,76 @@ METRIC_KEY_MAP = {
     "metric_icl_D": "diversity_score_D",
     "metric_icl_D_rate": "diversity_score_D_rate",
 }
+
+# Tevet experiment JSON templates: maps experiment name → (class_name, {sub_exp: relative_csv_path})
+EXPERIMENT_TEMPLATES: dict[str, tuple[str, dict[str, str]]] = {
+    "con_test_200": ("ConTest", {
+        "story_gen": "conTest/con_test_200_with_hds_story_gen.csv",
+        "resp_gen": "conTest/con_test_200_with_hds_resp_gen.csv",
+        "prompt_gen": "conTest/con_test_200_with_hds_prompt_gen.csv",
+    }),
+    "dec_test_200": ("DecTest", {
+        "story_gen": "decTest/dec_test_200_with_hds_story_gen.csv",
+        "resp_gen": "decTest/dec_test_200_with_hds_resp_gen.csv",
+        "prompt_gen": "decTest/dec_test_200_with_hds_prompt_gen.csv",
+    }),
+    "dec_test_1000": ("DecTest", {
+        "story_gen": "decTest/dec_test_1000_no_hds_story_gen.csv",
+        "resp_gen": "decTest/dec_test_1000_no_hds_resp_gen.csv",
+        "prompt_gen": "decTest/dec_test_1000_no_hds_prompt_gen.csv",
+    }),
+    "mcdiv_all": ("ConTest", {
+        "story_gen": "McDiv/mcdiv_all_no_hds_story_gen.csv",
+        "resp_gen": "McDiv/mcdiv_all_no_hds_resp_gen.csv",
+        "prompt_gen": "McDiv/mcdiv_all_no_hds_prompt_gen.csv",
+    }),
+    "mcdiv_nuggets": ("ConTest", {
+        "story_gen": "McDiv_nuggets/mcdiv_nuggets_no_hds_story_gen.csv",
+        "resp_gen": "McDiv_nuggets/mcdiv_nuggets_no_hds_resp_gen.csv",
+        "prompt_gen": "McDiv_nuggets/mcdiv_nuggets_no_hds_prompt_gen.csv",
+    }),
+    "mcdiv_nuggets_with_hds": ("ConTest", {
+        "story_gen": "McDiv_nuggets/mcdiv_nuggets_200_with_hds_story_gen.csv",
+        "resp_gen": "McDiv_nuggets/mcdiv_nuggets_200_with_hds_resp_gen.csv",
+        "prompt_gen": "McDiv_nuggets/mcdiv_nuggets_200_with_hds_prompt_gen.csv",
+    }),
+}
+
+
+def derive_run_tag(model_name: str) -> str:
+    """Derive a short run tag from a model name.
+
+    Examples:
+        gpt2 → gpt2
+        gpt2-medium → gpt2_medium
+        Qwen/Qwen2.5-32B → qwen25
+        meta-llama/Llama-3.1-8B → llama31
+    """
+    # Take the last component (after /)
+    short = model_name.split("/")[-1].lower()
+    # Strip common prefixes/suffixes
+    short = re.sub(r"[-_](base|instruct|chat|hf)$", "", short)
+    # Extract model family + version
+    m = re.match(r"(gpt2|llama|qwen|mistral|phi|gemma)[-_.]?(\d+)?\.?(\d+)?", short)
+    if m:
+        family = m.group(1)
+        major = m.group(2) or ""
+        minor = m.group(3) or ""
+        tag = family + major + minor
+    else:
+        # Fallback: alphanumeric only
+        tag = re.sub(r"[^a-z0-9]", "_", short).strip("_")
+    return tag
+
+
+def tagged_columns(tag: str) -> list[str]:
+    """Return ICL metric column names with run tag suffix."""
+    return [f"{base}_{tag}" for base in ICL_METRIC_BASES]
+
+
+def tagged_std_columns(tag: str) -> list[str]:
+    """Return ICL metric _std column names with run tag suffix."""
+    return [f"{base}_{tag}_std" for base in ICL_METRIC_BASES]
 
 
 @dataclass
@@ -127,13 +201,7 @@ def count_tokens_for_full_context(
     context: str,
     responses: list[str],
 ) -> int:
-    """Count tokens for the full concatenated context using the real formatting.
-
-    Uses format_conditioning_context (the same function the metric computation
-    uses) to build the exact text that would be fed to the model, then counts
-    tokens. This ensures the check matches reality.
-    """
-    # Build the full context as format_conditioning_context would for the last response
+    """Count tokens for the full concatenated context using the real formatting."""
     prefix, target = format_conditioning_context(
         prompt=context,
         previous_responses=responses[:-1],
@@ -143,28 +211,105 @@ def count_tokens_for_full_context(
     return len(tokenizer.encode(full_text))
 
 
+def compute_per_permutation_metrics(
+    per_perm_curves: list[list[float]],
+    per_perm_byte_counts: list[list[int]] | None,
+    unconditional_per_byte: list[float],
+) -> dict[str, float]:
+    """Compute std of each metric across permutation curves.
+
+    Returns dict with keys like 'excess_entropy_E_std', etc.
+    """
+    if not per_perm_curves or len(per_perm_curves) < 2:
+        return {f"{key}_std": 0.0 for key in METRIC_KEY_MAP.values()}
+
+    n_perm = len(per_perm_curves)
+
+    # Mean unconditional surprise (constant across permutations)
+    mean_h = sum(unconditional_per_byte) / len(unconditional_per_byte)
+    coherence_C = 2.0 ** (-mean_h)
+
+    e_vals: list[float] = []
+    e_rate_vals: list[float] = []
+    d_vals: list[float] = []
+    d_rate_vals: list[float] = []
+    c_vals: list[float] = []  # C is constant, but include for completeness
+
+    for i in range(n_perm):
+        curve_bits = per_perm_curves[i]
+        a_n = curve_bits[-1]
+        # E in total bits
+        e = sum(a_k - a_n for a_k in curve_bits)
+
+        # E_rate: need per-byte curve
+        if per_perm_byte_counts and per_perm_byte_counts[i]:
+            byte_counts = per_perm_byte_counts[i]
+            curve_per_byte = [
+                t / b if b > 0 else 0.0 for t, b in zip(curve_bits, byte_counts)
+            ]
+            a_n_rate = curve_per_byte[-1]
+            e_rate = sum(a_k - a_n_rate for a_k in curve_per_byte)
+        else:
+            e_rate = 0.0
+
+        e_vals.append(e)
+        e_rate_vals.append(e_rate)
+        c_vals.append(coherence_C)
+        d_vals.append(coherence_C * e)
+        d_rate_vals.append(coherence_C * e_rate)
+
+    return {
+        "excess_entropy_E_std": float(np.std(e_vals, ddof=1)) if n_perm > 1 else 0.0,
+        "excess_entropy_E_rate_std": float(np.std(e_rate_vals, ddof=1)) if n_perm > 1 else 0.0,
+        "coherence_C_std": 0.0,  # C doesn't vary with permutations
+        "diversity_score_D_std": float(np.std(d_vals, ddof=1)) if n_perm > 1 else 0.0,
+        "diversity_score_D_rate_std": float(np.std(d_rate_vals, ddof=1)) if n_perm > 1 else 0.0,
+    }
+
+
+def sidecar_path_for_tag(csv_path: Path, tag: str) -> Path:
+    """Return sidecar JSON path with run tag: foo.icl_curves.<tag>.json"""
+    return csv_path.with_suffix(f".icl_curves.{tag}.json")
+
+
+def output_csv_path(source_csv: Path, output_dir: Path, source_data_dir: Path) -> Path:
+    """Map a source CSV path to its output location under output_dir.
+
+    Preserves the subdirectory structure (e.g. McDiv/foo.csv → output_dir/McDiv/foo.csv).
+    """
+    rel = source_csv.relative_to(source_data_dir)
+    return output_dir / rel
+
+
 def process_csv(
     csv_path: Path,
-    model: PreTrainedModel,
-    tokenizer: AutoTokenizer,
+    output_csv: Path,
+    model: PreTrainedModel | None,
+    tokenizer: AutoTokenizer | None,
+    tag: str,
+    run_config: dict,
     n_permutations: int,
     batch_size: int,
     max_tokens: int,
     force: bool = False,
     max_skip_fraction: float = 0.1,
 ) -> ProcessingStats:
-    """Process a single CSV file: compute ICL metrics and add columns.
+    """Process a single CSV file: compute ICL metrics and write to output location.
 
-    Returns ProcessingStats so the caller can inspect what happened.
+    If model is None, uses sidecar cache only (for migration).
     """
     logger.info(f"Processing {csv_path}")
     stats = ProcessingStats()
 
-    # Sidecar JSON for a_k curves and per-permutation data
-    sidecar_path = csv_path.with_suffix(".icl_curves.json")
-    sidecar_data = load_sidecar(sidecar_path)
+    # Sidecar paths: tag-specific sidecar at output location
+    output_sidecar = sidecar_path_for_tag(output_csv, tag)
+    sidecar_data = load_sidecar(output_sidecar)
 
-    # Read existing CSV
+    # Also check legacy sidecar (untagged, in source location) for migration
+    legacy_sidecar_path = csv_path.with_suffix(".icl_curves.json")
+    legacy_sidecar = load_sidecar(legacy_sidecar_path) if legacy_sidecar_path.exists() else {}
+
+    # Read source CSV
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         fieldnames = list(reader.fieldnames)
@@ -174,47 +319,56 @@ def process_csv(
     n_responses = len(resp_cols)
     logger.info(f"  {len(rows)} rows, {n_responses} responses per row")
 
-    # Check if ICL metrics already computed (all columns present and non-empty)
-    if not force and all(col in fieldnames for col in ICL_METRIC_COLUMNS):
-        # Check if first row has values
-        if rows and all(rows[0].get(col, "") != "" for col in ICL_METRIC_COLUMNS):
-            logger.info(
-                "  ICL metrics already present, skipping (use --force to recompute)"
-            )
-            return stats
+    # Build tagged column names
+    metric_cols = tagged_columns(tag)
+    std_cols = tagged_std_columns(tag)
+    all_new_cols = metric_cols + std_cols
 
-    # Add new columns to fieldnames if not present
-    new_fieldnames = list(fieldnames)
-    for col in ICL_METRIC_COLUMNS:
+    # Check if tagged metrics already computed in output
+    if not force and output_csv.exists():
+        with open(output_csv, newline="", encoding="utf-8") as f:
+            existing_reader = csv.DictReader(f)
+            existing_fields = list(existing_reader.fieldnames)
+            existing_rows = list(existing_reader)
+        if all(col in existing_fields for col in metric_cols):
+            if existing_rows and all(existing_rows[0].get(col, "") != "" for col in metric_cols):
+                logger.info(
+                    "  Tagged metrics already present in output, skipping (use --force to recompute)"
+                )
+                return stats
+
+    # Strip any old untagged ICL columns from fieldnames (clean migration)
+    old_icl_cols = [f for f in fieldnames if f.startswith("metric_icl_") and f not in all_new_cols]
+    clean_fieldnames = [f for f in fieldnames if f not in old_icl_cols]
+
+    # Build output fieldnames: existing non-ICL + new tagged columns
+    new_fieldnames = list(clean_fieldnames)
+    for col in all_new_cols:
         if col not in new_fieldnames:
             new_fieldnames.append(col)
 
-    # --- Pre-scan: count tokens for all rows to report distribution ---
-    logger.info("  Pre-scanning token lengths...")
+    # Pre-scan token lengths if we have a tokenizer
     row_token_counts: list[tuple[str, int]] = []
-    for row in rows:
-        context = row.get("context", "")
-        responses = [row[col] for col in resp_cols]
-        token_count = count_tokens_for_full_context(tokenizer, context, responses)
-        row_token_counts.append((row["sample_id"], token_count))
+    if tokenizer is not None:
+        logger.info("  Pre-scanning token lengths...")
+        for row in rows:
+            context = row.get("context", "")
+            responses = [row[col] for col in resp_cols]
+            token_count = count_tokens_for_full_context(tokenizer, context, responses)
+            row_token_counts.append((row["sample_id"], token_count))
 
-    all_counts = [tc for _, tc in row_token_counts]
-    n_over = sum(1 for tc in all_counts if tc > max_tokens)
-    logger.info(
-        f"  Token lengths: min={min(all_counts)}, "
-        f"median={sorted(all_counts)[len(all_counts) // 2]}, "
-        f"max={max(all_counts)}, "
-        f"over {max_tokens} limit: {n_over}/{len(all_counts)} "
-        f"({100 * n_over / len(all_counts):.1f}%)"
-    )
-    if n_over > 0:
-        # Show the worst offenders
-        over_limit = [(sid, tc) for sid, tc in row_token_counts if tc > max_tokens]
-        over_limit.sort(key=lambda x: -x[1])
-        for sid, tc in over_limit[:5]:
-            logger.warning(f"    Over limit: {sid} = {tc} tokens")
-        if len(over_limit) > 5:
-            logger.warning(f"    ... and {len(over_limit) - 5} more")
+        all_counts = [tc for _, tc in row_token_counts]
+        n_over = sum(1 for tc in all_counts if tc > max_tokens)
+        logger.info(
+            f"  Token lengths: min={min(all_counts)}, "
+            f"median={sorted(all_counts)[len(all_counts) // 2]}, "
+            f"max={max(all_counts)}, "
+            f"over {max_tokens} limit: {n_over}/{len(all_counts)} "
+            f"({100 * n_over / len(all_counts):.1f}%)"
+        )
+    else:
+        # Migration mode: no token counting
+        row_token_counts = [(row["sample_id"], 0) for row in rows]
 
     # --- Main processing loop ---
     for row, (sample_id, token_count) in tqdm(
@@ -225,12 +379,53 @@ def process_csv(
     ):
         stats.token_counts.append(token_count)
 
-        # Check sidecar cache
-        if not force and sample_id in sidecar_data:
-            cached_metrics = sidecar_data[sample_id].get("metrics", {})
-            for col, key in METRIC_KEY_MAP.items():
+        # Check tagged sidecar cache first
+        cached_entry = sidecar_data.get(sample_id)
+        if cached_entry is None:
+            # Fall back to legacy sidecar
+            cached_entry = legacy_sidecar.get(sample_id)
+
+        if not force and cached_entry is not None and not cached_entry.get("skipped", False):
+            cached_metrics = cached_entry.get("metrics", {})
+            for base, key in METRIC_KEY_MAP.items():
+                col = f"{base}_{tag}"
                 row[col] = f"{cached_metrics.get(key, 0.0):.6f}"
+
+            # Compute std from cached per-permutation curves
+            std_metrics = compute_per_permutation_metrics(
+                cached_entry.get("per_permutation_a_k_curves", []),
+                cached_entry.get("per_permutation_byte_counts"),
+                cached_entry.get("unconditional_surprises", []),
+            )
+            for base, key in METRIC_KEY_MAP.items():
+                std_col = f"{base}_{tag}_std"
+                row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
+
+            # Copy to tagged sidecar if from legacy
+            if sample_id not in sidecar_data:
+                sidecar_data[sample_id] = cached_entry
             stats.cached += 1
+            continue
+
+        # Skip if entry was previously skipped
+        if cached_entry is not None and cached_entry.get("skipped", False):
+            for col in all_new_cols:
+                row[col] = ""
+            if cached_entry.get("reason") == "token_limit":
+                stats.skipped_token_limit += 1
+            else:
+                stats.skipped_error += 1
+            if sample_id not in sidecar_data:
+                sidecar_data[sample_id] = cached_entry
+            stats.cached += 1
+            continue
+
+        # Need model for fresh computation
+        if model is None or tokenizer is None:
+            logger.warning(f"  No model loaded, skipping {sample_id} (no cache)")
+            for col in all_new_cols:
+                row[col] = ""
+            stats.skipped_error += 1
             continue
 
         # Extract context and responses
@@ -239,11 +434,10 @@ def process_csv(
 
         # Check token length
         if token_count > max_tokens:
-            for col in ICL_METRIC_COLUMNS:
+            for col in all_new_cols:
                 row[col] = ""
             stats.skipped_token_limit += 1
             stats.token_limit_sample_ids.append(sample_id)
-            # Record skip in sidecar so we know why it's missing
             sidecar_data[sample_id] = {
                 "skipped": True,
                 "reason": "token_limit",
@@ -266,7 +460,7 @@ def process_csv(
             logger.error(
                 f"  Error computing metrics for {sample_id}:\n{traceback.format_exc()}"
             )
-            for col in ICL_METRIC_COLUMNS:
+            for col in all_new_cols:
                 row[col] = ""
             stats.skipped_error += 1
             stats.error_sample_ids.append(sample_id)
@@ -277,9 +471,20 @@ def process_csv(
             }
             continue
 
-        # Write metric values to row
-        for col, key in METRIC_KEY_MAP.items():
+        # Write metric values to row (tagged columns)
+        for base, key in METRIC_KEY_MAP.items():
+            col = f"{base}_{tag}"
             row[col] = f"{metrics[key]:.6f}"
+
+        # Compute and write std columns
+        std_metrics = compute_per_permutation_metrics(
+            metrics.get("per_permutation_a_k_curves", []),
+            metrics.get("per_permutation_byte_counts"),
+            metrics.get("unconditional_surprises", []),
+        )
+        for base, key in METRIC_KEY_MAP.items():
+            std_col = f"{base}_{tag}_std"
+            row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
 
         # Save to sidecar cache
         sidecar_data[sample_id] = {
@@ -296,6 +501,7 @@ def process_csv(
                     "is_monotone",
                 ]
             },
+            "std_metrics": std_metrics,
             "token_count": token_count,
             "a_k_curve": metrics["a_k_curve"],
             "a_k_curve_per_byte": metrics["a_k_curve_per_byte"],
@@ -327,21 +533,63 @@ def process_csv(
             f"Sidecar saved (for debugging) but CSV NOT modified. "
             f"Use --max-skip-fraction to raise the threshold if this is expected."
         )
-        # Still save sidecar for debugging, but don't corrupt the CSV
-        save_sidecar(sidecar_path, sidecar_data)
+        output_sidecar.parent.mkdir(parents=True, exist_ok=True)
+        save_sidecar(output_sidecar, sidecar_data)
         return stats
 
-    # Write updated CSV
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=new_fieldnames)
+    # Write output CSV (clean copy with tagged columns, old untagged ICL columns removed)
+    # Remove old untagged ICL values from rows
+    for row in rows:
+        for old_col in old_icl_cols:
+            row.pop(old_col, None)
+
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=new_fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
-    # Save sidecar
-    save_sidecar(sidecar_path, sidecar_data)
-    logger.info(f"  Wrote {csv_path.name} and {sidecar_path.name}")
+    # Save tagged sidecar with run_config
+    sidecar_data["__run_config__"] = run_config
+    save_sidecar(output_sidecar, sidecar_data)
+    logger.info(f"  Wrote {output_csv} and {output_sidecar.name}")
 
     return stats
+
+
+def generate_experiment_jsons(output_dir: Path, tag: str) -> list[Path]:
+    """Generate Tevet-compatible experiment JSON files pointing to our output CSVs.
+
+    Paths are relative to the diversity-eval/ directory (where run_experiments.py runs).
+    """
+    experiments_dir = output_dir / "experiments"
+    experiments_dir.mkdir(parents=True, exist_ok=True)
+
+    # Compute relative path from diversity-eval/ to output_dir
+    diversity_eval_dir = PROJECT_ROOT / "diversity-eval"
+    try:
+        rel_to_de = output_dir.relative_to(diversity_eval_dir)
+        prefix = str(rel_to_de)
+    except ValueError:
+        # output_dir is outside diversity-eval, use relative path
+        prefix = str(Path("..") / output_dir.relative_to(PROJECT_ROOT))
+
+    generated: list[Path] = []
+    for exp_name, (class_name, sub_exps) in EXPERIMENT_TEMPLATES.items():
+        exp_json = {
+            "global_config": {"class_name": class_name},
+            "experiments": {
+                sub_name: f"{prefix}/{csv_rel}"
+                for sub_name, csv_rel in sub_exps.items()
+            },
+        }
+        out_path = experiments_dir / f"{exp_name}.json"
+        with open(out_path, "w") as f:
+            json.dump(exp_json, f, indent=2)
+        generated.append(out_path)
+        logger.info(f"  Generated {out_path}")
+
+    return generated
 
 
 def main() -> None:
@@ -352,13 +600,25 @@ def main() -> None:
         "--input",
         type=str,
         nargs="*",
-        help="Specific CSV file(s) to process. Default: all with_metrics CSVs.",
+        help="Specific source CSV file(s) to process. Default: all with_metrics CSVs.",
     )
     parser.add_argument(
         "--base-model",
         type=str,
         default="gpt2",
         help="HuggingFace model ID for the base model (default: gpt2)",
+    )
+    parser.add_argument(
+        "--run-tag",
+        type=str,
+        default=None,
+        help="Run tag for column names and filenames (default: auto from model name)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Output directory (default: results/tevet/<run-tag>)",
     )
     parser.add_argument(
         "--device",
@@ -396,6 +656,11 @@ def main() -> None:
         action="store_true",
         help="Recompute metrics even if already present",
     )
+    parser.add_argument(
+        "--migrate-from-sidecars",
+        action="store_true",
+        help="Migrate existing untagged sidecar data to new tagged format (no GPU needed)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -404,39 +669,67 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    # Resolve device
-    if args.device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-    else:
-        device = args.device
-    logger.info(f"Using device: {device}")
+    # Derive run tag
+    tag = args.run_tag or derive_run_tag(args.base_model)
+    logger.info(f"Run tag: {tag}")
 
-    # Load model and tokenizer
-    dtype_map = {
-        "float32": torch.float32,
-        "float16": torch.float16,
-        "bfloat16": torch.bfloat16,
+    # Output directory
+    output_dir = Path(args.output_dir) if args.output_dir else PROJECT_ROOT / "results" / "tevet" / tag
+    output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Output directory: {output_dir}")
+
+    # Source data directory
+    source_data_dir = PROJECT_ROOT / "diversity-eval" / "data" / "with_metrics"
+
+    # Run config metadata
+    run_config = {
+        "base_model": args.base_model,
+        "run_tag": tag,
+        "n_permutations": args.n_permutations,
+        "torch_dtype": args.torch_dtype,
+        "batch_size": args.batch_size,
     }
-    torch_dtype = dtype_map[args.torch_dtype]
 
-    logger.info(f"Loading model: {args.base_model}")
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.base_model,
-        torch_dtype=torch_dtype,
-        device_map=args.device if args.device == "auto" else None,
-    )
-    if args.device != "auto":
-        model = model.to(device)
-    model.eval()
+    model = None
+    tokenizer = None
+    max_tokens = 1024
 
-    # Get max token length from model config
-    max_tokens = getattr(model.config, "max_position_embeddings", 1024)
-    logger.info(f"Max context length: {max_tokens} tokens")
+    if not args.migrate_from_sidecars:
+        # Resolve device
+        if args.device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            device = args.device
+        logger.info(f"Using device: {device}")
 
-    # Find CSVs to process
+        # Load model and tokenizer
+        dtype_map = {
+            "float32": torch.float32,
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+        }
+        torch_dtype = dtype_map[args.torch_dtype]
+
+        logger.info(f"Loading model: {args.base_model}")
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.base_model,
+            torch_dtype=torch_dtype,
+            device_map=args.device if args.device == "auto" else None,
+        )
+        if args.device != "auto":
+            model = model.to(device)
+        model.eval()
+
+        max_tokens = getattr(model.config, "max_position_embeddings", 1024)
+        logger.info(f"Max context length: {max_tokens} tokens")
+        run_config["max_tokens"] = max_tokens
+    else:
+        logger.info("Migration mode: using cached sidecar data only")
+
+    # Find source CSVs to process
     if args.input:
-        csv_paths = [Path(p) for p in args.input]
+        csv_paths = [Path(p).resolve() for p in args.input]
         for p in csv_paths:
             if not p.exists():
                 logger.error(f"File not found: {p}")
@@ -449,10 +742,14 @@ def main() -> None:
     # --- Process all CSVs and collect stats ---
     all_stats: dict[str, ProcessingStats] = {}
     for csv_path in csv_paths:
+        out_csv = output_csv_path(csv_path, output_dir, source_data_dir)
         stats = process_csv(
             csv_path=csv_path,
+            output_csv=out_csv,
             model=model,
             tokenizer=tokenizer,
+            tag=tag,
+            run_config=run_config,
             n_permutations=args.n_permutations,
             batch_size=args.batch_size,
             max_tokens=max_tokens,
@@ -460,6 +757,16 @@ def main() -> None:
             max_skip_fraction=args.max_skip_fraction,
         )
         all_stats[csv_path.name] = stats
+
+    # --- Generate experiment JSONs ---
+    logger.info("Generating experiment JSONs...")
+    generate_experiment_jsons(output_dir, tag)
+
+    # --- Save run config ---
+    config_path = output_dir / "run_config.json"
+    with open(config_path, "w") as f:
+        json.dump(run_config, f, indent=2)
+    logger.info(f"Saved {config_path}")
 
     # --- Final summary across all files ---
     logger.info("=" * 60)
@@ -479,13 +786,20 @@ def main() -> None:
             f"  Overall skip rate: {total_skipped}/{total_rows} "
             f"({100 * total_skipped / total_rows:.1f}%)"
         )
-        # Per-file breakdown for files with skips
         for name, stats in all_stats.items():
             if stats.total_skipped > 0:
                 logger.warning(
                     f"    {name}: {stats.skipped_token_limit} token limit, "
                     f"{stats.skipped_error} errors"
                 )
+
+    logger.info(f"\nOutput directory: {output_dir}")
+    logger.info(f"Experiment JSONs: {output_dir / 'experiments'}")
+    logger.info(
+        f"To run Tevet's pipeline:\n"
+        f"  cd diversity-eval && python run_experiments.py "
+        f"--input_json {output_dir / 'experiments'}"
+    )
 
 
 if __name__ == "__main__":
