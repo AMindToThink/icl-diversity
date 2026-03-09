@@ -391,6 +391,179 @@ def plot_example_curves(data_dir: Path, tag: str, output_dir: Path) -> None:
     logger.info(f"Saved {out_path}")
 
 
+def _plot_per_byte_summary(
+    data_dir: Path,
+    tag: str,
+    output_dir: Path,
+    subdir: str,
+    title_prefix: str,
+    out_filename: str,
+) -> None:
+    """Plot mean per-byte a_k curves for high vs low diversity."""
+    target_dir = data_dir / subdir
+    if not target_dir.exists():
+        logger.warning(f"No {subdir} data found")
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig.suptitle(
+        f"{title_prefix}: Mean a_k Curves (per-byte) — High vs Low [{tag}]",
+        fontsize=14,
+    )
+
+    csv_files = sorted(target_dir.glob("*.csv"))
+    for ax_idx, csv_path in enumerate(csv_files[:3]):
+        result = load_csv_and_sidecar(csv_path, tag)
+        if result is None:
+            continue
+        rows, sidecar = result
+        task = get_task_name_from_filename(csv_path.name)
+
+        high_curves, low_curves = [], []
+        for row in rows:
+            sid = row["sample_id"]
+            if sid not in sidecar or sid.startswith("__"):
+                continue
+            entry = sidecar[sid]
+            if entry.get("skipped"):
+                continue
+            curve = entry.get("a_k_curve_per_byte")
+            if curve is None:
+                continue
+            label = float(row["label_value"])
+            if label == 1.0:
+                high_curves.append(curve)
+            else:
+                low_curves.append(curve)
+
+        ax = axes[ax_idx] if ax_idx < 3 else axes[-1]
+        task_label = TASK_LABELS.get(task, task)
+
+        for curves, label, color in [
+            (high_curves, "High diversity", "tab:red"),
+            (low_curves, "Low diversity", "tab:blue"),
+        ]:
+            if not curves:
+                continue
+            plot_mean_with_bands(ax, curves, label, color)
+
+        ax.set_xlabel("Response index k")
+        ax.set_ylabel("a_k (bits/byte)")
+        ax.set_title(task_label)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    out_path = output_dir / f"{out_filename}_{tag}.png"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    logger.info(f"Saved {out_path}")
+
+
+def plot_contest_per_byte(data_dir: Path, tag: str, output_dir: Path) -> None:
+    """Plot per-byte a_k curves for ConTest."""
+    _plot_per_byte_summary(
+        data_dir, tag, output_dir,
+        subdir="conTest",
+        title_prefix="ConTest",
+        out_filename="contest_ak_curves_per_byte",
+    )
+
+
+def plot_mcdiv_nuggets_per_byte(data_dir: Path, tag: str, output_dir: Path) -> None:
+    """Plot per-byte a_k curves for McDiv_nuggets."""
+    _plot_per_byte_summary(
+        data_dir, tag, output_dir,
+        subdir="McDiv_nuggets",
+        title_prefix="McDiv_nuggets",
+        out_filename="mcdiv_nuggets_ak_curves_per_byte",
+    )
+
+
+def plot_e_rate_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
+    """Print and plot E vs E_rate comparison across all ConTest datasets."""
+    e_col = f"metric_icl_E_{tag}"
+    e_rate_col = f"metric_icl_E_rate_{tag}"
+
+    rows_out: list[dict] = []
+    for subdir in ["conTest", "McDiv_nuggets"]:
+        target_dir = data_dir / subdir
+        if not target_dir.exists():
+            continue
+        for csv_path in sorted(target_dir.glob("*.csv")):
+            with open(csv_path, newline="", encoding="utf-8") as f:
+                rows = list(csv.DictReader(f))
+
+            task = get_task_name_from_filename(csv_path.name)
+            for metric_name, metric_col in [("E", e_col), ("E_rate", e_rate_col)]:
+                high = [
+                    float(r[metric_col]) for r in rows
+                    if r["label_value"] == "1.0" and r.get(metric_col, "") != ""
+                ]
+                low = [
+                    float(r[metric_col]) for r in rows
+                    if r["label_value"] == "0.0" and r.get(metric_col, "") != ""
+                ]
+                if high and low:
+                    rows_out.append({
+                        "dataset": subdir,
+                        "task": task,
+                        "metric": metric_name,
+                        "high_mean": np.mean(high),
+                        "low_mean": np.mean(low),
+                        "diff": np.mean(high) - np.mean(low),
+                        "n_high": len(high),
+                        "n_low": len(low),
+                    })
+
+    if not rows_out:
+        return
+
+    # Print table
+    print(f"\n{'=' * 90}")
+    print(f"E vs E_rate Summary [{tag}]")
+    print(f"{'=' * 90}")
+    print(f"{'Dataset':<16s} {'Task':<12s} {'Metric':<8s} {'High mean':>10s} {'Low mean':>10s} {'Diff':>10s}")
+    print(f"{'-' * 90}")
+    for r in rows_out:
+        print(
+            f"{r['dataset']:<16s} {r['task']:<12s} {r['metric']:<8s} "
+            f"{r['high_mean']:>10.3f} {r['low_mean']:>10.3f} {r['diff']:>+10.3f}"
+        )
+
+    # Bar chart: diff (high - low) for E and E_rate side by side
+    datasets = sorted(set((r["dataset"], r["task"]) for r in rows_out))
+    fig, ax = plt.subplots(figsize=(12, 5))
+    x = np.arange(len(datasets))
+    width = 0.35
+
+    e_diffs = []
+    e_rate_diffs = []
+    labels = []
+    for ds, task in datasets:
+        e_row = next((r for r in rows_out if r["dataset"] == ds and r["task"] == task and r["metric"] == "E"), None)
+        er_row = next((r for r in rows_out if r["dataset"] == ds and r["task"] == task and r["metric"] == "E_rate"), None)
+        e_diffs.append(e_row["diff"] if e_row else 0)
+        e_rate_diffs.append(er_row["diff"] if er_row else 0)
+        labels.append(f"{ds}\n{task}")
+
+    ax.bar(x - width / 2, e_diffs, width, label="E (total bits)", color="tab:blue")
+    ax.bar(x + width / 2, e_rate_diffs, width, label="E_rate (bits/byte)", color="tab:orange")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_ylabel("Mean(high diversity) − Mean(low diversity)")
+    ax.set_title(f"E vs E_rate: Separation Between Diverse and Constant [{tag}]")
+    ax.axhline(0, color="black", linewidth=0.5)
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis="y")
+
+    plt.tight_layout()
+    out_path = output_dir / f"e_vs_e_rate_summary_{tag}.png"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    logger.info(f"Saved {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Plot a_k curves from Tevet sidecar JSONs"
@@ -431,9 +604,12 @@ def main() -> None:
         logger.info(f"Plotting for tag: {tag}")
 
         plot_contest_summary(data_dir, tag, output_dir)
+        plot_contest_per_byte(data_dir, tag, output_dir)
         plot_dectest_temperature_sweep(data_dir, tag, output_dir)
         plot_mcdiv_nuggets_summary(data_dir, tag, output_dir)
+        plot_mcdiv_nuggets_per_byte(data_dir, tag, output_dir)
         plot_example_curves(data_dir, tag, output_dir)
+        plot_e_rate_summary(data_dir, tag, output_dir)
 
     logger.info("All plots generated!")
 
