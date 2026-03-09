@@ -105,7 +105,7 @@ def plot_contest_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
             entry = sidecar[sid]
             if entry.get("skipped"):
                 continue
-            curve = entry.get("a_k_curve_per_byte")
+            curve = entry.get("a_k_curve")
             if curve is None:
                 continue
             label = float(row["label_value"])
@@ -140,7 +140,7 @@ def plot_contest_summary(data_dir: Path, tag: str, output_dir: Path) -> None:
             )
 
         ax.set_xlabel("Response index k")
-        ax.set_ylabel("a_k (bits/byte)")
+        ax.set_ylabel("a_k (total bits)")
         ax.set_title(task_label)
         ax.legend()
         ax.grid(True, alpha=0.3)
@@ -185,7 +185,7 @@ def plot_dectest_temperature_sweep(data_dir: Path, tag: str, output_dir: Path) -
                 entry = sidecar[sid]
                 if entry.get("skipped"):
                     continue
-                curve = entry.get("a_k_curve_per_byte")
+                curve = entry.get("a_k_curve")
                 if curve is None:
                     continue
                 temp = float(row["label_value"])
@@ -216,7 +216,7 @@ def plot_dectest_temperature_sweep(data_dir: Path, tag: str, output_dir: Path) -
                 ax.plot(x, mean_curve, label=f"τ={temp:.1f} (n={len(curves)})", color=color)
 
             ax.set_xlabel("Response index k")
-            ax.set_ylabel("a_k (bits/byte)")
+            ax.set_ylabel("a_k (total bits)")
             ax.set_title(task_label)
             ax.legend(fontsize=8)
             ax.grid(True, alpha=0.3)
@@ -257,7 +257,7 @@ def plot_mcdiv_nuggets_summary(data_dir: Path, tag: str, output_dir: Path) -> No
             entry = sidecar[sid]
             if entry.get("skipped"):
                 continue
-            curve = entry.get("a_k_curve_per_byte")
+            curve = entry.get("a_k_curve")
             if curve is None:
                 continue
             label = float(row["label_value"])
@@ -292,7 +292,7 @@ def plot_mcdiv_nuggets_summary(data_dir: Path, tag: str, output_dir: Path) -> No
             )
 
         ax.set_xlabel("Response index k")
-        ax.set_ylabel("a_k (bits/byte)")
+        ax.set_ylabel("a_k (total bits)")
         ax.set_title(task_label)
         ax.legend()
         ax.grid(True, alpha=0.3)
@@ -331,7 +331,7 @@ def plot_example_curves(data_dir: Path, tag: str, output_dir: Path) -> None:
         e_val = metrics.get("excess_entropy_E", 0)
         label = float(row["label_value"])
         per_perm = entry.get("per_permutation_a_k_curves")
-        mean_curve = entry.get("a_k_curve_per_byte")
+        mean_curve = entry.get("a_k_curve")
         if mean_curve is None:
             continue
         examples.append(
