@@ -1,4 +1,4 @@
-"""Compute ICL diversity metrics for all five validation scenarios and save to JSON.
+"""Compute ICL diversity metrics for all eight validation scenarios and save to JSON.
 
 Uses the same scenario data, seed, and parameters as test_icl_diversity_scenarios.py.
 Output: results/scenario_metrics.json
@@ -30,6 +30,15 @@ from icl_diversity.scenarios import (
     ONE_MODE_PROMPT_LABELS,
     MIXED_PROMPTS_AND_RESPONSES,
     MIXED_PROMPT_LABELS,
+    HIGH_DIVERSITY_PROMPTS_AND_RESPONSES,
+    HIGH_DIVERSITY_PROMPT_LABELS,
+    HIGH_DIVERSITY_N_RESPONSES,
+    OPEN_CREATIVE_PROMPTS_AND_RESPONSES,
+    OPEN_CREATIVE_PROMPT_LABELS,
+    OPEN_CREATIVE_N_RESPONSES,
+    PROBLEM_SOLVING_PROMPTS_AND_RESPONSES,
+    PROBLEM_SOLVING_PROMPT_LABELS,
+    PROBLEM_SOLVING_N_RESPONSES,
     N_RESPONSES,
     N_PERMUTATIONS,
     generate_noise_responses,
@@ -48,7 +57,7 @@ def compute_all_scenarios(
     base_model: str = "gpt2",
     n_permutations: int = N_PERMUTATIONS,
 ) -> dict[str, Any]:
-    """Compute metrics for all five scenarios."""
+    """Compute metrics for all eight scenarios."""
     result: dict[str, Any] = {
         "base_model": base_model,
         "n_permutations": n_permutations,
@@ -81,6 +90,36 @@ def compute_all_scenarios(
     for i, (prompt, responses) in enumerate(MIXED_PROMPTS_AND_RESPONSES):
         all_items.append(
             ("mixed", MIXED_PROMPT_LABELS[i], prompt, responses[:N_RESPONSES])
+        )
+
+    for i, (prompt, responses) in enumerate(HIGH_DIVERSITY_PROMPTS_AND_RESPONSES):
+        all_items.append(
+            (
+                "high_diversity",
+                HIGH_DIVERSITY_PROMPT_LABELS[i],
+                prompt,
+                responses[:HIGH_DIVERSITY_N_RESPONSES],
+            )
+        )
+
+    for i, (prompt, responses) in enumerate(OPEN_CREATIVE_PROMPTS_AND_RESPONSES):
+        all_items.append(
+            (
+                "open_creative",
+                OPEN_CREATIVE_PROMPT_LABELS[i],
+                prompt,
+                responses[:OPEN_CREATIVE_N_RESPONSES],
+            )
+        )
+
+    for i, (prompt, responses) in enumerate(PROBLEM_SOLVING_PROMPTS_AND_RESPONSES):
+        all_items.append(
+            (
+                "problem_solving",
+                PROBLEM_SOLVING_PROMPT_LABELS[i],
+                prompt,
+                responses[:PROBLEM_SOLVING_N_RESPONSES],
+            )
         )
 
     # Compute metrics with progress bar
