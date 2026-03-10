@@ -625,6 +625,22 @@ def _compute_permutation_curves_batched(
 # ---------------------------------------------------------------------------
 
 
+def compute_excess_entropy(a_k_curve: list[float]) -> float:
+    """Compute excess entropy E = sum(a_k - a_n) from an a_k curve in total bits.
+
+    This is Eq 6 from the paper. a_n (the last point) is used as the
+    estimate of a_infinity.
+
+    Args:
+        a_k_curve: Progressive conditional surprise curve in total bits.
+
+    Returns:
+        Excess entropy E in bits.
+    """
+    a_n = a_k_curve[-1]
+    return sum(a_k - a_n for a_k in a_k_curve)
+
+
 def _compute_metrics_from_curves(
     a_k_curve_total_bits: list[float],
     a_k_byte_counts: list[int],
@@ -647,10 +663,9 @@ def _compute_metrics_from_curves(
         Dict with all metric values.
     """
     n = len(a_k_curve_total_bits)
-    a_n = a_k_curve_total_bits[-1]  # estimate of a_infinity
 
     # Eq 6: excess entropy E = sum(a_k - a_n) in total bits
-    excess_entropy_E = sum(a_k - a_n for a_k in a_k_curve_total_bits)
+    excess_entropy_E = compute_excess_entropy(a_k_curve_total_bits)
 
     # Per-byte a_k curve (for plotting and backward compat)
     a_k_curve_per_byte = [

@@ -3,14 +3,13 @@
 Generates several diagnostic plots:
 1. a_k curves by m (subplots showing curve shape transition)
 2. Overlay plot (all m values on same axes)
-3. E vs m (does excess entropy increase with mode count?)
-4. a_∞ vs m (does asymptote rise with mode count?)
-5. Summary metrics panel
+3. Metrics panel: E, E_sig, D, D_sig, C, a_n, σ_ℓ
+4. Comparison across models (when multiple inputs given)
 
 Usage:
     uv run python scripts/plot_mode_count_results.py
-    uv run python scripts/plot_mode_count_results.py --input results/mode_count/gpt2.json
-    uv run python scripts/plot_mode_count_results.py --input results/mode_count/gpt2.json results/mode_count/qwen2.5-32b.json
+    uv run python scripts/plot_mode_count_results.py --input results/mode_count/gpt2_50seeds.json
+    uv run python scripts/plot_mode_count_results.py --input results/mode_count/gpt2_50seeds.json results/mode_count/qwen2.5-32b.json
 """
 
 import argparse
@@ -35,20 +34,17 @@ mpl.rcParams.update(
     }
 )
 
-# Colormap for different m values
-M_COLORS = {
-    1: "#1f77b4",
-    2: "#ff7f0e",
-    3: "#2ca02c",
-    5: "#d62728",
-    10: "#9467bd",
-    15: "#8c564b",
-    25: "#e377c2",
-    50: "#7f7f7f",
-}
-
-DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2.json"
+DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_50seeds.json"
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "figures" / "mode_count"
+
+
+def _get_color_for_m(m: int, m_values: list[int]) -> str:
+    """Get a color for mode count m using a perceptually uniform colormap."""
+    if len(m_values) <= 1:
+        return "#1f77b4"
+    cmap = plt.cm.viridis
+    idx = m_values.index(m)
+    return cmap(idx / (len(m_values) - 1))
 
 
 def load_data(path: Path) -> dict[str, Any]:
@@ -64,47 +60,41 @@ def group_runs_by_m(data: dict[str, Any]) -> dict[int, list[dict]]:
     return dict(sorted(grouped.items()))
 
 
-def get_color(m: int) -> str:
-    if m in M_COLORS:
-        return M_COLORS[m]
-    # Fallback for unlisted m values
-    cmap = plt.cm.viridis
-    return cmap(m / 50)
-
-
 def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
     """Plot a_k curves as subplots, one per m value."""
     m_values = sorted(grouped.keys())
     n_plots = len(m_values)
-    ncols = min(3, n_plots)
+    ncols = min(4, n_plots)
     nrows = (n_plots + ncols - 1) // ncols
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4.5 * nrows), squeeze=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows), squeeze=False)
 
     for idx, m in enumerate(m_values):
         row, col = divmod(idx, ncols)
         ax = axes[row][col]
         runs = grouped[m]
-        color = get_color(m)
+        color = _get_color_for_m(m, m_values)
 
-        for run in runs:
-            curve_key = "a_k_curve"
-            curve = run[curve_key]
+        # Plot a sample of individual runs (up to 5 for readability)
+        sample_runs = runs[:5]
+        for run in sample_runs:
+            curve = run["a_k_curve"]
             k = np.arange(1, len(curve) + 1)
-            ax.plot(k, curve, marker="o", markersize=3, linewidth=1.2, color=color,
-                    alpha=0.6, label=f"seed={run['seed']}")
+            ax.plot(k, curve, marker="o", markersize=2, linewidth=0.8, color=color, alpha=0.4)
 
-            # Per-permutation curves (total bits, same as the averaged curve)
-            if run.get("per_permutation_a_k_curves"):
-                for pc in run["per_permutation_a_k_curves"]:
-                    ax.plot(k, pc, linewidth=0.3, alpha=0.15, color=color)
+        # Plot mean ± SD
+        curves = np.array([r["a_k_curve"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        std_curve = np.std(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1)
+        ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label="mean")
+        ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve, alpha=0.2, color=color)
 
-        ax.set_title(f"m = {m} ({m * runs[0].get('n_responses', 0) // m} resp/mode)", fontweight="bold")
+        n_resp = runs[0].get("n_responses", 0)
+        ax.set_title(f"m = {m} ({n_resp // m} resp/mode)", fontweight="bold")
         ax.set_xlabel("k")
         ax.set_ylabel("$a_k$ (bits)")
-        ax.legend(fontsize=7, loc="best")
 
-    # Hide unused subplots
     for idx in range(n_plots, nrows * ncols):
         row, col = divmod(idx, ncols)
         axes[row][col].set_visible(False)
@@ -118,22 +108,17 @@ def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model
 
 
 def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
-    """Overlay all m values on same axes (averaged across seeds)."""
+    """Overlay all m values on same axes (averaged across draws)."""
     fig, ax = plt.subplots(figsize=(10, 6))
+    m_values = sorted(grouped.keys())
 
     for m, runs in sorted(grouped.items()):
-        curve_key = "a_k_curve"
-        curves = [run[curve_key] for run in runs]
-        # Average across seeds
-        max_len = max(len(c) for c in curves)
-        padded = np.full((len(curves), max_len), np.nan)
-        for i, c in enumerate(curves):
-            padded[i, :len(c)] = c
-        mean_curve = np.nanmean(padded, axis=0)
-        std_curve = np.nanstd(padded, axis=0)
-        k = np.arange(1, max_len + 1)
+        curves = np.array([r["a_k_curve"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        std_curve = np.std(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1)
 
-        color = get_color(m)
+        color = _get_color_for_m(m, m_values)
         ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label=f"m = {m}")
         ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve, alpha=0.15, color=color)
 
@@ -156,11 +141,12 @@ def _compute_E_sigmoid_for_run(run: dict) -> float | None:
     if not success:
         return None
     a_inf = fit_params["a_inf"]
+    # E_sig = sum(a_k - a_inf) using the fitted asymptote
     return float(sum(a_k - a_inf for a_k in curve))
 
 
 def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
-    """Plot E, E_sigmoid, D, D_sigmoid, C, a_n vs m with error bars."""
+    """Plot E, E_sigmoid, D, D_sigmoid, C, a_n, σ_ℓ vs m with error bars."""
     m_values = []
     E_means, E_stds = [], []
     E_sig_means, E_sig_stds = [], []
@@ -168,6 +154,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     D_sig_means, D_sig_stds = [], []
     C_means, C_stds = [], []
     a_n_means, a_n_stds = [], []
+    sigma_means, sigma_stds = [], []
 
     for m, runs in sorted(grouped.items()):
         m_values.append(m)
@@ -175,7 +162,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         E_means.append(np.mean(Es))
         E_stds.append(np.std(Es))
 
-        # Compute E_sigmoid and D_sigmoid per run (one fit each)
+        # E_sigmoid and D_sigmoid per run
         E_sigs = []
         D_sigs = []
         for r in runs:
@@ -202,9 +189,14 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         a_n_means.append(np.mean(a_ns))
         a_n_stds.append(np.std(a_ns))
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+        # σ_ℓ: coherence spread from core
+        sigmas = [r["coherence_spread_sigma"] for r in runs]
+        sigma_means.append(np.mean(sigmas))
+        sigma_stds.append(np.std(sigmas))
 
-    # E vs m (both versions)
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+
+    # E vs m
     ax = axes[0, 0]
     ax.errorbar(m_values, E_means, yerr=E_stds, marker="o", capsize=4, linewidth=2, label="$E$ (using $a_n$)")
     ax.errorbar(m_values, E_sig_means, yerr=E_sig_stds, marker="s", capsize=4, linewidth=2,
@@ -214,7 +206,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     ax.set_title("E vs m", fontweight="bold")
     ax.legend(fontsize=9)
 
-    # D vs m (both versions)
+    # D vs m
     ax = axes[0, 1]
     ax.errorbar(m_values, D_means, yerr=D_stds, marker="o", capsize=4, linewidth=2,
                 color="#2ca02c", label="$D$ (using $a_n$)")
@@ -231,6 +223,13 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("C (coherence)")
     ax.set_title("C vs m", fontweight="bold")
+
+    # σ_ℓ vs m
+    ax = axes[0, 3]
+    ax.errorbar(m_values, sigma_means, yerr=sigma_stds, marker="^", capsize=4, linewidth=2, color="#e377c2")
+    ax.set_xlabel("m (mode count)")
+    ax.set_ylabel("$\\sigma_\\ell$ (bits/byte)")
+    ax.set_title("$\\sigma_\\ell$ (coherence spread) vs m", fontweight="bold")
 
     # a_n vs m
     ax = axes[1, 0]
@@ -249,13 +248,13 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
             f"{E_means[i]:.0f}±{E_stds[i]:.0f}",
             f"{E_sig_means[i]:.0f}±{E_sig_stds[i]:.0f}",
             f"{D_means[i]:.0f}±{D_stds[i]:.0f}",
-            f"{D_sig_means[i]:.0f}±{D_sig_stds[i]:.0f}",
             f"{C_means[i]:.3f}±{C_stds[i]:.3f}",
+            f"{sigma_means[i]:.3f}±{sigma_stds[i]:.3f}",
             f"{a_n_means[i]:.0f}±{a_n_stds[i]:.0f}",
         ])
     table = ax.table(
         cellText=table_data,
-        colLabels=["m", "E", "E_sig", "D", "D_sig", "C", "a_n"],
+        colLabels=["m", "E", "E_sig", "D", "C", "σ_ℓ", "a_n"],
         loc="center",
         cellLoc="center",
     )
@@ -264,8 +263,9 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     table.scale(1.3, 1.5)
     ax.set_title("Summary", fontweight="bold")
 
-    # Hide unused subplot
+    # Hide unused subplots
     axes[1, 2].set_visible(False)
+    axes[1, 3].set_visible(False)
 
     fig.suptitle(f"ICL Diversity Metrics vs Mode Count — {model_name}", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
@@ -336,7 +336,7 @@ def main() -> None:
         datasets = []
         for path in args.input:
             data = load_data(path)
-            model_name = data.get("base_model", f"Model")
+            model_name = data.get("base_model", "Model")
             datasets.append((model_name, data))
             grouped = group_runs_by_m(data)
             sub_dir = figures_dir / model_name.replace("/", "_")

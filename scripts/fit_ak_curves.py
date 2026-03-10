@@ -98,7 +98,7 @@ def fit_all_runs(data: dict[str, Any]) -> list[dict[str, Any]]:
 
         entry = {
             "m": run["m"],
-            "seed": run["seed"],
+            "seed": run.get("outer_seed", run.get("seed")),
             "n_responses": run["n_responses"],
             "a_n_raw": float(curve[-1]),
             "a_1_raw": float(curve[0]),
@@ -126,12 +126,14 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
         ax = axes[row][col]
         pairs = grouped[m]
 
-        for run, fit in pairs:
+        # Show up to 5 runs for readability
+        sample_pairs = pairs[:5]
+        for run, fit in sample_pairs:
             curve_key = "a_k_curve"
             curve = np.array(run[curve_key])
             k = np.arange(1, len(curve) + 1)
 
-            line, = ax.plot(k, curve, "o", markersize=4, alpha=0.6, label=f"seed={run['seed']}")
+            line, = ax.plot(k, curve, "o", markersize=4, alpha=0.6)
             color = line.get_color()
 
             if fit.get("fit_success"):

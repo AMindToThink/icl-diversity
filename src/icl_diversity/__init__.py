@@ -1,6 +1,7 @@
 from icl_diversity.core import (
     ModelInput,
     compute_cross_entropy,
+    compute_excess_entropy,
     compute_icl_diversity_metrics,
     compute_per_byte_cross_entropy,
     compute_progressive_surprise_curve,

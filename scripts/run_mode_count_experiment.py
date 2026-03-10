@@ -4,25 +4,16 @@ For each mode count m, generates n total responses (fixed across all m) using
 format-based modes, computes ICL diversity metrics, and saves results to JSON.
 
 Usage:
-    # GPT-2, small mode counts (fits in 1024-token context)
+    # GPT-2, full range with 50 outer draws
     uv run python scripts/run_mode_count_experiment.py \
-        --mode-counts 1 2 3 5 10 \
-        --n-responses 20 \
+        --mode-counts 1 2 3 4 5 6 7 8 9 10 \
+        --n-responses 12 \
         --n-permutations 20 \
+        --n-mode-draws 50 \
         --base-model gpt2 \
-        --device cuda:0 \
+        --device cuda:1 \
         --batch-size 8 \
-        --output results/mode_count/gpt2.json
-
-    # Qwen 2.5-32B, full range (needs 2 GPUs)
-    uv run python scripts/run_mode_count_experiment.py \
-        --mode-counts 1 2 3 5 10 15 25 50 \
-        --n-responses 20 \
-        --n-permutations 20 \
-        --base-model Qwen/Qwen2.5-32B \
-        --device auto --torch-dtype float16 \
-        --batch-size 8 \
-        --output results/mode_count/qwen2.5-32b.json
+        --output results/mode_count/gpt2_50seeds.json
 """
 
 import argparse
@@ -33,7 +24,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -43,20 +33,15 @@ from icl_diversity.mode_count_scenarios import (
     PROMPT,
     MODE_NAMES,
     generate_mode_count_responses,
-    get_format_modes,
 )
 
 DEFAULT_OUTPUT = (
-    Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2.json"
+    Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_50seeds.json"
 )
-
-SEEDS = [42, 137, 256]
 
 
 def estimate_tokens(responses: list[str], tokenizer: Any) -> int:
     """Estimate total tokens for the full concatenated context."""
-    # Build the full context string the same way the metric does:
-    # prompt + "Response A: ... Response B: ..." etc.
     labels = [chr(ord("A") + i) if i < 26 else f"R{i}" for i in range(len(responses))]
     parts = [PROMPT + "\n\n"]
     for label, resp in zip(labels, responses):
@@ -71,135 +56,79 @@ def run_experiment(
     mode_counts: list[int],
     n_responses: int,
     n_permutations: int,
-    n_seeds: int,
+    n_mode_draws: int,
     batch_size: int,
     base_model_name: str,
 ) -> dict[str, Any]:
-    """Run mode count experiment across all (m, seed) combinations.
+    """Run mode count experiment across all (m, outer_seed) combinations.
 
-    For each (m, seed), runs n_permutations trials. Each trial independently
-    selects m random modes, generates n_responses total responses, and computes
-    a single-pass a_k curve. The a_k curves are then averaged across trials,
-    and aggregate metrics (E, C, D) are computed from the averaged curve.
+    For each (m, outer_seed):
+    - Select m modes and generate n responses (OUTER randomness: mode selection)
+    - Call compute_icl_diversity_metrics with n_permutations (INNER randomness: ordering)
+    - Store core's full metrics dict directly
 
-    All m values produce the same number of responses (n_responses), so a_k
-    curves have the same x-axis length for direct comparison.
-
-    This design means that permutation averaging captures both response-ordering
-    variance AND mode-selection variance.
+    Aggregate across outer draws for error bars (mean ± SD).
     """
+    # Generate deterministic outer seeds
+    seed_rng = random.Random(42)
+    outer_seeds = [seed_rng.randint(0, 2**31) for _ in range(n_mode_draws)]
+
     results: dict[str, Any] = {
         "experiment": "mode_count",
         "base_model": base_model_name,
         "n_permutations": n_permutations,
         "n_responses": n_responses,
-        "seeds": SEEDS[:n_seeds],
+        "n_mode_draws": n_mode_draws,
+        "outer_seeds": outer_seeds,
         "mode_names": MODE_NAMES,
         "prompt": PROMPT,
         "runs": [],
     }
 
-    total_runs = len(mode_counts) * n_seeds
+    total_runs = len(mode_counts) * n_mode_draws
     pbar = tqdm(total=total_runs, desc="mode count runs")
 
     for m in mode_counts:
-        for seed_idx in range(n_seeds):
-            seed = SEEDS[seed_idx]
+        for draw_idx, outer_seed in enumerate(outer_seeds):
             t0 = time.time()
 
-            # Generate sub-seeds for each permutation from the main seed
-            rng = random.Random(seed)
-            perm_seeds = [rng.randint(0, 2**31) for _ in range(n_permutations)]
-
-            per_perm_curves: list[list[float]] = []
-            per_perm_byte_counts: list[list[float]] = []
-            all_modes_used: list[list[str]] = []
-
-            perm_pbar = tqdm(
-                perm_seeds, desc="  permutations", leave=False,
+            # OUTER randomness: select modes and generate responses
+            responses, modes_used = generate_mode_count_responses(
+                m, n=n_responses, seed=outer_seed,
             )
-            for perm_seed in perm_pbar:
-                # Each permutation: fresh mode selection + fresh responses
-                responses, modes_used = generate_mode_count_responses(
-                    m, n=n_responses, seed=perm_seed,
-                )
-                all_modes_used.append(modes_used)
 
-                # Compute with n_permutations=1 (ordering is already randomized
-                # by generate_mode_count_responses via _generate_high_diversity_responses)
-                metrics = compute_icl_diversity_metrics(
-                    model,
-                    tokenizer,
-                    PROMPT,
-                    responses,
-                    n_permutations=1,
-                    seed=perm_seed,
-                    batch_size=batch_size,
-                )
-                per_perm_curves.append(metrics["a_k_curve"])
-                per_perm_byte_counts.append(metrics["a_k_byte_counts"])
-
-            perm_pbar.close()
-
-            # Aggregate across permutations
-            n_responses = len(per_perm_curves[0])
-            avg_curve = np.mean(per_perm_curves, axis=0).tolist()
-            avg_byte_counts = np.mean(per_perm_byte_counts, axis=0).tolist()
-            avg_curve_per_byte = [
-                t / b if b > 0 else 0.0
-                for t, b in zip(avg_curve, avg_byte_counts)
-            ]
-
-            # Compute aggregate metrics from averaged curve
-            # E = a_1 - a_n (total bits)
-            excess_entropy_E = avg_curve[0] - avg_curve[-1]
-            # E_rate = E / mean_byte_length (per-byte)
-            mean_byte_length = float(np.mean(avg_byte_counts))
-            E_rate = excess_entropy_E / mean_byte_length if mean_byte_length > 0 else 0.0
-
-            # Unconditional surprise = a_1 (first point, no conditioning)
-            unconditional_mean = float(np.mean([c[0] for c in per_perm_curves]))
-            conditional_mean = float(np.mean([c[-1] for c in per_perm_curves]))
-
-            # Coherence C
-            coherence_C = 1.0 - conditional_mean / unconditional_mean if unconditional_mean > 0 else 0.0
-            diversity_score_D = coherence_C * excess_entropy_E
-            D_rate = coherence_C * E_rate
-
-            # Unique modes seen across all permutations
-            all_unique_modes = sorted(set(
-                name for modes in all_modes_used for name in modes
-            ))
+            # INNER randomness: permutation averaging handled by core
+            metrics = compute_icl_diversity_metrics(
+                model,
+                tokenizer,
+                PROMPT,
+                responses,
+                n_permutations=n_permutations,
+                seed=outer_seed,
+                batch_size=batch_size,
+            )
 
             elapsed = time.time() - t0
-            n_tokens = estimate_tokens(
-                generate_mode_count_responses(m, n=n_responses, seed=perm_seeds[0])[0],
-                tokenizer,
-            )
+            n_tokens = estimate_tokens(responses, tokenizer)
 
             run_entry = {
                 "m": m,
-                "seed": seed,
+                "draw_idx": draw_idx,
+                "outer_seed": outer_seed,
                 "n_responses": n_responses,
                 "n_tokens_estimated": n_tokens,
                 "elapsed_seconds": round(elapsed, 2),
-                "modes_used_unique": all_unique_modes,
-                "n_unique_mode_sets": len(set(tuple(m) for m in all_modes_used)),
-                "a_k_curve": avg_curve,
-                "a_k_curve_per_byte": avg_curve_per_byte,
-                "a_k_byte_counts": avg_byte_counts,
-                "per_permutation_a_k_curves": per_perm_curves,
-                "per_permutation_byte_counts": per_perm_byte_counts,
-                "excess_entropy_E": excess_entropy_E,
-                "E_rate": E_rate,
-                "coherence_C": coherence_C,
-                "diversity_score_D": diversity_score_D,
-                "diversity_score_D_rate": D_rate,
-                "mean_byte_length": mean_byte_length,
+                "modes_used": modes_used,
+                # All metrics from core — single source of truth
+                **{k: v for k, v in metrics.items()},
             }
             results["runs"].append(run_entry)
 
-            pbar.set_postfix(m=m, seed=seed, E=f"{excess_entropy_E:.2f}")
+            pbar.set_postfix(
+                m=m,
+                draw=f"{draw_idx + 1}/{n_mode_draws}",
+                E=f"{metrics['excess_entropy_E']:.1f}",
+            )
             pbar.update(1)
 
     pbar.close()
@@ -214,14 +143,14 @@ def main() -> None:
         "--mode-counts",
         type=int,
         nargs="+",
-        default=[1, 2, 3, 5, 10],
-        help="Mode counts to test (default: 1 2 3 5 10)",
+        default=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        help="Mode counts to test (default: 1 2 3 4 5 6 7 8 9 10)",
     )
     parser.add_argument(
         "--n-responses",
         type=int,
-        default=20,
-        help="Total responses per run, fixed across all m (default: 20)",
+        default=12,
+        help="Total responses per run, fixed across all m (default: 12)",
     )
     parser.add_argument(
         "--n-permutations",
@@ -230,10 +159,10 @@ def main() -> None:
         help="Number of permutations for averaging (default: 20)",
     )
     parser.add_argument(
-        "--n-seeds",
+        "--n-mode-draws",
         type=int,
-        default=3,
-        help="Number of random seeds for error bars (default: 3)",
+        default=50,
+        help="Number of outer draws (mode selection seeds) for error bars (default: 50)",
     )
     parser.add_argument(
         "--batch-size",
@@ -299,9 +228,7 @@ def main() -> None:
             print(f"Invalid mode count: {m}. Must be 1-50.")
             sys.exit(1)
 
-    # Check context length — since n is fixed across all m, different mode
-    # selections produce different-length text. Check a few seeds per m to
-    # find worst-case token counts.
+    # Check context length
     max_ctx = getattr(model.config, "max_position_embeddings", None)
     if max_ctx:
         print(f"Model max context length: {max_ctx} tokens")
@@ -327,7 +254,7 @@ def main() -> None:
     print(f"\nRunning experiment: mode_counts={args.mode_counts}, "
           f"n_responses={args.n_responses}, "
           f"n_permutations={args.n_permutations}, "
-          f"n_seeds={args.n_seeds}, batch_size={args.batch_size}")
+          f"n_mode_draws={args.n_mode_draws}, batch_size={args.batch_size}")
 
     results = run_experiment(
         model=model,
@@ -335,7 +262,7 @@ def main() -> None:
         mode_counts=args.mode_counts,
         n_responses=args.n_responses,
         n_permutations=args.n_permutations,
-        n_seeds=args.n_seeds,
+        n_mode_draws=args.n_mode_draws,
         batch_size=args.batch_size,
         base_model_name=args.base_model,
     )
