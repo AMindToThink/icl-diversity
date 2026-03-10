@@ -82,13 +82,13 @@ def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model
             k = np.arange(1, len(curve) + 1)
             ax.plot(k, curve, marker="o", markersize=2, linewidth=0.8, color=color, alpha=0.4)
 
-        # Plot mean ± SD
+        # Plot mean ± SEM
         curves = np.array([r["a_k_curve"] for r in runs])
         mean_curve = np.mean(curves, axis=0)
-        std_curve = np.std(curves, axis=0)
+        sem_curve = np.std(curves, axis=0) / np.sqrt(len(runs))
         k = np.arange(1, len(mean_curve) + 1)
         ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label="mean")
-        ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve, alpha=0.2, color=color)
+        ax.fill_between(k, mean_curve - sem_curve, mean_curve + sem_curve, alpha=0.3, color=color)
 
         n_resp = runs[0].get("n_responses", 0)
         ax.set_title(f"m = {m} ({n_resp // m} resp/mode)", fontweight="bold")
@@ -115,12 +115,12 @@ def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_nam
     for m, runs in sorted(grouped.items()):
         curves = np.array([r["a_k_curve"] for r in runs])
         mean_curve = np.mean(curves, axis=0)
-        std_curve = np.std(curves, axis=0)
+        sem_curve = np.std(curves, axis=0) / np.sqrt(len(runs))
         k = np.arange(1, len(mean_curve) + 1)
 
         color = _get_color_for_m(m, m_values)
         ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label=f"m = {m}")
-        ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve, alpha=0.15, color=color)
+        ax.fill_between(k, mean_curve - sem_curve, mean_curve + sem_curve, alpha=0.3, color=color)
 
     ax.set_xlabel("k (response index)", fontsize=12)
     ax.set_ylabel("$a_k$ (bits)", fontsize=12)
@@ -149,7 +149,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         m_values.append(m)
         Es = [r["excess_entropy_E"] for r in runs]
         E_means.append(np.mean(Es))
-        E_stds.append(np.std(Es))
+        E_stds.append(np.std(Es) / np.sqrt(len(runs)))
 
         # Fit sigmoid to the mean curve (1 fit per m, not per run)
         curves = np.array([r["a_k_curve"] for r in runs])
@@ -163,9 +163,9 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
             E_sigs = [float(sum(a_k - a_inf for a_k in r["a_k_curve"])) for r in runs]
             D_sigs = [r["coherence_C"] * e_sig for r, e_sig in zip(runs, E_sigs)]
             E_sig_means.append(np.mean(E_sigs))
-            E_sig_stds.append(np.std(E_sigs))
+            E_sig_stds.append(np.std(E_sigs) / np.sqrt(len(runs)))
             D_sig_means.append(np.mean(D_sigs))
-            D_sig_stds.append(np.std(D_sigs))
+            D_sig_stds.append(np.std(D_sigs) / np.sqrt(len(runs)))
             # E_fit: single value from integral of mean curve's fit
             E_fit_vals.append(fit_params["E_fit"])
         else:
@@ -177,21 +177,21 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
 
         Cs = [r["coherence_C"] for r in runs]
         C_means.append(np.mean(Cs))
-        C_stds.append(np.std(Cs))
+        C_stds.append(np.std(Cs) / np.sqrt(len(runs)))
 
         Ds = [r["diversity_score_D"] for r in runs]
         D_means.append(np.mean(Ds))
-        D_stds.append(np.std(Ds))
+        D_stds.append(np.std(Ds) / np.sqrt(len(runs)))
 
         # a_n: last point of a_k curve
         a_ns = [r["a_k_curve"][-1] for r in runs]
         a_n_means.append(np.mean(a_ns))
-        a_n_stds.append(np.std(a_ns))
+        a_n_stds.append(np.std(a_ns) / np.sqrt(len(runs)))
 
         # σ_ℓ: coherence spread from core
         sigmas = [r["coherence_spread_sigma"] for r in runs]
         sigma_means.append(np.mean(sigmas))
-        sigma_stds.append(np.std(sigmas))
+        sigma_stds.append(np.std(sigmas) / np.sqrt(len(runs)))
 
     # D_fit: single value per m (E_fit * mean C)
     D_fit_vals = [e * c for e, c in zip(E_fit_vals, C_means)]
@@ -300,7 +300,7 @@ def plot_comparison(datasets: list[tuple[str, dict]], figures_dir: Path) -> None
                 vals = [r[metric_key] for r in runs]
                 m_vals.append(m)
                 means.append(np.mean(vals))
-                stds.append(np.std(vals))
+                stds.append(np.std(vals) / np.sqrt(len(runs)))
             ax.errorbar(m_vals, means, yerr=stds, marker="o", capsize=4, linewidth=2, label=model_name)
         ax.set_xlabel("m (mode count)")
         ax.set_ylabel(ylabel)
