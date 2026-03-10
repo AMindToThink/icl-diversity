@@ -131,12 +131,13 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
             curve = np.array(run[curve_key])
             k = np.arange(1, len(curve) + 1)
 
-            ax.plot(k, curve, "o", markersize=4, alpha=0.6, label=f"seed={run['seed']}")
+            line, = ax.plot(k, curve, "o", markersize=4, alpha=0.6, label=f"seed={run['seed']}")
+            color = line.get_color()
 
             if fit.get("fit_success"):
                 k_fine = np.linspace(0.5, len(curve) + 0.5, 100)
                 fitted = sigmoid_ak(k_fine, fit["a_inf"], fit["alpha"], fit["beta"], fit["k0"])
-                ax.plot(k_fine, fitted, "--", linewidth=1.5, alpha=0.7,
+                ax.plot(k_fine, fitted, "--", linewidth=1.5, alpha=0.7, color=color,
                         label=f"fit: k₀={fit['k0']:.1f}, R²={fit['r_squared']:.3f}")
 
         ax.set_title(f"m = {m}", fontweight="bold")
