@@ -35,7 +35,7 @@ Overlay of permutation-averaged a_k curves for all m values on shared axes, with
 
 ![Metrics vs m](../figures/mode_count/metrics_vs_m.png)
 
-Aggregate ICL diversity metrics as a function of mode count m. Top row: E (excess entropy, bits), E_rate (bits/byte), and D (diversity score). Bottom row: C (coherence) and a_n (last curve point, approximating a_∞). All metrics are shown with ±1 SD error bars across 3 seeds. E, C, and D all decrease monotonically with m, while a_n increases. This pattern is consistent: more modes with fixed n means fewer responses per mode, reducing the base model's ability to learn inter-response structure (lower E) and predict conditionally (lower C). The summary table provides exact values. Base model: GPT-2, n = 12.
+Aggregate ICL diversity metrics as a function of mode count m. Top row: E and E_sig (excess entropy using a_n vs sigmoid-fitted a_∞, in bits), D and D_sig (diversity scores, D = C × E), and C (coherence). Bottom row: a_n (last curve point, approximating a_∞) and summary table with all metrics. E and D are shown in two versions: using the empirical a_n (stable) and the sigmoid-extrapolated a_∞ (captures asymptotic behavior but high variance at m = 10 where fits are poor). E, C, and D all decrease monotonically with m using a_n, while E_sig is non-monotonic due to fit instability. All metrics shown with ±1 SD error bars across 3 seeds. Base model: GPT-2, n = 12.
 
 ### Sigmoid Fits (`figures/mode_count/sigmoid_fits.png`)
 
@@ -51,13 +51,17 @@ Sigmoid fit parameters as a function of mode count m. k₀ (inflection point) in
 
 ## Results
 
-| m | E (bits) | C | D | a_n (bits) |
-|---|----------|---|---|------------|
-| 1 | 174 ± 15 | 0.845 ± 0.056 | 148 ± 21 | 27 ± 5 |
-| 2 | 151 ± 4 | 0.735 ± 0.020 | 111 ± 4 | 55 ± 5 |
-| 3 | 125 ± 9 | 0.606 ± 0.032 | 76 ± 9 | 81 ± 7 |
-| 5 | 106 ± 13 | 0.512 ± 0.043 | 55 ± 12 | 100 ± 5 |
-| 10 | 85 ± 20 | 0.415 ± 0.104 | 37 ± 19 | 121 ± 9 |
+E uses a_n (last curve point) as the baseline; E_sig uses the sigmoid-fitted a_∞. D = C × E; D_sig = C × E_sig.
+
+| m | E (bits) | E_sig (bits) | C | D (bits) | D_sig (bits) | a_n (bits) |
+|---|----------|-------------|---|----------|-------------|------------|
+| 1 | 174 ± 13 | 531 ± 43 | 0.846 ± 0.046 | 148 ± 18 | 451 ± 59 | 32 ± 9 |
+| 2 | 151 ± 4 | 670 ± 147 | 0.735 ± 0.016 | 111 ± 3 | 494 ± 117 | 55 ± 5 |
+| 3 | 125 ± 7 | 597 ± 174 | 0.606 ± 0.027 | 76 ± 7 | 366 ± 118 | 81 ± 6 |
+| 5 | 106 ± 11 | 414 ± 15 | 0.512 ± 0.035 | 55 ± 10 | 212 ± 23 | 100 ± 4 |
+| 10 | 85 ± 17 | 1136 ± 693 | 0.415 ± 0.087 | 37 ± 15 | 531 ± 428 | 121 ± 20 |
+
+**Note on E_sig**: The sigmoid-fitted a_∞ can be substantially lower than a_n, inflating E_sig. At m = 10, sigmoid fits are poor (R² ≈ 0.74–0.82) and a_∞ estimates are unreliable, leading to very high variance in E_sig and D_sig. E (using a_n) is the more stable metric at small n.
 
 ## Hypothesis Evaluation
 

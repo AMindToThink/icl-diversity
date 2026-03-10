@@ -23,6 +23,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from fit_ak_curves import fit_sigmoid
+
 mpl.rcParams.update(
     {
         "figure.facecolor": "white",
@@ -146,14 +148,26 @@ def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_nam
     print(f"  Saved: {path}")
 
 
+def _compute_E_sigmoid_for_run(run: dict) -> float | None:
+    """Compute E using sigmoid-fitted a_inf instead of a_n."""
+    curve = np.array(run["a_k_curve"])
+    k = np.arange(1, len(curve) + 1, dtype=float)
+    fit_params, success = fit_sigmoid(k, curve)
+    if not success:
+        return None
+    a_inf = fit_params["a_inf"]
+    return float(sum(a_k - a_inf for a_k in curve))
+
+
 def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
-    """Plot E, D, C, a_∞ vs m with error bars."""
+    """Plot E, E_sigmoid, D, D_sigmoid, C, a_n vs m with error bars."""
     m_values = []
     E_means, E_stds = [], []
-    E_rate_means, E_rate_stds = [], []
+    E_sig_means, E_sig_stds = [], []
     D_means, D_stds = [], []
+    D_sig_means, D_sig_stds = [], []
     C_means, C_stds = [], []
-    a_inf_means, a_inf_stds = [], []
+    a_n_means, a_n_stds = [], []
 
     for m, runs in sorted(grouped.items()):
         m_values.append(m)
@@ -161,83 +175,97 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         E_means.append(np.mean(Es))
         E_stds.append(np.std(Es))
 
-        E_rates = [r.get("E_rate", r.get("excess_entropy_E")) for r in runs]
-        E_rate_means.append(np.mean(E_rates))
-        E_rate_stds.append(np.std(E_rates))
-
-        Ds = [r["diversity_score_D"] for r in runs]
-        D_means.append(np.mean(Ds))
-        D_stds.append(np.std(Ds))
+        # Compute E_sigmoid and D_sigmoid per run (one fit each)
+        E_sigs = []
+        D_sigs = []
+        for r in runs:
+            e_sig = _compute_E_sigmoid_for_run(r)
+            if e_sig is not None:
+                E_sigs.append(e_sig)
+                D_sigs.append(r["coherence_C"] * e_sig)
+        E_sig_means.append(np.mean(E_sigs) if E_sigs else np.nan)
+        E_sig_stds.append(np.std(E_sigs) if E_sigs else np.nan)
 
         Cs = [r["coherence_C"] for r in runs]
         C_means.append(np.mean(Cs))
         C_stds.append(np.std(Cs))
 
-        # a_∞ approximation: last point of a_k curve
-        curve_key = "a_k_curve"
-        a_infs = [r[curve_key][-1] for r in runs]
-        a_inf_means.append(np.mean(a_infs))
-        a_inf_stds.append(np.std(a_infs))
+        Ds = [r["diversity_score_D"] for r in runs]
+        D_means.append(np.mean(Ds))
+        D_stds.append(np.std(Ds))
+
+        D_sig_means.append(np.mean(D_sigs) if D_sigs else np.nan)
+        D_sig_stds.append(np.std(D_sigs) if D_sigs else np.nan)
+
+        # a_n: last point of a_k curve
+        a_ns = [r["a_k_curve"][-1] for r in runs]
+        a_n_means.append(np.mean(a_ns))
+        a_n_stds.append(np.std(a_ns))
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-    # E vs m
+    # E vs m (both versions)
     ax = axes[0, 0]
-    ax.errorbar(m_values, E_means, yerr=E_stds, marker="o", capsize=4, linewidth=2)
+    ax.errorbar(m_values, E_means, yerr=E_stds, marker="o", capsize=4, linewidth=2, label="$E$ (using $a_n$)")
+    ax.errorbar(m_values, E_sig_means, yerr=E_sig_stds, marker="s", capsize=4, linewidth=2,
+                color="#ff7f0e", label="$E_{sig}$ (using $a_\\infty^{fit}$)")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("E (excess entropy, bits)")
     ax.set_title("E vs m", fontweight="bold")
+    ax.legend(fontsize=9)
 
-    # E_rate vs m
+    # D vs m (both versions)
     ax = axes[0, 1]
-    ax.errorbar(m_values, E_rate_means, yerr=E_rate_stds, marker="s", capsize=4, linewidth=2, color="#ff7f0e")
+    ax.errorbar(m_values, D_means, yerr=D_stds, marker="o", capsize=4, linewidth=2,
+                color="#2ca02c", label="$D$ (using $a_n$)")
+    ax.errorbar(m_values, D_sig_means, yerr=D_sig_stds, marker="s", capsize=4, linewidth=2,
+                color="#d62728", label="$D_{sig}$ (using $a_\\infty^{fit}$)")
     ax.set_xlabel("m (mode count)")
-    ax.set_ylabel("E_rate (bits/byte)")
-    ax.set_title("E_rate vs m", fontweight="bold")
-
-    # D vs m
-    ax = axes[0, 2]
-    ax.errorbar(m_values, D_means, yerr=D_stds, marker="^", capsize=4, linewidth=2, color="#2ca02c")
-    ax.set_xlabel("m (mode count)")
-    ax.set_ylabel("D (diversity score)")
+    ax.set_ylabel("D (diversity score, bits)")
     ax.set_title("D vs m", fontweight="bold")
+    ax.legend(fontsize=9)
 
     # C vs m
-    ax = axes[1, 0]
-    ax.errorbar(m_values, C_means, yerr=C_stds, marker="d", capsize=4, linewidth=2, color="#d62728")
+    ax = axes[0, 2]
+    ax.errorbar(m_values, C_means, yerr=C_stds, marker="d", capsize=4, linewidth=2, color="#9467bd")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("C (coherence)")
     ax.set_title("C vs m", fontweight="bold")
 
-    # a_∞ vs m
-    ax = axes[1, 1]
-    ax.errorbar(m_values, a_inf_means, yerr=a_inf_stds, marker="v", capsize=4, linewidth=2, color="#9467bd")
+    # a_n vs m
+    ax = axes[1, 0]
+    ax.errorbar(m_values, a_n_means, yerr=a_n_stds, marker="v", capsize=4, linewidth=2, color="#8c564b")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("$a_n$ (last curve point, bits)")
-    ax.set_title("$a_\\infty$ approx vs m", fontweight="bold")
+    ax.set_title("$a_n$ vs m", fontweight="bold")
 
     # Summary table
-    ax = axes[1, 2]
+    ax = axes[1, 1]
     ax.axis("off")
     table_data = []
     for i, m in enumerate(m_values):
         table_data.append([
             str(m),
-            f"{E_means[i]:.2f}±{E_stds[i]:.2f}",
-            f"{D_means[i]:.2f}±{D_stds[i]:.2f}",
+            f"{E_means[i]:.0f}±{E_stds[i]:.0f}",
+            f"{E_sig_means[i]:.0f}±{E_sig_stds[i]:.0f}",
+            f"{D_means[i]:.0f}±{D_stds[i]:.0f}",
+            f"{D_sig_means[i]:.0f}±{D_sig_stds[i]:.0f}",
             f"{C_means[i]:.3f}±{C_stds[i]:.3f}",
-            f"{a_inf_means[i]:.3f}±{a_inf_stds[i]:.3f}",
+            f"{a_n_means[i]:.0f}±{a_n_stds[i]:.0f}",
         ])
     table = ax.table(
         cellText=table_data,
-        colLabels=["m", "E", "D", "C", "a_∞"],
+        colLabels=["m", "E", "E_sig", "D", "D_sig", "C", "a_n"],
         loc="center",
         cellLoc="center",
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1.2, 1.5)
+    table.set_fontsize(8)
+    table.scale(1.3, 1.5)
     ax.set_title("Summary", fontweight="bold")
+
+    # Hide unused subplot
+    axes[1, 2].set_visible(False)
 
     fig.suptitle(f"ICL Diversity Metrics vs Mode Count — {model_name}", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
