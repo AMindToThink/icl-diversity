@@ -93,8 +93,10 @@ def run_experiment(
             seed = SEEDS[seed_idx]
             t0 = time.time()
 
-            # Generate responses
-            responses = generate_mode_count_responses(m, n_per_mode=n_per_mode, seed=seed)
+            # Generate responses (seed controls both mode selection and generation)
+            responses, modes_used = generate_mode_count_responses(
+                m, n_per_mode=n_per_mode, seed=seed,
+            )
             n_total = len(responses)
 
             # Check token count
@@ -119,7 +121,7 @@ def run_experiment(
                 "n_responses": n_total,
                 "n_tokens_estimated": n_tokens,
                 "elapsed_seconds": round(elapsed, 2),
-                "modes_used": MODE_NAMES[:m],
+                "modes_used": modes_used,
                 **metrics,
             }
             results["runs"].append(run_entry)
@@ -230,7 +232,7 @@ def main() -> None:
         print(f"Model max context length: {max_ctx} tokens")
         violations = []
         for m in args.mode_counts:
-            responses = generate_mode_count_responses(m, n_per_mode=args.n_responses_per_mode, seed=42)
+            responses, _ = generate_mode_count_responses(m, n_per_mode=args.n_responses_per_mode, seed=42)
             n_tokens = estimate_tokens(responses, tokenizer)
             ok = n_tokens < max_ctx
             print(f"  m={m:3d}, n={len(responses):3d}, ~{n_tokens:5d} tokens — {'OK' if ok else 'EXCEEDS CONTEXT'}")

@@ -86,7 +86,7 @@ def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model
         color = get_color(m)
 
         for run in runs:
-            curve_key = "a_k_curve_per_byte" if "a_k_curve_per_byte" in run else "a_k_curve"
+            curve_key = "a_k_curve"
             curve = run[curve_key]
             k = np.arange(1, len(curve) + 1)
             ax.plot(k, curve, marker="o", markersize=3, linewidth=1.2, color=color,
@@ -104,7 +104,7 @@ def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model
 
         ax.set_title(f"m = {m} ({m * runs[0].get('n_responses', 0) // m} resp/mode)", fontweight="bold")
         ax.set_xlabel("k")
-        ax.set_ylabel("$a_k$ (bits/byte)")
+        ax.set_ylabel("$a_k$ (bits)")
         ax.legend(fontsize=7, loc="best")
 
     # Hide unused subplots
@@ -125,7 +125,7 @@ def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_nam
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for m, runs in sorted(grouped.items()):
-        curve_key = "a_k_curve_per_byte" if "a_k_curve_per_byte" in runs[0] else "a_k_curve"
+        curve_key = "a_k_curve"
         curves = [run[curve_key] for run in runs]
         # Average across seeds
         max_len = max(len(c) for c in curves)
@@ -141,7 +141,7 @@ def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_nam
         ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve, alpha=0.15, color=color)
 
     ax.set_xlabel("k (response index)", fontsize=12)
-    ax.set_ylabel("$a_k$ (bits/byte)", fontsize=12)
+    ax.set_ylabel("$a_k$ (bits)", fontsize=12)
     ax.set_title(f"a_k Curves Overlay by Mode Count — {model_name}", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10, loc="best")
     fig.tight_layout()
@@ -179,7 +179,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         C_stds.append(np.std(Cs))
 
         # a_∞ approximation: last point of a_k curve
-        curve_key = "a_k_curve_per_byte" if "a_k_curve_per_byte" in runs[0] else "a_k_curve"
+        curve_key = "a_k_curve"
         a_infs = [r[curve_key][-1] for r in runs]
         a_inf_means.append(np.mean(a_infs))
         a_inf_stds.append(np.std(a_infs))
@@ -218,7 +218,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     ax = axes[1, 1]
     ax.errorbar(m_values, a_inf_means, yerr=a_inf_stds, marker="v", capsize=4, linewidth=2, color="#9467bd")
     ax.set_xlabel("m (mode count)")
-    ax.set_ylabel("$a_n$ (last curve point, bits/byte)")
+    ax.set_ylabel("$a_n$ (last curve point, bits)")
     ax.set_title("$a_\\infty$ approx vs m", fontweight="bold")
 
     # Summary table

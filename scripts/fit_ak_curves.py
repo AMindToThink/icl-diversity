@@ -90,7 +90,7 @@ def fit_all_runs(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Fit sigmoid to every run in the dataset."""
     results = []
     for run in data["runs"]:
-        curve_key = "a_k_curve_per_byte" if "a_k_curve_per_byte" in run else "a_k_curve"
+        curve_key = "a_k_curve"
         curve = np.array(run[curve_key])
         k = np.arange(1, len(curve) + 1, dtype=float)
 
@@ -127,7 +127,7 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
         pairs = grouped[m]
 
         for run, fit in pairs:
-            curve_key = "a_k_curve_per_byte" if "a_k_curve_per_byte" in run else "a_k_curve"
+            curve_key = "a_k_curve"
             curve = np.array(run[curve_key])
             k = np.arange(1, len(curve) + 1)
 
@@ -141,7 +141,7 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
 
         ax.set_title(f"m = {m}", fontweight="bold")
         ax.set_xlabel("k")
-        ax.set_ylabel("$a_k$ (bits/byte)")
+        ax.set_ylabel("$a_k$ (bits)")
         ax.legend(fontsize=7, loc="best")
 
     for idx in range(len(m_values), nrows * ncols):
