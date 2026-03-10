@@ -92,15 +92,10 @@ def plot_ak_curves_by_m(grouped: dict[int, list[dict]], figures_dir: Path, model
             ax.plot(k, curve, marker="o", markersize=3, linewidth=1.2, color=color,
                     alpha=0.6, label=f"seed={run['seed']}")
 
-            # Per-permutation curves
+            # Per-permutation curves (total bits, same as the averaged curve)
             if run.get("per_permutation_a_k_curves"):
-                perm_byte_counts = run.get("per_permutation_byte_counts")
-                for j, pc in enumerate(run["per_permutation_a_k_curves"]):
-                    if perm_byte_counts is not None:
-                        pb = [t / b if b > 0 else 0.0 for t, b in zip(pc, perm_byte_counts[j])]
-                    else:
-                        pb = pc
-                    ax.plot(k, pb, linewidth=0.3, alpha=0.15, color=color)
+                for pc in run["per_permutation_a_k_curves"]:
+                    ax.plot(k, pc, linewidth=0.3, alpha=0.15, color=color)
 
         ax.set_title(f"m = {m} ({m * runs[0].get('n_responses', 0) // m} resp/mode)", fontweight="bold")
         ax.set_xlabel("k")
