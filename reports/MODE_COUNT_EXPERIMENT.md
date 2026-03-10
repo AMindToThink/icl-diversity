@@ -42,7 +42,7 @@ Overlay of permutation-averaged a_k curves for all m values on shared axes, with
 
 ![Metrics vs m](../figures/mode_count/metrics_vs_m.png)
 
-Aggregate ICL diversity metrics as a function of mode count m. Top row: E and E_sig (excess entropy using a_n vs sigmoid-fitted a_∞), D and D_sig (diversity scores), C (coherence), and σ_ℓ (coherence spread). Bottom row: a_n (last curve point) and summary table. Now with 50 outer draws per m value, error bars are substantially tighter than the previous 3-seed run. σ_ℓ increases monotonically with m, confirming that more modes produce higher per-response surprise variance. Base model: GPT-2, n = 12.
+Aggregate ICL diversity metrics as a function of mode count m. Top row: E and E_sig (excess entropy using a_n vs sigmoid-fitted a_∞), D and D_sig (diversity scores), C (coherence), and σ_ℓ (coherence spread). Bottom row: a_n (last curve point) and summary table. C is flat across m, as expected: C = 2^(−mean_h) depends only on unconditional per-response surprise, which is independent of mode count (all modes are drawn from the same pool). The C panel serves as a sanity check, not a finding. The shrinking error bars at higher m reflect the law of large numbers — more distinct modes in each draw stabilize the mean surprise. σ_ℓ increases monotonically with m, confirming that more modes produce higher per-response surprise variance. Base model: GPT-2, n = 12.
 
 ### Sigmoid Fits (`figures/mode_count/sigmoid_fits.png`)
 
@@ -95,7 +95,7 @@ The corrected metrics reveal a richer picture than the previous buggy implementa
 
 1. **E peaks at m ≈ 2–3**: With Σ(a_k - a_n) instead of a_1 - a_n, E captures the *total area* of learnable structure in the curve. A moderate number of modes maximizes this: enough diversity to generate a wide curve, but enough repetition for the base model to learn patterns.
 
-2. **C is relatively stable**: Coherence (C = 2^(-mean_h)) varies only from 0.381 to 0.359 across m values. This makes sense: C measures average base-model predictability of individual responses given just the prompt, which doesn't change much with mode count (all modes are equally "coherent" text).
+2. **C is flat (sanity check, not a finding)**: C = 2^(−mean_h) depends only on unconditional per-response surprise, which is independent of mode count — each response is scored against the prompt alone, with no inter-response conditioning. C should be flat, and it is. The shrinking error bars at higher m are just the law of large numbers: more distinct modes per draw stabilize the mean unconditional surprise.
 
 3. **σ_ℓ is the strongest signal**: The monotonic increase in coherence spread (0.114 → 0.442) is the clearest indicator of diversity. More modes → more variance in how predictable individual responses are.
 

@@ -9,6 +9,10 @@ This parameterization:
 - beta: steepness of transition
 - k0: inflection point (approximate mode count diagnostic)
 
+E_fit = ∫₁^∞ (a_k - a_∞) dk, computed by numerically integrating the fitted
+sigmoid. This captures tail structure beyond k=n that the discrete sum misses,
+and smooths over noise in individual a_k values.
+
 When k0 < 1, the sigmoid degenerates to exponential decay.
 
 Usage:
@@ -26,6 +30,7 @@ from typing import Any
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import quad
 from scipy.optimize import curve_fit
 
 mpl.rcParams.update(
@@ -38,7 +43,7 @@ mpl.rcParams.update(
     }
 )
 
-DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2.json"
+DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_1k_draws.json"
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "figures" / "mode_count"
 
 
@@ -70,11 +75,17 @@ def fit_sigmoid(k: np.ndarray, curve: np.ndarray) -> tuple[dict[str, float], boo
         residuals = curve - sigmoid_ak(k, *popt)
         rmse = float(np.sqrt(np.mean(residuals**2)))
 
+        a_inf, alpha, beta, k0 = popt
+
+        # E_fit = ∫₁^∞ (a_k - a_∞) dk via numerical integration of the fitted curve
+        E_fit, _ = quad(lambda k: sigmoid_ak(np.asarray(k), *popt) - a_inf, 1, np.inf)
+
         return {
-            "a_inf": float(popt[0]),
-            "alpha": float(popt[1]),
-            "beta": float(popt[2]),
-            "k0": float(popt[3]),
+            "a_inf": float(a_inf),
+            "alpha": float(alpha),
+            "beta": float(beta),
+            "k0": float(k0),
+            "E_fit": E_fit,
             "a_inf_se": float(perr[0]),
             "alpha_se": float(perr[1]),
             "beta_se": float(perr[2]),
@@ -86,22 +97,29 @@ def fit_sigmoid(k: np.ndarray, curve: np.ndarray) -> tuple[dict[str, float], boo
         return {"error": str(e)}, False
 
 
-def fit_all_runs(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Fit sigmoid to every run in the dataset."""
-    results = []
+def fit_mean_curves(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Fit sigmoid to the mean a_k curve for each mode count m."""
+    grouped: dict[int, list[dict]] = defaultdict(list)
     for run in data["runs"]:
-        curve_key = "a_k_curve"
-        curve = np.array(run[curve_key])
-        k = np.arange(1, len(curve) + 1, dtype=float)
+        grouped[run["m"]].append(run)
 
-        fit_params, success = fit_sigmoid(k, curve)
+    results = []
+    for m in sorted(grouped.keys()):
+        runs = grouped[m]
+        curves = np.array([r["a_k_curve"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        std_curve = np.std(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1, dtype=float)
+
+        fit_params, success = fit_sigmoid(k, mean_curve)
 
         entry = {
-            "m": run["m"],
-            "seed": run.get("outer_seed", run.get("seed")),
-            "n_responses": run["n_responses"],
-            "a_n_raw": float(curve[-1]),
-            "a_1_raw": float(curve[0]),
+            "m": m,
+            "n_draws": len(runs),
+            "n_responses": runs[0]["n_responses"],
+            "a_n_mean": float(mean_curve[-1]),
+            "a_n_std": float(std_curve[-1]),
+            "a_1_mean": float(mean_curve[0]),
             "fit_success": success,
             **fit_params,
         }
@@ -110,10 +128,11 @@ def fit_all_runs(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) -> None:
-    """Plot observed a_k curves with sigmoid fits overlaid."""
-    grouped: dict[int, list[tuple[dict, dict]]] = defaultdict(list)
-    for run, fit in zip(data["runs"], fit_results):
-        grouped[run["m"]].append((run, fit))
+    """Plot mean a_k curve + sigmoid fit + ±1 SD band per m panel."""
+    grouped: dict[int, list[dict]] = defaultdict(list)
+    for run in data["runs"]:
+        grouped[run["m"]].append(run)
+    fit_by_m = {r["m"]: r for r in fit_results}
 
     m_values = sorted(grouped.keys())
     ncols = min(3, len(m_values))
@@ -124,35 +143,40 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
     for idx, m in enumerate(m_values):
         row, col = divmod(idx, ncols)
         ax = axes[row][col]
-        pairs = grouped[m]
+        runs = grouped[m]
 
-        # Show up to 5 runs for readability
-        sample_pairs = pairs[:5]
-        for run, fit in sample_pairs:
-            curve_key = "a_k_curve"
-            curve = np.array(run[curve_key])
-            k = np.arange(1, len(curve) + 1)
+        # Compute mean and SD across all draws
+        curves = np.array([np.array(run["a_k_curve"]) for run in runs])
+        mean_curve = np.mean(curves, axis=0)
+        std_curve = np.std(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1)
 
-            line, = ax.plot(k, curve, "o", markersize=4, alpha=0.6)
-            color = line.get_color()
+        # Plot mean curve + SD band
+        color = "#1f77b4"
+        ax.plot(k, mean_curve, "o-", markersize=5, linewidth=2, color=color, label="mean $a_k$")
+        ax.fill_between(k, mean_curve - std_curve, mean_curve + std_curve,
+                        alpha=0.2, color=color, label="±1 SD")
 
-            if fit.get("fit_success"):
-                k_fine = np.linspace(0.5, len(curve) + 0.5, 100)
-                fitted = sigmoid_ak(k_fine, fit["a_inf"], fit["alpha"], fit["beta"], fit["k0"])
-                ax.plot(k_fine, fitted, "--", linewidth=1.5, alpha=0.7, color=color,
-                        label=f"fit: k₀={fit['k0']:.1f}, R²={fit['r_squared']:.3f}")
+        # Overlay sigmoid fit from pre-computed results
+        fit = fit_by_m.get(m)
+        if fit and fit.get("fit_success"):
+            k_fine = np.linspace(0.5, len(mean_curve) + 0.5, 100)
+            fitted = sigmoid_ak(k_fine, fit["a_inf"], fit["alpha"],
+                                fit["beta"], fit["k0"])
+            ax.plot(k_fine, fitted, "--", linewidth=2, color="#ff7f0e",
+                    label=f"sigmoid: k₀={fit['k0']:.1f}, R²={fit['r_squared']:.3f}")
 
-        ax.set_title(f"m = {m}", fontweight="bold")
+        ax.set_title(f"m = {m} (n={len(runs)} draws)", fontweight="bold")
         ax.set_xlabel("k")
         ax.set_ylabel("$a_k$ (bits)")
-        ax.legend(fontsize=7, loc="best")
+        ax.legend(fontsize=8, loc="best")
 
     for idx in range(len(m_values), nrows * ncols):
         row, col = divmod(idx, ncols)
         axes[row][col].set_visible(False)
 
     model_name = data.get("base_model", "unknown")
-    fig.suptitle(f"Sigmoid Fits to a_k Curves — {model_name}", fontsize=14, fontweight="bold")
+    fig.suptitle(f"Sigmoid Fits to Mean a_k Curves — {model_name}", fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     path = figures_dir / "sigmoid_fits.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -162,36 +186,20 @@ def plot_fits(data: dict[str, Any], fit_results: list[dict], figures_dir: Path) 
 
 def plot_fit_params_vs_m(fit_results: list[dict], figures_dir: Path, model_name: str) -> None:
     """Plot fitted parameters vs m."""
-    grouped: dict[int, list[dict]] = defaultdict(list)
-    for r in fit_results:
-        if r.get("fit_success"):
-            grouped[r["m"]].append(r)
+    fits = [r for r in fit_results if r.get("fit_success")]
 
-    m_vals, k0_means, k0_stds = [], [], []
-    a_inf_fit_means, a_inf_fit_stds = [], []
-    a_n_raw_means, a_n_raw_stds = [], []
-    r2_means = []
-
-    for m in sorted(grouped.keys()):
-        fits = grouped[m]
-        m_vals.append(m)
-        k0s = [f["k0"] for f in fits]
-        k0_means.append(np.mean(k0s))
-        k0_stds.append(np.std(k0s))
-        a_infs = [f["a_inf"] for f in fits]
-        a_inf_fit_means.append(np.mean(a_infs))
-        a_inf_fit_stds.append(np.std(a_infs))
-        a_ns = [f["a_n_raw"] for f in fits]
-        a_n_raw_means.append(np.mean(a_ns))
-        a_n_raw_stds.append(np.std(a_ns))
-        r2s = [f["r_squared"] for f in fits]
-        r2_means.append(np.mean(r2s))
+    m_vals = [f["m"] for f in fits]
+    k0_vals = [f["k0"] for f in fits]
+    a_inf_vals = [f["a_inf"] for f in fits]
+    a_n_means = [f["a_n_mean"] for f in fits]
+    a_n_stds = [f["a_n_std"] for f in fits]
+    r2_vals = [f["r_squared"] for f in fits]
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
 
     # k0 vs m
     ax = axes[0, 0]
-    ax.errorbar(m_vals, k0_means, yerr=k0_stds, marker="o", capsize=4, linewidth=2)
+    ax.plot(m_vals, k0_vals, marker="o", linewidth=2)
     ax.plot(m_vals, m_vals, "--", color="gray", alpha=0.5, label="k₀ = m (identity)")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("k₀ (inflection point)")
@@ -200,18 +208,17 @@ def plot_fit_params_vs_m(fit_results: list[dict], figures_dir: Path, model_name:
 
     # a_inf (fit) vs a_n (raw)
     ax = axes[0, 1]
-    ax.errorbar(m_vals, a_inf_fit_means, yerr=a_inf_fit_stds, marker="o", capsize=4,
-                linewidth=2, label="$a_\\infty$ (fit)")
-    ax.errorbar(m_vals, a_n_raw_means, yerr=a_n_raw_stds, marker="s", capsize=4,
-                linewidth=2, label="$a_n$ (raw last point)")
+    ax.plot(m_vals, a_inf_vals, marker="o", linewidth=2, label="$a_\\infty$ (fit)")
+    ax.errorbar(m_vals, a_n_means, yerr=a_n_stds, marker="s", capsize=4,
+                linewidth=2, label="$a_n$ (mean ± SD)")
     ax.set_xlabel("m (mode count)")
-    ax.set_ylabel("bits/byte")
+    ax.set_ylabel("bits")
     ax.set_title("$a_\\infty$ fit vs $a_n$ raw", fontweight="bold")
     ax.legend()
 
     # R² vs m
     ax = axes[1, 0]
-    ax.bar(m_vals, r2_means, color="#2ca02c", alpha=0.7)
+    ax.bar(m_vals, r2_vals, color="#2ca02c", alpha=0.7)
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("R²")
     ax.set_title("Sigmoid fit quality", fontweight="bold")
@@ -221,21 +228,19 @@ def plot_fit_params_vs_m(fit_results: list[dict], figures_dir: Path, model_name:
     ax = axes[1, 1]
     ax.axis("off")
     table_data = []
-    for i, m in enumerate(m_vals):
-        fits = grouped[m]
-        alpha_mean = np.mean([f["alpha"] for f in fits])
-        beta_mean = np.mean([f["beta"] for f in fits])
+    for f in fits:
         table_data.append([
-            str(m),
-            f"{k0_means[i]:.2f}",
-            f"{a_inf_fit_means[i]:.3f}",
-            f"{alpha_mean:.2f}",
-            f"{beta_mean:.2f}",
-            f"{r2_means[i]:.3f}",
+            str(f["m"]),
+            f"{f['k0']:.2f}",
+            f"{f['a_inf']:.3f}",
+            f"{f['alpha']:.2f}",
+            f"{f['beta']:.2f}",
+            f"{f['E_fit']:.1f}",
+            f"{f['r_squared']:.3f}",
         ])
     table = ax.table(
         cellText=table_data,
-        colLabels=["m", "k₀", "a_∞", "α", "β", "R²"],
+        colLabels=["m", "k₀", "a_∞", "α", "β", "E_fit", "R²"],
         loc="center",
         cellLoc="center",
     )
@@ -266,21 +271,22 @@ def main() -> None:
     data = load_data(args.input)
     model_name = data.get("base_model", "unknown")
 
-    print("Fitting sigmoid to all a_k curves...")
-    fit_results = fit_all_runs(data)
+    print("Fitting sigmoid to mean a_k curves (one per m)...")
+    fit_results = fit_mean_curves(data)
 
     n_success = sum(1 for r in fit_results if r.get("fit_success"))
     print(f"  {n_success}/{len(fit_results)} fits successful")
 
     # Print summary table
-    print(f"\n{'m':>4} {'seed':>6} {'k0':>8} {'a_inf':>8} {'a_n':>8} {'alpha':>8} {'beta':>8} {'R2':>8}")
-    print("-" * 60)
+    print(f"\n{'m':>4} {'draws':>6} {'k0':>8} {'a_inf':>8} {'a_n':>8} {'alpha':>8} {'beta':>8} {'E_fit':>8} {'R2':>8}")
+    print("-" * 72)
     for r in fit_results:
         if r.get("fit_success"):
-            print(f"{r['m']:>4} {r['seed']:>6} {r['k0']:>8.2f} {r['a_inf']:>8.3f} "
-                  f"{r['a_n_raw']:>8.3f} {r['alpha']:>8.2f} {r['beta']:>8.2f} {r['r_squared']:>8.3f}")
+            print(f"{r['m']:>4} {r['n_draws']:>6} {r['k0']:>8.2f} {r['a_inf']:>8.3f} "
+                  f"{r['a_n_mean']:>8.3f} {r['alpha']:>8.2f} {r['beta']:>8.2f} "
+                  f"{r['E_fit']:>8.1f} {r['r_squared']:>8.3f}")
         else:
-            print(f"{r['m']:>4} {r['seed']:>6}  FAILED: {r.get('error', 'unknown')}")
+            print(f"{r['m']:>4} {r['n_draws']:>6}  FAILED: {r.get('error', 'unknown')}")
 
     plot_fits(data, fit_results, figures_dir)
     plot_fit_params_vs_m(fit_results, figures_dir, model_name)

@@ -34,7 +34,7 @@ mpl.rcParams.update(
     }
 )
 
-DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_50seeds.json"
+DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_1k_draws.json"
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "figures" / "mode_count"
 
 
@@ -133,23 +133,12 @@ def plot_ak_overlay(grouped: dict[int, list[dict]], figures_dir: Path, model_nam
     print(f"  Saved: {path}")
 
 
-def _compute_E_sigmoid_for_run(run: dict) -> float | None:
-    """Compute E using sigmoid-fitted a_inf instead of a_n."""
-    curve = np.array(run["a_k_curve"])
-    k = np.arange(1, len(curve) + 1, dtype=float)
-    fit_params, success = fit_sigmoid(k, curve)
-    if not success:
-        return None
-    a_inf = fit_params["a_inf"]
-    # E_sig = sum(a_k - a_inf) using the fitted asymptote
-    return float(sum(a_k - a_inf for a_k in curve))
-
-
 def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
-    """Plot E, E_sigmoid, D, D_sigmoid, C, a_n, σ_ℓ vs m with error bars."""
+    """Plot E, E_sig, E_fit, D variants, C, a_n, σ_ℓ vs m with error bars."""
     m_values = []
     E_means, E_stds = [], []
     E_sig_means, E_sig_stds = [], []
+    E_fit_vals = []
     D_means, D_stds = [], []
     D_sig_means, D_sig_stds = [], []
     C_means, C_stds = [], []
@@ -162,16 +151,29 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         E_means.append(np.mean(Es))
         E_stds.append(np.std(Es))
 
-        # E_sigmoid and D_sigmoid per run
-        E_sigs = []
-        D_sigs = []
-        for r in runs:
-            e_sig = _compute_E_sigmoid_for_run(r)
-            if e_sig is not None:
-                E_sigs.append(e_sig)
-                D_sigs.append(r["coherence_C"] * e_sig)
-        E_sig_means.append(np.mean(E_sigs) if E_sigs else np.nan)
-        E_sig_stds.append(np.std(E_sigs) if E_sigs else np.nan)
+        # Fit sigmoid to the mean curve (1 fit per m, not per run)
+        curves = np.array([r["a_k_curve"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1, dtype=float)
+        fit_params, success = fit_sigmoid(k, mean_curve)
+
+        if success:
+            a_inf = fit_params["a_inf"]
+            # E_sig: discrete sum using fitted a_inf as floor, per run
+            E_sigs = [float(sum(a_k - a_inf for a_k in r["a_k_curve"])) for r in runs]
+            D_sigs = [r["coherence_C"] * e_sig for r, e_sig in zip(runs, E_sigs)]
+            E_sig_means.append(np.mean(E_sigs))
+            E_sig_stds.append(np.std(E_sigs))
+            D_sig_means.append(np.mean(D_sigs))
+            D_sig_stds.append(np.std(D_sigs))
+            # E_fit: single value from integral of mean curve's fit
+            E_fit_vals.append(fit_params["E_fit"])
+        else:
+            E_sig_means.append(np.nan)
+            E_sig_stds.append(np.nan)
+            D_sig_means.append(np.nan)
+            D_sig_stds.append(np.nan)
+            E_fit_vals.append(np.nan)
 
         Cs = [r["coherence_C"] for r in runs]
         C_means.append(np.mean(Cs))
@@ -180,9 +182,6 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         Ds = [r["diversity_score_D"] for r in runs]
         D_means.append(np.mean(Ds))
         D_stds.append(np.std(Ds))
-
-        D_sig_means.append(np.mean(D_sigs) if D_sigs else np.nan)
-        D_sig_stds.append(np.std(D_sigs) if D_sigs else np.nan)
 
         # a_n: last point of a_k curve
         a_ns = [r["a_k_curve"][-1] for r in runs]
@@ -194,6 +193,9 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         sigma_means.append(np.mean(sigmas))
         sigma_stds.append(np.std(sigmas))
 
+    # D_fit: single value per m (E_fit * mean C)
+    D_fit_vals = [e * c for e, c in zip(E_fit_vals, C_means)]
+
     fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 
     # E vs m
@@ -201,10 +203,12 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     ax.errorbar(m_values, E_means, yerr=E_stds, marker="o", capsize=4, linewidth=2, label="$E$ (using $a_n$)")
     ax.errorbar(m_values, E_sig_means, yerr=E_sig_stds, marker="s", capsize=4, linewidth=2,
                 color="#ff7f0e", label="$E_{sig}$ (using $a_\\infty^{fit}$)")
+    ax.plot(m_values, E_fit_vals, marker="^", linewidth=2,
+            color="#d62728", label="$E_{fit}$ ($\\int_1^\\infty$ of mean curve)")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("E (excess entropy, bits)")
     ax.set_title("E vs m", fontweight="bold")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=8)
 
     # D vs m
     ax = axes[0, 1]
@@ -212,17 +216,19 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
                 color="#2ca02c", label="$D$ (using $a_n$)")
     ax.errorbar(m_values, D_sig_means, yerr=D_sig_stds, marker="s", capsize=4, linewidth=2,
                 color="#d62728", label="$D_{sig}$ (using $a_\\infty^{fit}$)")
+    ax.plot(m_values, D_fit_vals, marker="^", linewidth=2,
+            color="#9467bd", label="$D_{fit}$ ($\\int_1^\\infty$ of mean curve)")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("D (diversity score, bits)")
     ax.set_title("D vs m", fontweight="bold")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=8)
 
     # C vs m
     ax = axes[0, 2]
     ax.errorbar(m_values, C_means, yerr=C_stds, marker="d", capsize=4, linewidth=2, color="#9467bd")
     ax.set_xlabel("m (mode count)")
     ax.set_ylabel("C (coherence)")
-    ax.set_title("C vs m", fontweight="bold")
+    ax.set_title("C vs m (sanity check: should be flat)", fontweight="bold")
 
     # σ_ℓ vs m
     ax = axes[0, 3]
@@ -247,6 +253,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
             str(m),
             f"{E_means[i]:.0f}±{E_stds[i]:.0f}",
             f"{E_sig_means[i]:.0f}±{E_sig_stds[i]:.0f}",
+            f"{E_fit_vals[i]:.0f}",
             f"{D_means[i]:.0f}±{D_stds[i]:.0f}",
             f"{C_means[i]:.3f}±{C_stds[i]:.3f}",
             f"{sigma_means[i]:.3f}±{sigma_stds[i]:.3f}",
@@ -254,7 +261,7 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
         ])
     table = ax.table(
         cellText=table_data,
-        colLabels=["m", "E", "E_sig", "D", "C", "σ_ℓ", "a_n"],
+        colLabels=["m", "E", "E_sig", "E_fit", "D", "C", "σ_ℓ", "a_n"],
         loc="center",
         cellLoc="center",
     )

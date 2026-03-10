@@ -1,19 +1,21 @@
 """Run the mode count experiment: vary m and measure ICL diversity metrics.
 
-For each mode count m, generates n total responses (fixed across all m) using
-format-based modes, computes ICL diversity metrics, and saves results to JSON.
+For each mode count m, runs N fully independent draws. Each draw independently
+selects m modes, generates n responses, shuffles the response order, and computes
+metrics via compute_icl_diversity_metrics. All metrics come from core.py (single
+source of truth). Error bars are computed across the N independent draws.
 
 Usage:
-    # GPT-2, full range with 50 outer draws
+    # GPT-2, 1000 independent draws per m
     uv run python scripts/run_mode_count_experiment.py \
         --mode-counts 1 2 3 4 5 6 7 8 9 10 \
         --n-responses 12 \
-        --n-permutations 20 \
-        --n-mode-draws 50 \
+        --n-draws 1000 \
         --base-model gpt2 \
         --device cuda:1 \
-        --batch-size 8 \
-        --output results/mode_count/gpt2_50seeds.json
+        --batch-size 32 \
+        --wandb \
+        --output results/mode_count/gpt2_independent.json
 """
 
 import argparse
@@ -36,7 +38,10 @@ from icl_diversity.mode_count_scenarios import (
 )
 
 DEFAULT_OUTPUT = (
-    Path(__file__).resolve().parent.parent / "results" / "mode_count" / "gpt2_50seeds.json"
+    Path(__file__).resolve().parent.parent
+    / "results"
+    / "mode_count"
+    / "gpt2_1k_draws.json"
 )
 
 
@@ -55,56 +60,61 @@ def run_experiment(
     tokenizer: Any,
     mode_counts: list[int],
     n_responses: int,
-    n_permutations: int,
-    n_mode_draws: int,
+    n_draws: int,
     batch_size: int,
     base_model_name: str,
+    use_wandb: bool = False,
 ) -> dict[str, Any]:
-    """Run mode count experiment across all (m, outer_seed) combinations.
+    """Run mode count experiment with fully independent draws.
 
-    For each (m, outer_seed):
-    - Select m modes and generate n responses (OUTER randomness: mode selection)
-    - Call compute_icl_diversity_metrics with n_permutations (INNER randomness: ordering)
-    - Store core's full metrics dict directly
+    For each (m, draw_seed):
+    - Select m modes and generate n responses (fresh each draw)
+    - Shuffle response order (removes cycling-order artifact)
+    - Call compute_icl_diversity_metrics with n_permutations=1
+    - Store core's full metrics dict
 
-    Aggregate across outer draws for error bars (mean ± SD).
+    All draws are statistically independent. Error bars (mean ± SD)
+    across draws give honest uncertainty estimates.
     """
-    # Generate deterministic outer seeds
+    # Generate deterministic, unique seeds for all draws
     seed_rng = random.Random(42)
-    outer_seeds = [seed_rng.randint(0, 2**31) for _ in range(n_mode_draws)]
+    draw_seeds = [seed_rng.randint(0, 2**31) for _ in range(n_draws)]
 
     results: dict[str, Any] = {
         "experiment": "mode_count",
         "base_model": base_model_name,
-        "n_permutations": n_permutations,
         "n_responses": n_responses,
-        "n_mode_draws": n_mode_draws,
-        "outer_seeds": outer_seeds,
+        "n_draws": n_draws,
+        "draw_seeds": draw_seeds,
         "mode_names": MODE_NAMES,
         "prompt": PROMPT,
         "runs": [],
     }
 
-    total_runs = len(mode_counts) * n_mode_draws
+    total_runs = len(mode_counts) * n_draws
     pbar = tqdm(total=total_runs, desc="mode count runs")
 
     for m in mode_counts:
-        for draw_idx, outer_seed in enumerate(outer_seeds):
+        for draw_idx, draw_seed in enumerate(draw_seeds):
             t0 = time.time()
 
-            # OUTER randomness: select modes and generate responses
+            # Fresh mode selection + response generation
             responses, modes_used = generate_mode_count_responses(
-                m, n=n_responses, seed=outer_seed,
+                m, n=n_responses, seed=draw_seed,
             )
 
-            # INNER randomness: permutation averaging handled by core
+            # Shuffle with a derived seed to decouple from generation RNG
+            shuffle_rng = random.Random(draw_seed ^ 0x5A5A5A5A)
+            shuffle_rng.shuffle(responses)
+
+            # Single forward pass — no correlated inner permutations
             metrics = compute_icl_diversity_metrics(
                 model,
                 tokenizer,
                 PROMPT,
                 responses,
-                n_permutations=n_permutations,
-                seed=outer_seed,
+                n_permutations=1,
+                seed=draw_seed,
                 batch_size=batch_size,
             )
 
@@ -114,7 +124,7 @@ def run_experiment(
             run_entry = {
                 "m": m,
                 "draw_idx": draw_idx,
-                "outer_seed": outer_seed,
+                "draw_seed": draw_seed,
                 "n_responses": n_responses,
                 "n_tokens_estimated": n_tokens,
                 "elapsed_seconds": round(elapsed, 2),
@@ -124,9 +134,22 @@ def run_experiment(
             }
             results["runs"].append(run_entry)
 
+            if use_wandb:
+                import wandb
+                wandb.log({
+                    "m": m,
+                    "draw_idx": draw_idx,
+                    "E": metrics["excess_entropy_E"],
+                    "C": metrics["coherence_C"],
+                    "D": metrics["diversity_score_D"],
+                    "sigma_l": metrics["coherence_spread_sigma"],
+                    "a_n": metrics["a_k_curve"][-1],
+                    "elapsed": elapsed,
+                })
+
             pbar.set_postfix(
                 m=m,
-                draw=f"{draw_idx + 1}/{n_mode_draws}",
+                draw=f"{draw_idx + 1}/{n_draws}",
                 E=f"{metrics['excess_entropy_E']:.1f}",
             )
             pbar.update(1)
@@ -153,22 +176,16 @@ def main() -> None:
         help="Total responses per run, fixed across all m (default: 12)",
     )
     parser.add_argument(
-        "--n-permutations",
+        "--n-draws",
         type=int,
-        default=20,
-        help="Number of permutations for averaging (default: 20)",
-    )
-    parser.add_argument(
-        "--n-mode-draws",
-        type=int,
-        default=50,
-        help="Number of outer draws (mode selection seeds) for error bars (default: 50)",
+        default=1000,
+        help="Number of fully independent draws per m (default: 1000)",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=8,
-        help="Batch size for GPU parallelism (default: 8)",
+        default=32,
+        help="Batch size for GPU parallelism (default: 32)",
     )
     parser.add_argument(
         "--base-model",
@@ -184,6 +201,17 @@ def main() -> None:
         "--torch-dtype",
         default=None,
         help="Model dtype: float16, bfloat16, float32",
+    )
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable W&B logging (requires wandb login)",
+    )
+    parser.add_argument(
+        "--gpu-memory-fraction",
+        type=float,
+        default=0.15,
+        help="Max fraction of GPU memory to use (default: 0.15 → ~7GB on 46GB GPU)",
     )
     parser.add_argument(
         "--output",
@@ -205,6 +233,32 @@ def main() -> None:
         if torch_dtype is None:
             print(f"Unknown dtype: {args.torch_dtype}")
             sys.exit(1)
+
+    # Set GPU memory cap before loading model
+    if args.device.startswith("cuda") and args.device != "auto":
+        device_idx = int(args.device.split(":")[-1]) if ":" in args.device else 0
+        torch.cuda.set_per_process_memory_fraction(args.gpu_memory_fraction, device_idx)
+        print(f"GPU memory cap: {args.gpu_memory_fraction:.0%} of device {device_idx}")
+
+    # Initialize W&B if requested
+    if args.wandb:
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+        import wandb
+        wandb.init(
+            project="icl-diversity",
+            config={
+                "experiment": "mode_count",
+                "base_model": args.base_model,
+                "mode_counts": args.mode_counts,
+                "n_responses": args.n_responses,
+                "n_draws": args.n_draws,
+                "batch_size": args.batch_size,
+                "device": args.device,
+                "gpu_memory_fraction": args.gpu_memory_fraction,
+            },
+        )
 
     # Load model
     use_device_map = args.device == "auto"
@@ -241,36 +295,50 @@ def main() -> None:
                 n_tokens = estimate_tokens(responses, tokenizer)
                 worst_tokens = max(worst_tokens, n_tokens)
             ok = worst_tokens < max_ctx
-            print(f"  m={m:3d}, n={args.n_responses:3d}, ~{worst_tokens:5d} tokens (worst-case) — {'OK' if ok else 'EXCEEDS CONTEXT'}")
+            print(
+                f"  m={m:3d}, n={args.n_responses:3d}, ~{worst_tokens:5d} tokens "
+                f"(worst-case) — {'OK' if ok else 'EXCEEDS CONTEXT'}"
+            )
             if not ok:
                 violations.append((m, worst_tokens))
         if violations:
-            print(f"\nERROR: {len(violations)} mode count(s) exceed the model's {max_ctx}-token context window:")
+            print(
+                f"\nERROR: {len(violations)} mode count(s) exceed the model's "
+                f"{max_ctx}-token context window:"
+            )
             for m, n_tok in violations:
                 print(f"  m={m}: ~{n_tok} tokens")
-            print("Reduce --n-responses, remove large mode counts, or use a model with a longer context window.")
+            print(
+                "Reduce --n-responses, remove large mode counts, or use a model "
+                "with a longer context window."
+            )
             sys.exit(1)
 
-    print(f"\nRunning experiment: mode_counts={args.mode_counts}, "
-          f"n_responses={args.n_responses}, "
-          f"n_permutations={args.n_permutations}, "
-          f"n_mode_draws={args.n_mode_draws}, batch_size={args.batch_size}")
+    print(
+        f"\nRunning experiment: mode_counts={args.mode_counts}, "
+        f"n_responses={args.n_responses}, "
+        f"n_draws={args.n_draws}, batch_size={args.batch_size}"
+    )
 
     results = run_experiment(
         model=model,
         tokenizer=tokenizer,
         mode_counts=args.mode_counts,
         n_responses=args.n_responses,
-        n_permutations=args.n_permutations,
-        n_mode_draws=args.n_mode_draws,
+        n_draws=args.n_draws,
         batch_size=args.batch_size,
         base_model_name=args.base_model,
+        use_wandb=args.wandb,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\nResults saved to: {args.output}")
+
+    if args.wandb:
+        import wandb
+        wandb.finish()
 
 
 if __name__ == "__main__":
