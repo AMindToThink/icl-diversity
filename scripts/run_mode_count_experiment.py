@@ -224,15 +224,24 @@ def main() -> None:
             print(f"Invalid mode count: {m}. Must be 1-50.")
             sys.exit(1)
 
-    # Check context length for each m
+    # Check context length for each m — fail fast if any exceed the limit
     max_ctx = getattr(model.config, "max_position_embeddings", None)
     if max_ctx:
         print(f"Model max context length: {max_ctx} tokens")
+        violations = []
         for m in args.mode_counts:
             responses = generate_mode_count_responses(m, n_per_mode=args.n_responses_per_mode, seed=42)
             n_tokens = estimate_tokens(responses, tokenizer)
-            status = "OK" if n_tokens < max_ctx else "WARNING: exceeds context!"
-            print(f"  m={m:3d}, n={len(responses):3d}, ~{n_tokens:5d} tokens — {status}")
+            ok = n_tokens < max_ctx
+            print(f"  m={m:3d}, n={len(responses):3d}, ~{n_tokens:5d} tokens — {'OK' if ok else 'EXCEEDS CONTEXT'}")
+            if not ok:
+                violations.append((m, n_tokens))
+        if violations:
+            print(f"\nERROR: {len(violations)} mode count(s) exceed the model's {max_ctx}-token context window:")
+            for m, n_tok in violations:
+                print(f"  m={m}: ~{n_tok} tokens")
+            print("Reduce --n-responses-per-mode, remove large mode counts, or use a model with a longer context window.")
+            sys.exit(1)
 
     print(f"\nRunning experiment: mode_counts={args.mode_counts}, "
           f"n_per_mode={args.n_responses_per_mode}, "
