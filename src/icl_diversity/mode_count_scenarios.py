@@ -510,40 +510,54 @@ MODE_NAMES: list[str] = [
 PROMPT = "Write a short piece about rain."
 
 
-def get_format_modes(m: int) -> list[Callable[[random.Random], str]]:
-    """Return m format modes for the rain topic.
+def get_format_modes(
+    m: int,
+    seed: int = 0,
+) -> tuple[list[Callable[[random.Random], str]], list[str]]:
+    """Return m randomly-selected format modes for the rain topic.
+
+    Different seeds select different subsets of modes, so m=1 is not
+    always haiku — it could be any single mode depending on the seed.
 
     Args:
         m: Number of modes to return (1–50).
+        seed: Random seed for mode selection.
 
     Returns:
-        List of m mode callables, each accepting a random.Random and returning a string.
+        Tuple of (mode_callables, mode_names) — both length m.
 
     Raises:
         ValueError: If m < 1 or m > 50.
     """
     if m < 1 or m > len(_ALL_RAIN_MODES):
         raise ValueError(f"m must be between 1 and {len(_ALL_RAIN_MODES)}, got {m}")
-    return _ALL_RAIN_MODES[:m]
+    rng = random.Random(seed)
+    indices = rng.sample(range(len(_ALL_RAIN_MODES)), m)
+    modes = [_ALL_RAIN_MODES[i] for i in indices]
+    names = [MODE_NAMES[i] for i in indices]
+    return modes, names
 
 
 def generate_mode_count_responses(
     m: int,
     n_per_mode: int = 4,
     seed: int = 0,
-) -> list[str]:
-    """Generate responses using m format modes.
+) -> tuple[list[str], list[str]]:
+    """Generate responses using m randomly-selected format modes.
 
     Uses _generate_high_diversity_responses with exactly m modes,
     producing n_per_mode responses per mode (total = m * n_per_mode).
+    The seed controls both which modes are selected and the response
+    generation randomness.
 
     Args:
         m: Number of distinct modes.
         n_per_mode: Responses per mode.
-        seed: Random seed.
+        seed: Random seed (controls mode selection and generation).
 
     Returns:
-        List of m * n_per_mode responses.
+        Tuple of (responses, mode_names_used).
     """
-    modes = get_format_modes(m)
-    return _generate_high_diversity_responses(modes, n=m * n_per_mode, seed=seed)
+    modes, names = get_format_modes(m, seed=seed)
+    responses = _generate_high_diversity_responses(modes, n=m * n_per_mode, seed=seed)
+    return responses, names
