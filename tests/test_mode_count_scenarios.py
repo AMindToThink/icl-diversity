@@ -55,23 +55,36 @@ class TestGetFormatModes:
 
 class TestGenerateResponses:
     def test_correct_count(self) -> None:
+        """All m values produce exactly n responses."""
         for m in [1, 3, 5, 10]:
-            responses, _ = generate_mode_count_responses(m, n_per_mode=4, seed=42)
-            assert len(responses) == m * 4
+            responses, _ = generate_mode_count_responses(m, n=20, seed=42)
+            assert len(responses) == 20
+
+    def test_fixed_n_across_m(self) -> None:
+        """Different m values with same n produce same-length response lists."""
+        n = 12
+        for m in [1, 2, 3, 4, 6, 12]:
+            responses, _ = generate_mode_count_responses(m, n=n, seed=42)
+            assert len(responses) == n, f"m={m} produced {len(responses)} responses, expected {n}"
+
+    def test_n_less_than_m_raises(self) -> None:
+        """n < m should raise ValueError."""
+        with pytest.raises(ValueError, match="n must be >= m"):
+            generate_mode_count_responses(m=5, n=3, seed=42)
 
     def test_deterministic(self) -> None:
-        r1, n1 = generate_mode_count_responses(3, n_per_mode=4, seed=42)
-        r2, n2 = generate_mode_count_responses(3, n_per_mode=4, seed=42)
+        r1, n1 = generate_mode_count_responses(3, n=20, seed=42)
+        r2, n2 = generate_mode_count_responses(3, n=20, seed=42)
         assert r1 == r2
         assert n1 == n2
 
     def test_different_seeds_differ(self) -> None:
-        r1, _ = generate_mode_count_responses(3, n_per_mode=4, seed=42)
-        r2, _ = generate_mode_count_responses(3, n_per_mode=4, seed=99)
+        r1, _ = generate_mode_count_responses(3, n=20, seed=42)
+        r2, _ = generate_mode_count_responses(3, n=20, seed=99)
         assert r1 != r2
 
     def test_responses_are_nonempty_strings(self) -> None:
-        responses, _ = generate_mode_count_responses(5, n_per_mode=4, seed=42)
+        responses, _ = generate_mode_count_responses(5, n=20, seed=42)
         for r in responses:
             assert isinstance(r, str)
             assert len(r) > 0
@@ -86,10 +99,16 @@ class TestGenerateResponses:
         assert len(set(samples)) == 15
 
     def test_returns_mode_names(self) -> None:
-        _, names = generate_mode_count_responses(3, n_per_mode=4, seed=42)
+        _, names = generate_mode_count_responses(3, n=20, seed=42)
         assert len(names) == 3
         for name in names:
             assert name in MODE_NAMES
+
+    def test_n_equals_m_gives_one_per_mode(self) -> None:
+        """Edge case: n == m means exactly 1 response per mode."""
+        responses, names = generate_mode_count_responses(m=5, n=5, seed=42)
+        assert len(responses) == 5
+        assert len(names) == 5
 
 
 class TestModeNames:

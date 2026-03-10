@@ -540,24 +540,31 @@ def get_format_modes(
 
 def generate_mode_count_responses(
     m: int,
-    n_per_mode: int = 4,
+    n: int = 20,
     seed: int = 0,
 ) -> tuple[list[str], list[str]]:
     """Generate responses using m randomly-selected format modes.
 
     Uses _generate_high_diversity_responses with exactly m modes,
-    producing n_per_mode responses per mode (total = m * n_per_mode).
-    The seed controls both which modes are selected and the response
-    generation randomness.
+    producing n total responses distributed across modes (n/m per mode,
+    cycling across modes). The seed controls both which modes are
+    selected and the response generation randomness.
 
     Args:
         m: Number of distinct modes.
-        n_per_mode: Responses per mode.
+        n: Total number of responses (fixed across all m values).
         seed: Random seed (controls mode selection and generation).
 
     Returns:
         Tuple of (responses, mode_names_used).
+
+    Raises:
+        ValueError: If n < m (need at least 1 response per mode).
     """
+    if n < m:
+        raise ValueError(
+            f"n must be >= m (need at least 1 response per mode), got n={n}, m={m}"
+        )
     modes, names = get_format_modes(m, seed=seed)
-    responses = _generate_high_diversity_responses(modes, n=m * n_per_mode, seed=seed)
+    responses = _generate_high_diversity_responses(modes, n=n, seed=seed)
     return responses, names
