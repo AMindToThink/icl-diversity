@@ -363,6 +363,7 @@ INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsf
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb
+INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb
@@ -377,8 +378,10 @@ INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsf
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb
+INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb

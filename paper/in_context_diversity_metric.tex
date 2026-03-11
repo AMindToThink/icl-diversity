@@ -112,7 +112,7 @@ The $a_k$ curve is the fundamental object of interest. Its shape reveals the str
 
 This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
-\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs near $k \approx m$ and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}).
+\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}).
 
 \section{Excess Entropy}
 
@@ -529,6 +529,93 @@ The na\"ive alternative --- computing $a_k$ curves independently per model and a
 \paragraph{Embedding-based diversity.} Prior work uses embedding distances or clustering (e.g., $k$-LLMmeans \citep{lai2024llmmeans}) to measure diversity. These approaches are complementary: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model. The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
 
 \paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{zhang2024writingprompts} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
+
+\appendix
+
+\section{Relating the Sigmoid Inflection Point to Mode Count}\label{app:k0-derivation}
+
+\subsection{Setup}
+
+We have $m$ modes with uniform weights $w_i = 1/m$. Each of $n$ responses is drawn independently from one of the $m$ modes. We fit a sigmoid to the permutation-averaged progressive conditional surprise curve:
+\begin{equation}
+    \bar{a}_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
+\end{equation}
+where $k_0$ is the inflection point, $\alpha = \bar{a}_1 - a_\infty$ is the total learnable gap, $\beta > 0$ controls the steepness of the transition, and $a_\infty$ is the asymptotic floor. We seek the relationship between $k_0$ and $m$.
+
+\subsection{The Mode Discovery Crossover}
+
+After $k$ responses drawn uniformly from $m$ modes, the expected probability that the next response comes from a mode not yet observed is:
+\begin{equation}
+    p_{\mathrm{new}}(k) = \left(1 - \frac{1}{m}\right)^{k}
+\end{equation}
+
+This decreases monotonically from $p_{\mathrm{new}}(0) = 1$ toward 0. The complementary probability $1 - p_{\mathrm{new}}(k)$ is the chance that the next response comes from an already-seen mode.
+
+Define $k^*$ as the \textbf{discovery crossover}: the number of responses at which a new response is equally likely to come from a novel mode or a previously seen mode. Setting $p_{\mathrm{new}}(k^*) = 1/2$:
+\begin{equation}
+    \left(1 - \frac{1}{m}\right)^{k^*} = \frac{1}{2}
+\end{equation}
+\begin{equation}\label{eq:kstar}
+    k^* = \frac{\ln 2}{-\ln(1 - 1/m)} = \frac{\ln 2}{\ln\!\left(\frac{m}{m-1}\right)}
+\end{equation}
+
+For large $m$, using $\ln(1 - 1/m) \approx -1/m$:
+\begin{equation}\label{eq:kstar-approx}
+    k^* \approx m \ln 2 \approx 0.693\, m
+\end{equation}
+
+This is an exact combinatorial quantity. Before $k^*$, mode discovery dominates: most new responses reveal modes $\theta$ has not yet seen. After $k^*$, mode refinement dominates: most new responses come from modes $\theta$ has already encountered.
+
+For reference, the expected number of distinct modes observed at $k^*$ is:
+\begin{equation}
+    \E[\text{distinct modes at } k^*] = m\!\left(1 - \left(1 - \frac{1}{m}\right)^{k^*}\right) = m \cdot \frac{1}{2} = \frac{m}{2}
+\end{equation}
+
+That is, at the crossover, exactly half the modes have been seen in expectation.
+
+\subsection{Hypothesis: \texorpdfstring{$k_0 \approx k^*$}{k0 approx k*}}
+
+We hypothesize that the sigmoid inflection point $k_0$ is near the discovery crossover $k^*$. The reasoning is as follows. The inflection point of the learning curve is where $\theta$'s marginal learning rate is greatest. Before $k^*$, $\theta$ is still in the discovery-dominated regime: it encounters new modes frequently, but has seen too few examples of any single mode to fully learn within-mode structure. After $k^*$, $\theta$ is in the refinement-dominated regime: it rarely encounters new modes, and each additional example of a known mode provides diminishing returns. The learning rate should peak near the transition, where $\theta$ has seen enough modes to start forming generalizations and enough repeats to start exploiting them.
+
+This is a qualitative argument, not a proof. The true inflection point depends on how much information $\theta$ extracts from a mode discovery versus a mode refinement, which is a property of $\theta$ and the mode structure. The robust prediction is:
+\begin{equation}\label{eq:k0-proportional}
+    k_0 \propto m
+\end{equation}
+
+The proportionality constant is $\ln 2 \approx 0.693$ under the hypothesis $k_0 = k^*$, but the true constant is empirical. If $\theta$ is powerful enough to learn modes from very few examples, mode discovery alone drives learning and $k_0 < k^*$. If $\theta$ requires many repeated observations to characterize a mode, $k_0 > k^*$.
+
+\subsection{Mode Count Estimator}
+
+If the hypothesis holds, the fitted $k_0$ yields a mode count estimator:
+\begin{equation}\label{eq:mode-count-estimator}
+    \hat{m} = \frac{k_0}{\ln 2} \approx 1.443\, k_0
+\end{equation}
+
+This assumes uniform mode weights. When $k_0 < 1$ (the sigmoid degenerates to exponential decay), the interpretation is that $m$ is small enough that $\theta$ learns all modes within the first few responses, and the curve shape provides no useful mode count estimate.
+
+\subsection{Non-Uniform Mode Weights}
+
+For non-uniform weights $\{w_i\}_{i=1}^m$, the expected probability that draw $k+1$ hits a new mode is:
+\begin{equation}
+    p_{\mathrm{new}}(k) = \sum_{i=1}^{m} w_i \left(1 - w_i\right)^{k}
+\end{equation}
+
+This no longer has a clean closed form for $k^*$. However, the scaling is governed by the effective mode count. For weights that are not too extreme, the crossover occurs at roughly:
+\begin{equation}\label{eq:kstar-nonuniform}
+    k^* \approx \frac{\ln 2}{\sum_i w_i^2}
+\end{equation}
+
+where $1/\sum_i w_i^2$ is the inverse Simpson index (a standard measure of effective diversity). When weights are uniform, $\sum_i w_i^2 = 1/m$ and this recovers $k^* = m \ln 2$. When weights are concentrated on a few dominant modes, $k^*$ is smaller because the dominant modes are observed early.
+
+\subsection{Caveats}
+
+\begin{enumerate}
+    \item The linear scaling $k_0 \propto m$ is robust (it follows from the combinatorial structure of the coupon collector process). The constant of proportionality $\ln 2$ is a hypothesis to be tested empirically.
+
+    \item The argument assumes that the sigmoid is a good fit to the $\bar{a}_k$ curve. When $m$ is small ($m \ll n$), the curve may be better described by exponential decay (the sigmoid with $k_0 < 1$), and the inflection-point interpretation does not apply.
+
+    \item For non-uniform weights, the inverse Simpson index approximation is heuristic. Modes with very small weight $w_i \lesssim 1/n$ may never appear in the sample and do not contribute to $k^*$ or $k_0$.
+\end{enumerate}
 
 \bibliographystyle{plainnat}
 
