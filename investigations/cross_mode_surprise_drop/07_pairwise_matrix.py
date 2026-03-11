@@ -1,7 +1,8 @@
 """Pairwise cross-mode surprise reduction matrix for Qwen2.5-3B.
 
 For each ordered pair (mode_i, mode_j) from N modes, with M samples per mode:
-  - conditional: surprise(target_j_k | prompt + "Response A: " + context_i_k + "\n\nResponse B: ")
+  - conditional: surprise(target_j_k | prompt + "Response A: " + context_i_c + "\n\nResponse B: ")
+    where c = (k+1) % M is a DIFFERENT sample index to avoid self-prediction on diagonal
   - unconditional: surprise(target_j_k | prompt + "\n\nResponse A: ")
   - surprise_reduction[i, j, k] = unconditional_j_k - conditional[i, j, k]
 
@@ -103,7 +104,8 @@ print()
 
 # ---------------------------------------------------------------------------
 # Compute conditional surprises (N × N × M forward passes)
-# For each (i, j, k): context = mode_i sample k, target = mode_j sample k
+# For each (i, j, k): context = mode_i sample c, target = mode_j sample k
+# where c = (k+1) % M to avoid self-prediction when i == j
 # ---------------------------------------------------------------------------
 total_passes = N_MODES * N_MODES * M_SAMPLES
 print(f"Computing {N_MODES}×{N_MODES}×{M_SAMPLES} = {total_passes} conditional surprises...")
@@ -114,10 +116,12 @@ t0 = time.time()
 for i in range(N_MODES):
     for j in range(N_MODES):
         for k in range(M_SAMPLES):
+            # Use a different sample for context to avoid self-prediction on diagonal
+            context_k = (k + 1) % M_SAMPLES
             prefix = (
                 PROMPT
                 + "\n\nResponse A: "
-                + responses_by_mode[i][k]
+                + responses_by_mode[i][context_k]
                 + "\n\nResponse B: "
             )
             total_bits, _ = compute_cross_entropy(
