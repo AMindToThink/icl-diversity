@@ -16,7 +16,7 @@ from icl_diversity import (
     compute_progressive_surprise_curve_single_pass,
     compute_unconditional_surprises,
 )
-from icl_diversity.core import _response_label
+from icl_diversity.core import _find_response_boundaries, _response_label
 
 # ---------------------------------------------------------------------------
 # Model loading (skip all tests if GPT-2 not available)
@@ -155,24 +155,7 @@ class TestBoundaryRoundtrip:
     def _compute_boundaries(
         prompt: str, responses: list[str]
     ) -> tuple[list[int], list[tuple[int, int]]]:
-        parts = [prompt]
-        for i, resp in enumerate(responses):
-            label = _response_label(i)
-            parts.append(f"\n\nResponse {label}: {resp}")
-        full_text = "".join(parts)
-        full_ids = _tokenizer.encode(full_text, add_special_tokens=False)
-
-        boundaries: list[tuple[int, int]] = []
-        running_text = prompt + f"\n\nResponse {_response_label(0)}: "
-        for k in range(len(responses)):
-            n_prefix = len(_tokenizer.encode(running_text, add_special_tokens=False))
-            running_text += responses[k]
-            n_with_resp = len(_tokenizer.encode(running_text, add_special_tokens=False))
-            boundaries.append((n_prefix, n_with_resp))
-            if k < len(responses) - 1:
-                running_text += f"\n\nResponse {_response_label(k + 1)}: "
-
-        return full_ids, boundaries
+        return _find_response_boundaries(_tokenizer, prompt, responses)
 
     def test_boundaries_cover_sequence(self) -> None:
         """Boundaries should cover from first response start to end of sequence."""
@@ -209,6 +192,29 @@ class TestBoundaryRoundtrip:
         _, boundaries = self._compute_boundaries(PROMPT_SHORT, RESPONSES_SHORT)
         for i, (start, end) in enumerate(boundaries):
             assert end > start, f"Response {i} has no tokens: ({start}, {end})"
+
+    def test_no_separator_leaks_into_response(self) -> None:
+        """Decoded tokens for a response must not contain separator text.
+
+        Regression test for BPE merge bug: some tokenizers (e.g. Qwen) merge
+        a response's trailing punctuation with the following separator into a
+        single token (e.g. '.' + '\\n\\n' → '.\\n\\n'). The boundary detector
+        must not attribute such merged tokens to the response if they contain
+        separator characters.
+        """
+        # Use responses ending in periods — the most common merge trigger
+        responses = [
+            "Rain falls gently.",
+            "The drops patter on the roof.",
+            "Umbrellas bloom like flowers.",
+        ]
+        full_ids, boundaries = self._compute_boundaries(PROMPT, responses)
+        for i, (start, end) in enumerate(boundaries):
+            decoded = _tokenizer.decode(full_ids[start:end])
+            assert "\n\nResponse" not in decoded, (
+                f"Response {i}: separator leaked into boundary. "
+                f"tokens [{start}:{end}] decoded to {decoded!r}"
+            )
 
 
 # ============================================================================

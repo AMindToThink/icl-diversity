@@ -179,8 +179,9 @@ def _find_response_boundaries(
 ) -> tuple[list[int], list[tuple[int, int]]]:
     """Find token boundaries for each response in a concatenated context.
 
-    Builds the full formatted context (prompt + all responses) and determines
-    which token indices correspond to each response's text.
+    Uses the tokenizer's character offset mapping to find boundaries, which
+    correctly handles BPE merges at response/separator boundaries (e.g. Qwen
+    merging ``"."`` + ``"\\n\\n"`` into a single token ``".\\n\\n"``).
 
     Returns:
         ``(full_ids, boundaries)`` where ``full_ids`` is the tokenized full
@@ -192,25 +193,43 @@ def _find_response_boundaries(
     for i, resp in enumerate(responses):
         parts.append(f"\n\nResponse {_response_label(i)}: {resp}")
     full_text = "".join(parts)
-    full_ids = tokenizer.encode(full_text, add_special_tokens=False)
 
-    boundaries: list[tuple[int, int]] = []
-    running_text = prompt + f"\n\nResponse {_response_label(0)}: "
+    encoding = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+    full_ids = encoding["input_ids"]
+    offset_mapping: list[tuple[int, int]] = encoding["offset_mapping"]
+
+    # Compute character spans for each response in full_text
+    char_spans: list[tuple[int, int]] = []
+    cursor = len(prompt)
     for k in range(n):
-        n_prefix = len(tokenizer.encode(running_text, add_special_tokens=False))
-        running_text += responses[k]
-        n_with_resp = len(tokenizer.encode(running_text, add_special_tokens=False))
-        boundaries.append((n_prefix, n_with_resp))
-        if k < n - 1:
-            running_text += f"\n\nResponse {_response_label(k + 1)}: "
+        label_prefix = f"\n\nResponse {_response_label(k)}: "
+        cursor += len(label_prefix)
+        char_start = cursor
+        cursor += len(responses[k])
+        char_spans.append((char_start, cursor))
 
-    assert len(tokenizer.encode(running_text, add_special_tokens=False)) == len(
-        full_ids
-    ), (
-        f"Tokenization mismatch: progressive="
-        f"{len(tokenizer.encode(running_text, add_special_tokens=False))}, "
-        f"full={len(full_ids)}"
+    assert cursor == len(full_text), (
+        f"Character span computation mismatch: cursor={cursor}, "
+        f"full_text length={len(full_text)}"
     )
+
+    # Map character spans to token index ranges. A token belongs to response k
+    # if its start character falls within the response's character span.
+    boundaries: list[tuple[int, int]] = []
+    for char_start, char_end in char_spans:
+        tok_start = None
+        tok_end = None
+        for t, (c_start, c_end) in enumerate(offset_mapping):
+            if c_start >= char_start and c_start < char_end:
+                if tok_start is None:
+                    tok_start = t
+                tok_end = t + 1
+        if tok_start is None:
+            prev_end = boundaries[-1][1] if boundaries else 0
+            boundaries.append((prev_end, prev_end))
+        else:
+            boundaries.append((tok_start, tok_end))
+
     return full_ids, boundaries
 
 
