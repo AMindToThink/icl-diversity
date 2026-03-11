@@ -328,6 +328,15 @@ for i in range(N_MODES):
     )
 ax.axhline(0, color="gray", linewidth=0.5, linestyle="--")
 ax.axvline(0, color="gray", linewidth=0.5, linestyle="--")
+
+# Line of best fit
+coeffs = np.polyfit(row_means, col_means, 1)
+fit_x = np.linspace(row_means.min() - 1, row_means.max() + 1, 100)
+fit_y = np.polyval(coeffs, fit_x)
+ax.plot(fit_x, fit_y, color="red", linewidth=1, linestyle="--", alpha=0.7,
+        label=f"y = {coeffs[0]:.2f}x {coeffs[1]:+.1f}  (R²={np.corrcoef(row_means, col_means)[0,1]**2:.2f})")
+ax.legend(fontsize=8, loc="lower right")
+
 ax.set_xlabel("Row mean: how informative as context (bits)")
 ax.set_ylabel("Column mean: how much benefit from context (bits)")
 ax.set_title("Mode informativeness vs. context benefit")
