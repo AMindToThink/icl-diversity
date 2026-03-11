@@ -72,6 +72,18 @@ All metrics from `compute_icl_diversity_metrics`. 1000 draws per m, n = 20. Unce
 
 **H7 (σ_ℓ Increases with m): Supported.** σ_ℓ increases monotonically from 0.105 (m=1) to 0.290 (m=10). The range is narrower than GPT-2's (0.114–0.442), possibly because Qwen's stronger language model produces more uniform unconditional surprises across modes.
 
+### Sigmoid Fits (`figures/mode_count/qwen2.5-3b/sigmoid_fits.png`)
+
+![Sigmoid fits](../figures/mode_count/qwen2.5-3b/sigmoid_fits.png)
+
+Four-parameter sigmoid fits (a_∞, A, k₀, β) to a_k curves for each m value. Shows 5 sample runs per m with data points and dashed fit lines. With 20 data points (vs 12 for GPT-2), fits are better resolved across all m values. At low m, curves show clean exponential decay. At high m, the sigmoid plateau is visible — a feature that was truncated in the GPT-2 experiment.
+
+### Fit Parameters vs m (`figures/mode_count/qwen2.5-3b/fit_params_vs_m.png`)
+
+![Fit parameters vs m](../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png)
+
+Sigmoid fit parameters as a function of mode count m. Fitted a_∞ increases with m (H3). k₀ (inflection point) behavior is clearer with the longer curves. Error bars show bootstrap 95% CIs across 1000 draws.
+
 ## Comparison with GPT-2
 
 Key differences:
