@@ -149,7 +149,7 @@ def _forward_log_probs(
         ids = input_ids.to(model.device)
         mask = attention_mask.to(model.device) if attention_mask is not None else None
         with torch.no_grad():
-            logits = model(ids, attention_mask=mask).logits
+            logits = model(ids, attention_mask=mask, use_cache=False).logits
         log_probs_full = torch.nn.functional.log_softmax(logits, dim=-1)
         return _gather_diagonal_log_probs(log_probs_full, ids)
 
@@ -159,7 +159,7 @@ def _forward_log_probs(
         ids = input_ids.to(model.device)
         mask = attention_mask.to(model.device) if attention_mask is not None else None
         with torch.no_grad():
-            logits = model(ids, attention_mask=mask).logits
+            logits = model(ids, attention_mask=mask, use_cache=False).logits
         probs = torch.softmax(logits.float(), dim=-1).cpu()
         if accumulated_probs is None:
             accumulated_probs = probs
