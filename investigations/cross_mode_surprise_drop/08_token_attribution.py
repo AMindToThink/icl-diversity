@@ -227,7 +227,7 @@ def main() -> None:
         results.append({
             "context_mode": ctx_name,
             "target_mode": tgt_name,
-            "is_same_mode": is_same,
+            "is_same_mode": bool(is_same),
             "n_tokens": n_tokens,
             "total_unconditional_bits": total_uncond,
             "total_conditional_bits": sum(mean_cond_bits),
