@@ -282,6 +282,79 @@ def plot_metrics_vs_m(grouped: dict[int, list[dict]], figures_dir: Path, model_n
     print(f"  Saved: {path}")
 
 
+def plot_ak_curves_by_m_per_byte(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
+    """Plot a_k curves in bits/byte as subplots, one per m value."""
+    m_values = sorted(grouped.keys())
+    n_plots = len(m_values)
+    ncols = min(4, n_plots)
+    nrows = (n_plots + ncols - 1) // ncols
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows), squeeze=False)
+
+    for idx, m in enumerate(m_values):
+        row, col = divmod(idx, ncols)
+        ax = axes[row][col]
+        runs = grouped[m]
+        color = _get_color_for_m(m, m_values)
+
+        # Plot a sample of individual runs (up to 5 for readability)
+        sample_runs = runs[:5]
+        for run in sample_runs:
+            curve = run["a_k_curve_per_byte"]
+            k = np.arange(1, len(curve) + 1)
+            ax.plot(k, curve, marker="o", markersize=2, linewidth=0.8, color=color, alpha=0.4)
+
+        # Plot mean ± SEM
+        curves = np.array([r["a_k_curve_per_byte"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        sem_curve = np.std(curves, axis=0) / np.sqrt(len(runs))
+        k = np.arange(1, len(mean_curve) + 1)
+        ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label="mean")
+        ax.fill_between(k, mean_curve - sem_curve, mean_curve + sem_curve, alpha=0.3, color=color)
+
+        n_resp = runs[0].get("n_responses", 0)
+        ax.set_title(f"m = {m} ({n_resp // m} resp/mode)", fontweight="bold")
+        ax.set_xlabel("k")
+        ax.set_ylabel("$a_k$ (bits/byte)")
+
+    for idx in range(n_plots, nrows * ncols):
+        row, col = divmod(idx, ncols)
+        axes[row][col].set_visible(False)
+
+    fig.suptitle(f"a_k Curves by Mode Count (bits/byte) — {model_name}", fontsize=14, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    path = figures_dir / "ak_curves_by_m_per_byte.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {path}")
+
+
+def plot_ak_overlay_per_byte(grouped: dict[int, list[dict]], figures_dir: Path, model_name: str) -> None:
+    """Overlay all m values on same axes in bits/byte (averaged across draws)."""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    m_values = sorted(grouped.keys())
+
+    for m, runs in sorted(grouped.items()):
+        curves = np.array([r["a_k_curve_per_byte"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        sem_curve = np.std(curves, axis=0) / np.sqrt(len(runs))
+        k = np.arange(1, len(mean_curve) + 1)
+
+        color = _get_color_for_m(m, m_values)
+        ax.plot(k, mean_curve, marker="o", markersize=4, linewidth=2, color=color, label=f"m = {m}")
+        ax.fill_between(k, mean_curve - sem_curve, mean_curve + sem_curve, alpha=0.3, color=color)
+
+    ax.set_xlabel("k (response index)", fontsize=12)
+    ax.set_ylabel("$a_k$ (bits/byte)", fontsize=12)
+    ax.set_title(f"a_k Curves Overlay by Mode Count (bits/byte) — {model_name}", fontsize=14, fontweight="bold")
+    ax.legend(fontsize=10, loc="best")
+    fig.tight_layout()
+    path = figures_dir / "ak_curves_overlay_per_byte.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {path}")
+
+
 def plot_comparison(datasets: list[tuple[str, dict]], figures_dir: Path) -> None:
     """Compare mode count results across multiple models."""
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -338,6 +411,8 @@ def main() -> None:
 
         plot_ak_curves_by_m(grouped, figures_dir, model_name)
         plot_ak_overlay(grouped, figures_dir, model_name)
+        plot_ak_curves_by_m_per_byte(grouped, figures_dir, model_name)
+        plot_ak_overlay_per_byte(grouped, figures_dir, model_name)
         plot_metrics_vs_m(grouped, figures_dir, model_name)
     else:
         datasets = []
@@ -350,6 +425,8 @@ def main() -> None:
             sub_dir.mkdir(parents=True, exist_ok=True)
             plot_ak_curves_by_m(grouped, sub_dir, model_name)
             plot_ak_overlay(grouped, sub_dir, model_name)
+            plot_ak_curves_by_m_per_byte(grouped, sub_dir, model_name)
+            plot_ak_overlay_per_byte(grouped, sub_dir, model_name)
             plot_metrics_vs_m(grouped, sub_dir, model_name)
 
         plot_comparison(datasets, figures_dir)

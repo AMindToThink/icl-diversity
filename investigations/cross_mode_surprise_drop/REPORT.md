@@ -148,36 +148,36 @@ Only 54% of draws have a positive drop — the mean curve exaggerates a weak eff
 
 **Purpose**: Systematically measure surprise reduction across all pairs of 15 modes. For each ordered pair (i, j), compute how much seeing a response from mode_i reduces surprise for a response from mode_j.
 
-**Result** (15×15 matrix, 225 conditional + 15 unconditional passes):
+**Result** (15×15 matrix with M=5 samples per mode, 1125 conditional + 75 unconditional passes):
 
 ```
-Diagonal (same-mode):   mean=123.6 bits, std=39.9, range [74.6, 210.9]
-Off-diagonal (cross):   mean=+2.1 bits,  std=8.1,  range [-17.6, +27.2]
+Diagonal (same-mode):   mean=122.4 ± 11.8 bits, range [86.2, 209.7]
+Off-diagonal (cross):   mean=+1.9 ± 2.4 bits,   range [-19.6, +22.7]
 Fraction off-diag > 0:  62.4%
 ```
 
 **Key findings**:
 
-1. **Cross-mode surprise reduction is pervasive and positive on average** (+2.1 bits). 62% of all cross-mode pairs show a positive surprise reduction. This is NOT what independent modes should look like — the expected value for truly independent modes is 0.
+1. **Cross-mode surprise reduction is pervasive and positive on average** (+1.9 bits). 62% of all cross-mode pairs show a positive surprise reduction. This is NOT what independent modes should look like — the expected value for truly independent modes is 0.
 
-2. **The matrix is highly asymmetric** (mean |asymmetry| = 7.2 bits, max = 23.8 bits). H_matrix_3 is **falsified**. The asymmetry follows a clear pattern: technical/structured modes (math_stats, json_data, python_code) informing prose modes, not the reverse. For example, math_stats → scientific_fact = +23.6 bits, but scientific_fact → math_stats would be much smaller.
+2. **The matrix is highly asymmetric** (mean |asymmetry| = 5.6 bits, max = 18.3 bits). H_matrix_3 is **falsified**. The asymmetry follows a clear pattern: technical/structured modes (math_stats, json_data, python_code) informing prose modes, not the reverse. For example, math_stats → scientific_fact = +13.1 ± 1.1 bits, but scientific_fact → math_stats = +14.3 ± 1.0 bits (this particular pair is roughly symmetric, but most are not).
 
-3. **Some modes are consistently informative** (H_matrix_2 confirmed). Top row means: math_stats (+17.9), numbered_list (+16.8), letter (+14.7). These are long, structured responses that calibrate the model's expectations about the diversity and complexity of responses.
+3. **Some modes are consistently informative** (H_matrix_2 confirmed). Top row means: math_stats (+16.8 ± 0.4), letter (+14.3 ± 0.4), numbered_list (+13.7 ± 0.7). These are long, structured responses that calibrate the model's expectations about the diversity and complexity of responses.
 
-4. **Some modes consistently benefit from context** (column means): letter (+22.4), numbered_list (+16.2), diary (+15.2). These tend to be longer responses with more tokens to predict.
+4. **Some modes consistently benefit from context** (column means): letter (+21.3 ± 0.4), math_stats (+14.8 ± 0.4), dialogue (+13.1 ± 0.7). These tend to be longer responses with more tokens to predict.
 
-5. **Short/unusual modes are hurt by technical context**: math_stats → haiku = −17.4 bits, scientific_fact → haiku = −17.6 bits. After seeing technical content, the model is *less* prepared for a haiku.
+5. **Short/unusual modes are hurt by technical context**: scientific_fact → haiku = −19.6 ± 3.1 bits, math_stats → haiku = −16.3 ± 2.4 bits. After seeing technical content, the model is *less* prepared for a haiku.
 
 **Top cross-mode pairs by surprise reduction**:
 ```
-math_stats → json_data:       +27.2 bits
-math_stats → scientific_fact: +23.6 bits
-haiku → song_lyrics:          +21.5 bits
-math_stats → letter:          +19.5 bits
-math_stats → python_code:     +19.3 bits
+haiku → song_lyrics:          +22.7 ± 3.0 bits
+math_stats → json_data:       +22.6 ± 2.2 bits
+math_stats → python_code:     +22.4 ± 6.7 bits
+python_code → math_stats:     +18.8 ± 6.9 bits
+json_data → python_code:      +16.8 ± 3.8 bits
 ```
 
-**Relevance to core question**: **High**. The pervasive positive off-diagonal mean (+2.1 bits) explains why the a_k curve drops from position 1: even cross-mode responses are informative about each other under Qwen2.5-3B. The effect is systematic — it's not one or two pathological pairs, but a broad pattern where any response reduces surprise for any subsequent response by ~2 bits on average. Over 20 positions, this accumulates to ~40 bits of "spurious" learning.
+**Relevance to core question**: **High, but requires quantitative nuance** (see "Quantitative decomposition" below). The pervasive positive off-diagonal mean (+1.9 bits) contributes to the a_k curve drop from position 1, but the diagonal (same-mode) contribution is ~3× larger despite the low probability of mode repetition.
 
 ### 8. Token-level attribution (`08_token_attribution.py`)
 
@@ -219,35 +219,70 @@ Both mechanisms are cross-mode, explaining why the a_k curve drops even when con
 - **Boundary detection error**: "Response X:" tokens are correctly excluded from response scoring (code review).
 - **Positional bias**: Unrelated context increases surprise, not decreases it (experiment 5).
 
+## Quantitative Decomposition: Does +1.9 bits/pair Explain the Curve?
+
+The off-diagonal mean of +1.9 bits sounds small next to the diagonal mean of 122.4 bits. But the a_k curve drop depends on the *expected* reduction at each position, which mixes diagonal and off-diagonal contributions weighted by mode-repetition probability.
+
+### Simple model
+
+At m=10 with n=20 (2 responses per mode), response k's mode-mate has probability (k-1)/(n-1) of being among positions 1..k-1. The expected marginal drop from a_{k-1} to a_k has two components:
+
+1. **Off-diagonal**: 1 new cross-mode response × 1.9 bits = **1.9 bits**
+2. **Diagonal (marginal)**: P(response k-1 is the mode-mate) × (diagonal - offdiag) = 1/19 × 120.5 = **6.3 bits**
+3. **Total expected marginal drop per step**: ~8.2 bits
+
+**Breakdown**: The diagonal contributes **77%** and the off-diagonal contributes **23%** of each step's expected drop.
+
+### Comparison with observations
+
+The observed Qwen2.5-3B mean a_k drops at m=10 (in total bits, ~130 bytes/response):
+
+```
+step        predicted    observed
+a_1→a_2     8.2 bits     5.3 bits
+a_2→a_3     8.2 bits     7.8 bits
+a_3→a_4     8.2 bits     2.9 bits
+a_4→a_5     8.2 bits     1.9 bits
+a_5→a_6     8.2 bits     3.4 bits
+```
+
+The model predicts constant 8.2 bits/step; reality averages ~4 bits/step with high variance. The discrepancy is expected — prior responses' contributions overlap (diminishing marginal returns), so the true effect is sublinear in k.
+
+### Key insight
+
+**The off-diagonal (+1.9 bits) is not the main driver.** The exponential shape comes primarily from the diagonal: even at m=10, a 5% chance of hitting a mode-mate worth 122 bits produces a 6.3-bit expected drop *every step*. This is large enough to produce monotonic decay and prevent the flat discovery phase.
+
+The off-diagonal adds ~1.9 bits/step on top, which is real but secondary. The critical question becomes: **why is Qwen's diagonal so large (122 bits) that even at 5% probability it dominates?** And conversely, **GPT-2's diagonal must be much smaller** — if GPT-2's same-mode reduction were ~30 bits, then 1/19 × 30 = 1.6 bits/step, barely detectable, consistent with its flat discovery phase.
+
 ## What We Now Understand
 
-**The core question is now largely answered**: Qwen2.5-3B shows exponential (not sigmoidal) decay at high m because **cross-mode surprise reduction is pervasive and substantial**.
+The core question has two layers:
 
-The pairwise matrix (experiment 7) shows that 62% of all cross-mode pairs have positive surprise reduction, averaging +2.1 bits. This means that even when response k is from a different mode than response k-1, the model has still learned something useful — specifically:
+**Layer 1 — Why does the curve drop at all?** The pairwise matrix shows cross-mode surprise reduction is pervasive (+1.9 bits, 62% of pairs positive). Token attribution reveals two mechanisms:
 
-1. **Format calibration**: After seeing one response (any format), the model better predicts the opening tokens of the next response. The "Response B:" label activates expectations conditioned on having seen a diverse response at "Response A:".
+1. **Format calibration** (front-loaded): Seeing any response recalibrates expectations about what follows "Response B:".
+2. **Topic vocabulary priming** (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode.
 
-2. **Topic vocabulary priming**: All responses are about rain. Seeing rain-discussed-as-code makes rain-discussed-as-philosophy easier to predict, because rain-related vocabulary (drops, water, fall, storm) has been primed.
+**Layer 2 — Why is the drop so steep (exponential, not sigmoidal)?** The off-diagonal alone (+1.9 bits/step) would produce a gentle slope, not the observed exponential. The steep decay is primarily driven by the **diagonal**: same-mode reduction averaging 122.4 bits, which at P=1/19 per step contributes ~6.3 bits — 3× larger than the off-diagonal. Because mode repetitions happen with ~5% probability *every* step (not just once modes start repeating), the curve decays from position 1 rather than showing a flat discovery phase.
 
-3. **Length/complexity calibration**: Longer, more structured context responses (math_stats, numbered_list) provide the most cross-mode benefit — they calibrate the model's expectations about response complexity and length.
+**Why GPT-2 doesn't show this**: GPT-2 almost certainly has a much smaller diagonal (weaker same-mode ICL) and near-zero off-diagonal. If its diagonal were ~30 bits, the expected drop per step would be only ~1.6 bits — small enough to be noise, producing the observed flat/rising early curve. The sigmoid shape at high m in GPT-2 is not evidence that modes are independent — it's evidence that GPT-2's ICL is too weak to detect either cross-mode or (at low P) same-mode structure until enough repetitions accumulate.
 
-**Why GPT-2 doesn't show this**: GPT-2 likely has weaker in-context learning, so it cannot extract these cross-mode signals. The sigmoid shape at high m in GPT-2 may actually be the result of *insufficient* ICL capacity to detect cross-mode structure, rather than evidence that the modes are truly independent.
-
-**Implication for the metric**: The ICL diversity metric assumes that a_k drops *only* when the model sees redundant/similar responses. But if the base model θ is powerful enough to learn cross-mode meta-information (format expectations, topic vocabulary), the metric will underestimate diversity. This is a fundamental limitation when using capable base models — stronger θ → more cross-mode learning → lower measured diversity for the same response set.
+**Implication for the metric**: The ICL diversity metric assumes a_k drops *only* from mode redundancy. But with capable base models, a_k drops from three sources: (1) same-mode repetition (the intended signal), (2) cross-mode format calibration, and (3) cross-mode topic priming. Sources 2-3 cause the metric to underestimate diversity. Stronger θ → more cross-mode learning → lower measured diversity for the same response set.
 
 ## Remaining Questions
 
-1. **Quantitative prediction**: Can we predict the a_k curve shape from the pairwise matrix? The average off-diagonal reduction (+2.1 bits) × 19 positions ≈ 40 bits of cumulative "spurious" drop. Does this match the observed curve?
-2. **Different topics**: If responses were about completely different topics (not all rain), would the off-diagonal entries go to zero?
-3. **Model size scaling**: At what model size does cross-mode learning become strong enough to produce exponential rather than sigmoidal curves?
+1. **GPT-2 pairwise matrix**: What are GPT-2's diagonal and off-diagonal values? If diagonal ≈ 30 bits, the simple model predicts flat early curves.
+2. **Different topics**: If responses were about completely different topics (not all rain), would the off-diagonal entries go to zero? This would isolate format calibration from topic priming.
+3. **Model size scaling**: At what model size does the diagonal become large enough to produce exponential curves?
+4. **Diminishing returns**: A model accounting for overlapping information (not independent contributions) would better predict the observed sublinear accumulation.
 
 ## Hypothesis Evaluation
 
 | Hypothesis | Result |
 |-----------|--------|
-| H_matrix_1 (diagonal dominance) | **Confirmed**. Diagonal mean = 123.6 bits >> off-diagonal mean = 2.1 bits. |
-| H_matrix_2 (informative modes) | **Confirmed**. math_stats, numbered_list, letter have highest row means. |
-| H_matrix_3 (approximate symmetry) | **Falsified**. Mean |asymmetry| = 7.2 bits (3.4× the off-diagonal mean). |
+| H_matrix_1 (diagonal dominance) | **Confirmed**. Diagonal mean = 122.4 ± 11.8 bits >> off-diagonal mean = 1.9 ± 2.4 bits. |
+| H_matrix_2 (informative modes) | **Confirmed**. math_stats (+16.8), letter (+14.3), numbered_list (+13.7) have highest row means. |
+| H_matrix_3 (approximate symmetry) | **Falsified**. Mean |asymmetry| = 5.6 bits (2.9× the off-diagonal mean). |
 | H_token_1 (front-loaded attribution) | **Partially confirmed**. True for technical→technical pairs (81-140%), not for creative→creative (15-25%). |
 
 ## Date
