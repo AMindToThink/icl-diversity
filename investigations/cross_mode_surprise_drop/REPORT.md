@@ -252,11 +252,29 @@ The model predicts constant 8.2 bits/step; reality averages ~4 bits/step with hi
 
 Note the simple model actually predicts a **linear** cumulative drop (constant marginal), not an exponential one. The observed *decelerating* drops (large early, smaller later) suggest that the first few responses provide most of the format/topic calibration, and additional responses have diminishing marginal value. This saturation effect is what gives the curve its exponential-looking shape.
 
-### Key insight
+### The independent model fails catastrophically (`09_predicted_vs_observed.py`)
 
-**The off-diagonal (+1.9 bits/step) is not the main driver.** The dominant term is the diagonal: even though P(mode-mate present) starts at only 5%, the same-mode reduction is so large (122.4 bits) that the expected contribution is 6.3 bits/step — 3× the off-diagonal contribution.
+Comparing the pairwise prediction with observed 1k-draw mean curves reveals that the independent model is fundamentally wrong:
 
-The critical question is: **why is Qwen's diagonal so large (122 bits)?** And conversely, **GPT-2's diagonal must be much smaller** — if GPT-2's same-mode reduction were ~30 bits, then 1/19 × 30 = 1.6 bits/step from diagonal + ~0 from off-diagonal ≈ 1.6 bits/step total — barely detectable, consistent with GPT-2's flat discovery phase.
+**At m=10**: The "pairwise w/ growing P(mate)" model predicts 1,241 bits of cumulative drop (a_1 to a_20), but the observed drop is only **58.8 bits** — a **21× overprediction**. Even the constant-rate independent model predicts 156 bits (2.7× overprediction).
+
+More critically, the models predict the **wrong shape**:
+- **Predicted**: Marginal drops should **increase** with k (more repetitions become likely at later positions). At k=1 the model predicts 8.2 bits; at k=19 it predicts 122 bits.
+- **Observed**: Marginal drops **decrease** with k. The first step drops ~7.4 bits; subsequent steps average ~3 bits; some steps are negative.
+
+The "efficiency" (observed/predicted) drops from ~90% at k=1 to ~5% by k=5 and near 0% thereafter. The pairwise matrix is only predictive of the very first step.
+
+**Why the independent model fails**: Responses do not contribute independent information. The model rapidly **saturates** — seeing the first 1-3 responses provides most of the format calibration and topic priming available, and additional responses (whether same-mode or cross-mode) add almost nothing. The 122-bit same-mode pairwise reduction measures how much a *single* same-mode response helps in isolation, but when there are already 5+ responses in context, the marginal value of a same-mode response is much smaller — most of that information is already captured.
+
+### Revised understanding
+
+The pairwise matrix measures **potential** information transfer in isolation but not **marginal** contribution in a long context. The exponential shape of the a_k curve is NOT well-explained by summing pairwise contributions. Instead, the curve shape reflects:
+
+1. **Rapid early saturation**: The first few responses (regardless of mode) teach the model most of what it can learn about the response format, topic, and length distribution. This produces the large early drops.
+2. **Diminishing returns**: Each additional response provides less new information because the context already contains most of the learnable structure.
+3. **Mode repetitions provide extra but diminishing boosts**: When a same-mode response finally appears, it does help, but much less than the 122 bits predicted by the isolated pairwise measure.
+
+The difference between Qwen and GPT-2 likely comes from ICL capacity — Qwen saturates quickly (strong early drops) while GPT-2 barely detects cross-mode structure (flat early curve). But this is about the **first few positions**, not the accumulation of pairwise effects across 20 positions.
 
 ## What We Now Understand
 
