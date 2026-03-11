@@ -4,8 +4,8 @@ For selected (mode_i, mode_j) pairs:
   - Generate 5 prefix responses from mode_i
   - Generate 1 target response from mode_j
   - Compute per-token log-probs of the target with and without each prefix
-  - Average the per-token deltas across the 5 prefixes
-  - Visualize which tokens benefit most from cross-mode context
+  - Show per-token mean delta with error bars (std across 5 prefixes)
+  - X-axis shows the actual decoded tokens so the full sentence is readable
 
 Requires: Run 07_pairwise_matrix.py first to identify interesting pairs,
 OR use the default pairs specified below.
@@ -74,7 +74,7 @@ def load_interesting_pairs() -> list[tuple[int, int]]:
     with open(MATRIX_JSON) as f:
         data = json.load(f)
 
-    reduction = np.array(data["reduction_matrix"])
+    reduction = np.array(data["reduction_mean"])
     n = reduction.shape[0]
     mode_names = data["mode_names"]
 
@@ -182,7 +182,7 @@ def main() -> None:
         total_uncond = sum(uncond_bits)
         print(f"  Unconditional: {total_uncond:.1f} total bits")
 
-        # Conditional: average over N_PREFIX_SAMPLES different prefix responses
+        # Conditional: each of N_PREFIX_SAMPLES different prefix responses
         all_cond_bits: list[list[float]] = []
         for s in range(N_PREFIX_SAMPLES):
             ctx_rng = random.Random(SEED + s * 100 + ctx_mode)
@@ -200,29 +200,32 @@ def main() -> None:
             total_cond = sum(cond_bits)
             print(f"  Conditional (prefix {s}): {total_cond:.1f} total bits")
 
-        # Average conditional bits across prefixes
+        # Per-token delta for each prefix sample: positive = context helps
         n_tokens = len(uncond_bits)
-        mean_cond_bits = [
-            sum(all_cond_bits[s][t] for s in range(N_PREFIX_SAMPLES)) / N_PREFIX_SAMPLES
-            for t in range(n_tokens)
+        # delta_per_sample[s][t] = uncond[t] - cond[s][t]
+        delta_per_sample = [
+            [uncond_bits[t] - all_cond_bits[s][t] for t in range(n_tokens)]
+            for s in range(N_PREFIX_SAMPLES)
         ]
+        delta_arr = np.array(delta_per_sample)  # (N_PREFIX_SAMPLES, n_tokens)
+        mean_delta = delta_arr.mean(axis=0)  # (n_tokens,)
+        std_delta = delta_arr.std(axis=0)    # (n_tokens,)
 
-        # Delta: positive = context reduces surprise (helps)
-        delta_bits = [uncond_bits[t] - mean_cond_bits[t] for t in range(n_tokens)]
-        total_delta = sum(delta_bits)
-        print(f"  Mean conditional: {sum(mean_cond_bits):.1f} total bits")
+        total_delta = float(mean_delta.sum())
+        mean_cond_total = total_uncond - total_delta
+        print(f"  Mean conditional: {mean_cond_total:.1f} total bits")
         print(f"  Total surprise reduction: {total_delta:+.1f} bits")
 
         # Where is the reduction concentrated?
         if n_tokens > 0:
-            first_quarter = sum(delta_bits[: n_tokens // 4])
-            last_three_quarters = sum(delta_bits[n_tokens // 4 :])
-            print(
-                f"  First quarter: {first_quarter:+.1f} bits "
-                f"({first_quarter / total_delta * 100:.0f}% of total)"
-                if abs(total_delta) > 0.1
-                else f"  First quarter: {first_quarter:+.1f} bits"
-            )
+            first_quarter = float(mean_delta[: n_tokens // 4].sum())
+            if abs(total_delta) > 0.1:
+                print(
+                    f"  First quarter: {first_quarter:+.1f} bits "
+                    f"({first_quarter / total_delta * 100:.0f}% of total)"
+                )
+            else:
+                print(f"  First quarter: {first_quarter:+.1f} bits")
 
         results.append({
             "context_mode": ctx_name,
@@ -230,11 +233,12 @@ def main() -> None:
             "is_same_mode": bool(is_same),
             "n_tokens": n_tokens,
             "total_unconditional_bits": total_uncond,
-            "total_conditional_bits": sum(mean_cond_bits),
+            "total_conditional_bits": mean_cond_total,
             "total_delta_bits": total_delta,
-            "per_token_delta": delta_bits,
+            "per_token_delta_mean": mean_delta.tolist(),
+            "per_token_delta_std": std_delta.tolist(),
+            "per_token_delta_per_sample": delta_arr.tolist(),
             "per_token_unconditional": uncond_bits,
-            "per_token_conditional": mean_cond_bits,
             "token_strings": uncond_tokens,
         })
 
@@ -247,49 +251,56 @@ def main() -> None:
     print(f"\nSaved results to {json_path}")
 
     # ------------------------------------------------------------------
-    # Plot: per-token delta for each pair
+    # Plot: per-token delta with error bars and token labels on x-axis
     # ------------------------------------------------------------------
     n_pairs = len(results)
-    n_cols = 2
-    n_rows = math.ceil(n_pairs / n_cols)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(16, 4 * n_rows))
-    axes_flat = axes.flatten() if n_pairs > 1 else [axes]
+    n_cols = 1  # Single column for readability with token labels
+    n_rows = n_pairs
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 3.5 * n_rows))
+    if n_pairs == 1:
+        axes = [axes]
 
-    for idx, (res, ax) in enumerate(zip(results, axes_flat)):
-        delta = res["per_token_delta"]
+    for idx, (res, ax) in enumerate(zip(results, axes)):
+        delta_mean = np.array(res["per_token_delta_mean"])
+        delta_std = np.array(res["per_token_delta_std"])
         tokens = res["token_strings"]
-        n = len(delta)
-        colors = ["green" if d > 0 else "red" for d in delta]
-        ax.bar(range(n), delta, color=colors, width=1.0, alpha=0.7)
+        n = len(delta_mean)
+        x = np.arange(n)
+
+        colors = ["green" if d > 0 else "red" for d in delta_mean]
+        ax.bar(x, delta_mean, color=colors, width=0.8, alpha=0.7)
+        ax.errorbar(
+            x, delta_mean, yerr=delta_std,
+            fmt="none", ecolor="black", elinewidth=0.7, capsize=1.5, capthick=0.7,
+        )
         ax.axhline(0, color="black", linewidth=0.5)
+
         ax.set_title(
             f"{res['context_mode']} → {res['target_mode']}"
             + (" (same)" if res["is_same_mode"] else "")
-            + f"\ntotal Δ = {res['total_delta_bits']:+.1f} bits",
-            fontsize=9,
+            + f"    total Δ = {res['total_delta_bits']:+.1f} bits",
+            fontsize=10,
+            fontweight="bold",
         )
-        ax.set_xlabel("Token position")
-        ax.set_ylabel("Surprise reduction (bits)")
+        ax.set_ylabel("Surprise reduction (bits)", fontsize=8)
 
-        # Add token labels for top-5 most affected positions
-        abs_delta = [abs(d) for d in delta]
-        top_positions = sorted(range(n), key=lambda i: abs_delta[i], reverse=True)[:5]
-        for pos in top_positions:
-            token_label = tokens[pos].replace("\n", "\\n").strip()
-            if len(token_label) > 10:
-                token_label = token_label[:10] + "…"
-            ax.annotate(
-                f'"{token_label}"',
-                (pos, delta[pos]),
-                fontsize=5,
-                rotation=45,
-                ha="left",
-                va="bottom" if delta[pos] > 0 else "top",
-            )
+        # Token labels on x-axis — show every token
+        display_tokens = []
+        for tok in tokens:
+            t = tok.replace("\n", "\\n").replace("\t", "\\t")
+            if not t.strip():
+                t = repr(tok).strip("'")
+            display_tokens.append(t)
 
-    # Hide unused axes
-    for ax in axes_flat[n_pairs:]:
-        ax.set_visible(False)
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            display_tokens,
+            rotation=90,
+            fontsize=5.5,
+            fontfamily="monospace",
+            ha="center",
+        )
+        ax.set_xlim(-0.5, n - 0.5)
 
     plt.tight_layout()
     fig_path = OUTPUT_DIR / "token_attribution.png"
@@ -298,29 +309,44 @@ def main() -> None:
     plt.close()
 
     # ------------------------------------------------------------------
-    # Summary plot: fraction of delta in first quarter vs pair
+    # Summary plot: fraction of delta in first quarter vs pair, with error bars
     # ------------------------------------------------------------------
     fig, ax = plt.subplots(figsize=(10, 5))
     pair_labels = []
     first_q_fracs = []
+    first_q_frac_stds = []
     total_deltas = []
+
     for res in results:
         label = f"{res['context_mode']}→{res['target_mode']}"
         if res["is_same_mode"]:
             label += " (same)"
         pair_labels.append(label)
-        delta = res["per_token_delta"]
-        n = len(delta)
-        total = sum(delta)
-        first_q = sum(delta[: n // 4])
-        frac = first_q / total if abs(total) > 0.1 else 0
-        first_q_fracs.append(frac)
-        total_deltas.append(total)
+
+        delta_per_sample = np.array(res["per_token_delta_per_sample"])
+        n = delta_per_sample.shape[1]
+        q = n // 4
+
+        # Per-sample first-quarter fractions
+        sample_totals = delta_per_sample.sum(axis=1)  # (N_PREFIX_SAMPLES,)
+        sample_first_q = delta_per_sample[:, :q].sum(axis=1)  # (N_PREFIX_SAMPLES,)
+        # Avoid division by zero: only compute fraction when |total| > 0.1
+        valid = np.abs(sample_totals) > 0.1
+        if valid.sum() > 0:
+            fracs = sample_first_q[valid] / sample_totals[valid]
+            first_q_fracs.append(float(fracs.mean()))
+            first_q_frac_stds.append(float(fracs.std()))
+        else:
+            first_q_fracs.append(0.0)
+            first_q_frac_stds.append(0.0)
+
+        total_deltas.append(float(np.mean(sample_totals)))
 
     x = range(len(pair_labels))
-    bars = ax.bar(x, first_q_fracs, color="steelblue", alpha=0.8)
+    bars = ax.bar(x, first_q_fracs, yerr=first_q_frac_stds,
+                  color="steelblue", alpha=0.8, capsize=4)
     ax.axhline(0.25, color="gray", linewidth=1, linestyle="--", label="uniform (25%)")
-    ax.set_xticks(x)
+    ax.set_xticks(list(x))
     ax.set_xticklabels(pair_labels, rotation=45, ha="right", fontsize=7)
     ax.set_ylabel("Fraction of surprise reduction in first 25% of tokens")
     ax.set_title("Where is cross-mode surprise reduction concentrated?")
@@ -330,7 +356,7 @@ def main() -> None:
     for i, (bar, td) in enumerate(zip(bars, total_deltas)):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.02,
+            bar.get_height() + first_q_frac_stds[i] + 0.03,
             f"Δ={td:+.0f}",
             ha="center",
             fontsize=6,
