@@ -187,27 +187,27 @@ json_data → python_code:      +16.8 ± 4.2 bits
 
 **Purpose**: For the most interesting pairs identified from the matrix, compute per-token surprise reduction to localize *where* in the target the model benefits from cross-mode context. Averages over 5 different prefix responses per pair.
 
-**Result** (9 pairs: 5 top cross-mode, 2 bottom, 2 same-mode controls):
+**Result** (9 pairs: 5 top cross-mode, 2 bottom, 2 same-mode controls — pairs auto-selected from corrected pairwise matrix):
 
 | Pair | Total Δ (bits) | First-quarter fraction |
 |------|----------------|----------------------|
 | math_stats → json_data | +20.3 | 47% |
-| math_stats → scientific_fact | +12.0 | **81%** |
 | haiku → song_lyrics | +26.7 | 15% |
-| math_stats → letter | +18.5 | 23% |
 | math_stats → python_code | +14.3 | **140%** (offset by negative later tokens) |
-| math_stats → haiku (negative) | −8.6 | 98% of damage in first quarter |
+| python_code → math_stats | +29.2 | **68%** |
+| json_data → python_code | +15.1 | **108%** (offset by negative later tokens) |
+| song_lyrics → historical_fact (negative) | −20.0 | 32% |
 | scientific_fact → haiku (negative) | −15.2 | 46% |
 | math_stats → math_stats (same) | +139.1 | 44% |
-| numbered_list → numbered_list (same) | +58.2 | 25% |
+| letter → letter (same) | +50.6 | 21% |
 
 **Key findings**:
 
-1. **H_token_1 is partially confirmed**: For some pairs (math_stats → scientific_fact: 81%, math_stats → python_code: 140%), the surprise reduction is heavily front-loaded — the model benefits most at the first few tokens. But for others (haiku → song_lyrics: 15%, math_stats → letter: 23%), the benefit is spread throughout.
+1. **H_token_1 is partially confirmed**: For technical→technical pairs (math_stats → python_code: 140%, json_data → python_code: 108%, python_code → math_stats: 68%), the surprise reduction is heavily front-loaded — the model benefits most at the first few tokens. But for creative pairs (haiku → song_lyrics: 15%), the benefit is spread throughout.
 
 2. **The front-loading pattern depends on mode similarity**: When context and target share structural features (technical → technical), the model calibrates early expectations about format and vocabulary. When they share only topic (haiku → song_lyrics), the benefit is distributed across content tokens throughout.
 
-3. **Negative pairs show front-loaded damage**: When context *hurts* (math_stats → haiku: −8.6 bits, 98% in first quarter), the damage is almost entirely at the start — the model begins expecting technical content and is surprised by "Drops on still water".
+3. **Negative pairs show distributed damage**: When context *hurts* (song_lyrics → historical_fact: −20 bits, scientific_fact → haiku: −15 bits), the damage is spread across the response — the model's expectations are miscalibrated throughout, not just at the start.
 
 4. **Same-mode controls show expected behavior**: math_stats → math_stats shows +139 bits of reduction spread across the response (44% in first quarter), consistent with learning the response format throughout.
 
@@ -320,7 +320,7 @@ GPT-2:       -3.5 bits     +4.4 bits    = +0.9 bits  → barely drops
 
 At m=10 with 95% probability of seeing a cross-mode response first, GPT-2 *loses* 3.5 bits from cross-mode confusion, almost completely canceling the 4.4-bit expected diagonal gain. Qwen *gains* 1.8 bits from cross-mode priming on top of its 3.1-bit diagonal gain. This difference in off-diagonal sign — not diagonal magnitude — explains the curve shape difference.
 
-**GPT-2 token attribution**: Cross-mode pairs show mixed effects. Some pairs with positive total deltas (python_code→numbered_list: +37 bits, song_lyrics→haiku: +25 bits) show the benefit concentrated in specific tokens. The negative pairs (scientific_fact→python_code: −23 bits, recipe→math_stats: −41 bits) show damage spread throughout, confirming that GPT-2 is confused by cross-mode context broadly.
+**GPT-2 token attribution**: Cross-mode pairs show mixed effects. Some pairs with positive total deltas (python_code→numbered_list: +37 bits, song_lyrics→haiku: +25 bits) show the benefit concentrated in specific tokens. The negative pairs (scientific_fact→python_code: −23 bits, recipe→math_stats: −41 bits) show damage spread throughout, confirming that GPT-2 is confused by cross-mode context broadly. Same-mode controls are very large (math_stats→math_stats: +257 bits, python_code→python_code: +121 bits), consistent with GPT-2's larger diagonal.
 
 **Relevance to core question**: **Critical**. This overturns the original hypothesis and provides the real explanation:
 - The curve shape difference is driven by the **sign of the off-diagonal**, not the magnitude of the diagonal.
@@ -341,7 +341,7 @@ At m=10 with 95% probability of seeing a cross-mode response first, GPT-2 *loses
 | H_matrix_1 (diagonal dominance) | **Confirmed**. Diagonal mean = 60.5 ± 14.4 bits >> off-diagonal mean = 1.9 ± 2.5 bits. |
 | H_matrix_2 (informative modes) | **Confirmed**. math_stats (+13.1), letter (+9.5), json_data (+9.0) have highest row means. |
 | H_matrix_3 (approximate symmetry) | **Falsified**. Mean |asymmetry| = 5.6 bits (2.9× the off-diagonal mean). |
-| H_token_1 (front-loaded attribution) | **Partially confirmed**. True for technical→technical pairs (81-140%), not for creative→creative (15-25%). |
+| H_token_1 (front-loaded attribution) | **Partially confirmed**. True for technical→technical pairs (68-140%), not for creative→creative (15-21%). |
 
 ## Date
 

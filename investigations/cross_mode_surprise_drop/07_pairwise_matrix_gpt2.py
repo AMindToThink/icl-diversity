@@ -1,8 +1,8 @@
 """Pairwise cross-mode surprise reduction matrix for GPT-2.
 
 Same experiment as 07_pairwise_matrix.py but using GPT-2 on cuda:0 with float32.
-Hypothesis: GPT-2's diagonal (same-mode reduction) is much smaller (~30 bits vs
-Qwen's 122 bits), explaining why GPT-2 shows flat early curves.
+Result: GPT-2's diagonal (83 bits) is actually LARGER than Qwen's (60.5 bits),
+but its off-diagonal is negative (-3.7 bits), explaining flat early curves.
 """
 
 import json
