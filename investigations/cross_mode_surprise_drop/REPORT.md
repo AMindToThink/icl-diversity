@@ -291,12 +291,44 @@ The core question has two layers:
 
 **Implication for the metric**: The ICL diversity metric assumes a_k drops *only* from mode redundancy. But with capable base models, a_k drops from three sources: (1) same-mode repetition (the intended signal), (2) cross-mode format calibration, and (3) cross-mode topic priming. Sources 2-3 cause the metric to underestimate diversity. Stronger θ → more cross-mode learning → lower measured diversity for the same response set.
 
+### 10. GPT-2 pairwise matrix and token attribution (`07/08_*_gpt2.py`)
+
+**Purpose**: Test the hypothesis that GPT-2's flat early curves at high m are due to a smaller diagonal (weaker same-mode ICL).
+
+**Result**: The hypothesis is **completely wrong**. GPT-2's matrix is qualitatively different from Qwen's:
+
+| Metric | Qwen2.5-3B | GPT-2 |
+|--------|-----------|-------|
+| Diagonal (same-mode) | 122.4 ± 11.8 bits | **172.4 ± 13.2 bits** |
+| Off-diagonal (cross-mode) | +1.9 bits | **−3.8 bits** |
+| Off-diagonal > 0 | 62% | **30%** |
+
+GPT-2's diagonal is **larger** than Qwen's (172 vs 122 bits), meaning it's *better* at recognizing same-mode responses in isolation. But its off-diagonal is **negative** (−3.8 bits) — cross-mode context actively *hurts* GPT-2, increasing surprise for subsequent responses.
+
+**Expected first-step drop at m=10**:
+
+```
+              Cross-mode    Same-mode    Total
+              (18/19 ×)     (1/19 ×)
+Qwen2.5-3B:  +1.8 bits     +6.4 bits    = +8.2 bits  → drops
+GPT-2:       -3.6 bits     +9.1 bits    = +5.5 bits  → barely drops
+```
+
+At m=10 with 95% probability of seeing a cross-mode response first, GPT-2 *loses* 3.6 bits from cross-mode confusion, partially canceling the 9.1-bit expected diagonal gain. Qwen *gains* 1.8 bits from cross-mode priming on top of its 6.4-bit diagonal gain. This difference in off-diagonal sign — not diagonal magnitude — explains the curve shape difference.
+
+**GPT-2 token attribution**: Cross-mode pairs show mixed effects. Some pairs with positive total deltas (python_code→numbered_list: +37 bits, song_lyrics→haiku: +25 bits) show the benefit concentrated in specific tokens. The negative pairs (scientific_fact→python_code: −23 bits, recipe→math_stats: −41 bits) show damage spread throughout, confirming that GPT-2 is confused by cross-mode context broadly.
+
+**Relevance to core question**: **Critical**. This overturns the original hypothesis and provides the real explanation:
+- The curve shape difference is driven by the **sign of the off-diagonal**, not the magnitude of the diagonal.
+- GPT-2's negative off-diagonal means cross-mode responses CANCEL diagonal benefits → flat early curve.
+- Qwen's positive off-diagonal means cross-mode responses AMPLIFY learning → monotonic decay.
+
 ## Remaining Questions
 
-1. **GPT-2 pairwise matrix**: What are GPT-2's diagonal and off-diagonal values? If diagonal ≈ 30 bits, the simple model predicts flat early curves.
-2. **Different topics**: If responses were about completely different topics (not all rain), would the off-diagonal entries go to zero? This would isolate format calibration from topic priming.
-3. **Model size scaling**: At what model size does the diagonal become large enough to produce exponential curves?
-4. **Diminishing returns**: A model accounting for overlapping information (not independent contributions) would better predict the observed sublinear accumulation.
+1. **Why does GPT-2 have negative off-diagonal?** GPT-2 apparently treats cross-mode context as noise that interferes with prediction. Qwen learned to extract cross-mode information (format calibration, topic priming) during pretraining.
+2. **Different topics**: If responses were about completely different topics (not all rain), would Qwen's off-diagonal go negative too?
+3. **Model size scaling**: At what model size does the off-diagonal transition from negative to positive?
+4. **Diminishing returns**: A model accounting for overlapping information would better predict the observed sublinear accumulation (the independent model overpredicts by 21×).
 
 ## Hypothesis Evaluation
 
