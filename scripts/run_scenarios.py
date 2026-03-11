@@ -20,7 +20,7 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from icl_diversity import compute_icl_diversity_metrics
+from icl_diversity import APIModel, compute_icl_diversity_metrics
 from icl_diversity.scenarios import (
     NOISE_PROMPTS,
     INCOHERENT_PROMPTS,
@@ -168,6 +168,23 @@ def main() -> None:
         help=f"Number of permutations to average over (default: {N_PERMUTATIONS})",
     )
     parser.add_argument(
+        "--provider",
+        choices=["local", "together", "fireworks"],
+        default="local",
+        help="Model provider: local (HuggingFace), together, or fireworks (default: local)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for provider (default: uses env var)",
+    )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Max concurrent API requests (default: 5)",
+    )
+    parser.add_argument(
         "--offline",
         action="store_true",
         help="Set HF_HUB_OFFLINE=1 to prevent downloads",
@@ -177,38 +194,51 @@ def main() -> None:
     if args.offline:
         os.environ["HF_HUB_OFFLINE"] = "1"
 
-    # Resolve dtype
-    torch_dtype = None
-    if args.torch_dtype is not None:
-        dtype_map = {
-            "float16": torch.float16,
-            "bfloat16": torch.bfloat16,
-            "float32": torch.float32,
-        }
-        torch_dtype = dtype_map.get(args.torch_dtype)
-        if torch_dtype is None:
-            print(
-                f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32."
-            )
-            sys.exit(1)
+    if args.provider != "local":
+        from dotenv import load_dotenv
 
-    # Load model
-    use_device_map = args.device == "auto"
-    print(
-        f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})..."
-    )
+        load_dotenv()
+        print(f"Using API model: {args.base_model} via {args.provider}")
+        model = APIModel(
+            model_name=args.base_model,
+            provider=args.provider,
+            api_key=args.api_key,
+            max_concurrent_requests=args.max_concurrent,
+        )
+        tokenizer = model.tokenizer
+    else:
+        # Resolve dtype
+        torch_dtype = None
+        if args.torch_dtype is not None:
+            dtype_map = {
+                "float16": torch.float16,
+                "bfloat16": torch.bfloat16,
+                "float32": torch.float32,
+            }
+            torch_dtype = dtype_map.get(args.torch_dtype)
+            if torch_dtype is None:
+                print(
+                    f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32."
+                )
+                sys.exit(1)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
-    load_kwargs: dict[str, Any] = {}
-    if torch_dtype is not None:
-        load_kwargs["dtype"] = torch_dtype
-    if use_device_map:
-        load_kwargs["device_map"] = "auto"
+        # Load model
+        use_device_map = args.device == "auto"
+        print(
+            f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})..."
+        )
 
-    model = AutoModelForCausalLM.from_pretrained(args.base_model, **load_kwargs)
-    if not use_device_map and args.device != "cpu":
-        model = model.to(args.device)
-    model.eval()
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+        load_kwargs: dict[str, Any] = {}
+        if torch_dtype is not None:
+            load_kwargs["dtype"] = torch_dtype
+        if use_device_map:
+            load_kwargs["device_map"] = "auto"
+
+        model = AutoModelForCausalLM.from_pretrained(args.base_model, **load_kwargs)
+        if not use_device_map and args.device != "cpu":
+            model = model.to(args.device)
+        model.eval()
 
     print("Computing metrics for all scenarios...")
     print(f"n_permutations={args.n_permutations}")

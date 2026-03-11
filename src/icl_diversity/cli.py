@@ -29,7 +29,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from icl_diversity import compute_icl_diversity_metrics
+from icl_diversity import APIModel, compute_icl_diversity_metrics
 
 
 def load_responses_with_prompts(
@@ -103,50 +103,82 @@ def main() -> None:
     )
     parser.add_argument("--seed", default=42, type=int, help="Random seed")
     parser.add_argument(
+        "--provider",
+        choices=["local", "together", "fireworks"],
+        default="local",
+        help="Model provider: local (HuggingFace), together, or fireworks (default: local)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for provider (default: uses TOGETHER_API_KEY or FIREWORKS_API_KEY env var)",
+    )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Max concurrent API requests (default: 5, only for API providers)",
+    )
+    parser.add_argument(
         "--device",
         default="auto",
-        help="Device: cuda, cpu, or auto (default: auto)",
+        help="Device: cuda, cpu, or auto (default: auto, only for local provider)",
     )
     parser.add_argument(
         "--torch-dtype",
         default="float16",
-        help="Model dtype: float16, bfloat16, float32 (default: float16)",
+        help="Model dtype: float16, bfloat16, float32 (default: float16, only for local provider)",
     )
     args = parser.parse_args()
 
     # Resolve output path
     output_path = args.output or args.input.parent / "icl_diversity.json"
 
-    # Resolve device
-    if args.device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.provider != "local":
+        # API-based model
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        print(f"Using API model: {args.base_model} via {args.provider}")
+        model = APIModel(
+            model_name=args.base_model,
+            provider=args.provider,
+            api_key=args.api_key,
+            max_concurrent_requests=args.max_concurrent,
+        )
+        tokenizer = model.tokenizer
     else:
-        device = args.device
+        # Local HuggingFace model
+        # Resolve device
+        if args.device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            device = args.device
 
-    # Resolve dtype
-    dtype_map = {
-        "float16": torch.float16,
-        "bfloat16": torch.bfloat16,
-        "float32": torch.float32,
-    }
-    torch_dtype = dtype_map.get(args.torch_dtype)
-    if torch_dtype is None:
-        print(f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32.")
-        sys.exit(1)
+        # Resolve dtype
+        dtype_map = {
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+            "float32": torch.float32,
+        }
+        torch_dtype = dtype_map.get(args.torch_dtype)
+        if torch_dtype is None:
+            print(f"Unknown dtype: {args.torch_dtype}. Use float16, bfloat16, or float32.")
+            sys.exit(1)
 
-    # Load model
-    print(
-        f"Loading model: {args.base_model} (dtype={args.torch_dtype}, device={device})"
-    )
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.base_model,
-        dtype=torch_dtype,
-        device_map=device if device == "auto" else None,
-    )
-    if device != "auto":
-        model = model.to(device)
-    model.eval()
+        # Load model
+        print(
+            f"Loading model: {args.base_model} (dtype={args.torch_dtype}, device={device})"
+        )
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.base_model,
+            dtype=torch_dtype,
+            device_map=device if device == "auto" else None,
+        )
+        if device != "auto":
+            model = model.to(device)
+        model.eval()
 
     # Load responses
     print(f"Loading responses from: {args.input}")

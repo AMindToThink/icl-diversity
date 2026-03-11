@@ -1,3 +1,4 @@
+from icl_diversity.api_model import APIModel
 from icl_diversity.core import (
     ModelInput,
     compute_cross_entropy,

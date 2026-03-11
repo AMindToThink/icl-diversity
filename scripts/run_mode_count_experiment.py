@@ -30,7 +30,7 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from icl_diversity import compute_icl_diversity_metrics
+from icl_diversity import APIModel, compute_icl_diversity_metrics
 from icl_diversity.mode_count_scenarios import (
     PROMPT,
     MODE_NAMES,
@@ -203,6 +203,23 @@ def main() -> None:
         help="Model dtype: float16, bfloat16, float32",
     )
     parser.add_argument(
+        "--provider",
+        choices=["local", "together", "fireworks"],
+        default="local",
+        help="Model provider: local (HuggingFace), together, or fireworks (default: local)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for provider (default: uses env var)",
+    )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Max concurrent API requests (default: 5)",
+    )
+    parser.add_argument(
         "--wandb",
         action="store_true",
         help="Enable W&B logging (requires wandb login)",
@@ -235,7 +252,7 @@ def main() -> None:
             sys.exit(1)
 
     # Set GPU memory cap before loading model
-    if args.device.startswith("cuda") and args.device != "auto":
+    if args.provider == "local" and args.device.startswith("cuda") and args.device != "auto":
         device_idx = int(args.device.split(":")[-1]) if ":" in args.device else 0
         torch.cuda.set_per_process_memory_fraction(args.gpu_memory_fraction, device_idx)
         print(f"GPU memory cap: {args.gpu_memory_fraction:.0%} of device {device_idx}")
@@ -251,6 +268,7 @@ def main() -> None:
             config={
                 "experiment": "mode_count",
                 "base_model": args.base_model,
+                "provider": args.provider,
                 "mode_counts": args.mode_counts,
                 "n_responses": args.n_responses,
                 "n_draws": args.n_draws,
@@ -260,21 +278,34 @@ def main() -> None:
             },
         )
 
-    # Load model
-    use_device_map = args.device == "auto"
-    print(f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})...")
+    if args.provider != "local":
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
-    load_kwargs: dict[str, Any] = {}
-    if torch_dtype is not None:
-        load_kwargs["torch_dtype"] = torch_dtype
-    if use_device_map:
-        load_kwargs["device_map"] = "auto"
+        print(f"Using API model: {args.base_model} via {args.provider}")
+        model = APIModel(
+            model_name=args.base_model,
+            provider=args.provider,
+            api_key=args.api_key,
+            max_concurrent_requests=args.max_concurrent,
+        )
+        tokenizer = model.tokenizer
+    else:
+        # Load local model
+        use_device_map = args.device == "auto"
+        print(f"Loading {args.base_model} (dtype={args.torch_dtype}, device={args.device})...")
 
-    model = AutoModelForCausalLM.from_pretrained(args.base_model, **load_kwargs)
-    if not use_device_map and args.device != "cpu":
-        model = model.to(args.device)
-    model.eval()
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+        load_kwargs: dict[str, Any] = {}
+        if torch_dtype is not None:
+            load_kwargs["torch_dtype"] = torch_dtype
+        if use_device_map:
+            load_kwargs["device_map"] = "auto"
+
+        model = AutoModelForCausalLM.from_pretrained(args.base_model, **load_kwargs)
+        if not use_device_map and args.device != "cpu":
+            model = model.to(args.device)
+        model.eval()
 
     # Validate mode counts
     for m in args.mode_counts:

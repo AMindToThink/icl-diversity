@@ -161,9 +161,11 @@ class TestForwardLogProbs:
         model, _ = _make_mock_model_and_tokenizer(vocab_size=50)
         input_ids = torch.tensor([[2, 3, 4]])
         log_probs = _forward_log_probs([model], input_ids)
-        assert log_probs.shape == (1, 3, 50)
-        # log_softmax values should sum to 0 in exp space (softmax sums to 1)
-        assert torch.allclose(log_probs[0, 0].exp().sum(), torch.tensor(1.0), atol=1e-5)
+        # Now returns diagonal: (batch, seq_len) in bits
+        assert log_probs.shape == (1, 3)
+        # All values should be non-positive (log-probs) except last (0.0 padding)
+        assert log_probs[0, -1].item() == 0.0
+        assert log_probs[0, 0].item() <= 0.0
 
     def test_ensemble_averages_probs(self) -> None:
         """Two identical models ensembled should give same result as one."""
@@ -181,7 +183,8 @@ class TestForwardLogProbs:
         input_ids = torch.tensor([[0, 2, 3]])
         mask = torch.tensor([[0, 1, 1]])
         log_probs = _forward_log_probs([model, model], input_ids, mask)
-        assert log_probs.shape == (1, 3, 50)
+        # Now returns diagonal: (batch, seq_len) in bits
+        assert log_probs.shape == (1, 3)
 
 
 # ---------------------------------------------------------------------------
@@ -454,7 +457,13 @@ class TestEnsembleProbabilityAveraging:
     """Verify that ensemble averages softmax probs, not logits."""
 
     def test_mixture_probabilities(self) -> None:
-        """The ensemble log-prob should be log of averaged softmax probs."""
+        """The ensemble log-prob should be log of averaged softmax probs.
+
+        Since _forward_log_probs now returns the diagonal (per-token next-token
+        log-probs in bits), we verify that the ensemble diagonal matches the
+        expected mixture for the specific next tokens in the input.
+        """
+        import math
         vocab_size = 10
 
         # Model A: peaked at token 0
@@ -485,26 +494,35 @@ class TestEnsembleProbabilityAveraging:
 
         model_b.side_effect = forward_b
 
+        # input_ids = [[2, 3]] → next token at position 0 predicts token 3
         input_ids = torch.tensor([[2, 3]])
 
-        # Single model log-probs
+        # Single model diagonal log-probs (in bits)
         lp_a = _forward_log_probs([model_a], input_ids)
         lp_b = _forward_log_probs([model_b], input_ids)
 
-        # Ensemble log-probs
+        # Ensemble diagonal log-probs (in bits)
         lp_ens = _forward_log_probs([model_a, model_b], input_ids)
 
-        # The mixture should have: p_ens(token) = 0.5 * p_a(token) + 0.5 * p_b(token)
-        expected_probs = 0.5 * lp_a.exp().cpu() + 0.5 * lp_b.exp().cpu()
-        expected_log_probs = torch.log(expected_probs)
+        # For position 0, the next token is 3.
+        # Model A: softmax peaked at 0 → low prob for token 3
+        # Model B: softmax peaked at 1 → low prob for token 3
+        # Mixture: 0.5 * p_a(3) + 0.5 * p_b(3)
+        # Verify the ensemble diagonal matches expected mixture diagonal
+        expected_diag = torch.log2(
+            0.5 * (2.0 ** lp_a) + 0.5 * (2.0 ** lp_b)
+        )
 
         np.testing.assert_allclose(
             lp_ens.numpy(),
-            expected_log_probs.numpy(),
+            expected_diag.cpu().numpy(),
             atol=1e-5,
         )
 
-        # The mixture should assign reasonable prob to both token 0 and token 1
-        ens_probs = lp_ens[0, 0].exp()
-        assert ens_probs[0].item() > 0.4  # model A's contribution
-        assert ens_probs[1].item() > 0.4  # model B's contribution
+        # Two identical models ensembled = same as single
+        lp_same = _forward_log_probs([model_a, model_a], input_ids)
+        np.testing.assert_allclose(
+            lp_same.numpy(),
+            lp_a.cpu().numpy(),
+            atol=1e-5,
+        )

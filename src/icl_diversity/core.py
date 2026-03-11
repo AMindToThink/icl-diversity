@@ -37,18 +37,21 @@ Reference equations from the paper:
 - Eq 27: ensemble theta_bar = (1/M) * sum_j theta_j (token-level mixture)
 """
 
+from __future__ import annotations
+
 import math
 import random
 import string
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-# Type alias: single model or list of models (ensemble)
-ModelInput = PreTrainedModel | list[PreTrainedModel]
+# Type alias: single model, list of models (ensemble), or API model.
+# APIModel is referenced by string to avoid circular import.
+ModelInput = Union[PreTrainedModel, list[PreTrainedModel], "APIModel"]
 
 
 # ---------------------------------------------------------------------------
@@ -56,8 +59,15 @@ ModelInput = PreTrainedModel | list[PreTrainedModel]
 # ---------------------------------------------------------------------------
 
 
-def _ensure_models(model: ModelInput) -> list[PreTrainedModel]:
-    """Normalize model input to a list."""
+def _is_api_model(model: ModelInput) -> bool:
+    """Check if model is an APIModel (without importing at module level)."""
+    return type(model).__name__ == "APIModel"
+
+
+def _ensure_models(model: ModelInput) -> list[PreTrainedModel] | "APIModel":
+    """Normalize model input to a list of local models, or return APIModel as-is."""
+    if _is_api_model(model):
+        return model  # type: ignore[return-value]
     if isinstance(model, list):
         return model
     return [model]
@@ -70,34 +80,78 @@ def _get_pad_token_id(tokenizer: PreTrainedTokenizerBase) -> int:
     return tokenizer.eos_token_id
 
 
+def _gather_diagonal_log_probs(
+    log_probs_full: torch.Tensor,
+    input_ids: torch.Tensor,
+) -> torch.Tensor:
+    """Extract next-token log-probs along the diagonal from full log-probs.
+
+    Args:
+        log_probs_full: ``(batch, seq_len, vocab_size)`` full log-probs (nats).
+        input_ids: ``(batch, seq_len)`` token IDs.
+
+    Returns:
+        ``(batch, seq_len)`` tensor where entry ``[b, t]`` =
+        ``log2 P(input_ids[b, t+1] | input_ids[b, 0..t])``.
+        The last position is 0.0 (no next token to predict).
+        Values are in **bits** (log base 2), not nats.
+    """
+    batch, seq_len = input_ids.shape
+    # Shift: log_probs_full[:, t, :] predicts token at position t+1
+    # So we gather input_ids[:, 1:] from log_probs_full[:, :-1, :]
+    if seq_len <= 1:
+        return torch.zeros(batch, seq_len, device=input_ids.device)
+
+    next_token_ids = input_ids[:, 1:]  # (batch, seq_len-1)
+    # Gather the log-prob of each next token
+    gathered = log_probs_full[:, :-1, :].gather(
+        2, next_token_ids.unsqueeze(-1)
+    ).squeeze(-1)  # (batch, seq_len-1)
+
+    # Convert nats → bits: divide by ln(2)
+    gathered = gathered / math.log(2)
+
+    # Pad with 0.0 at the end (last position has no next token)
+    pad = torch.zeros(batch, 1, device=gathered.device, dtype=gathered.dtype)
+    return torch.cat([gathered, pad], dim=1)
+
+
 def _forward_log_probs(
-    models: list[PreTrainedModel],
+    models: list[PreTrainedModel] | "APIModel",
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Run forward pass and return log-probabilities, supporting ensembles.
+    """Run forward pass and return per-position next-token log-probs in bits.
 
-    For a single model, returns log_softmax(logits).  For multiple models,
-    averages softmax probabilities at each token position (Section 7.5,
-    Eq 27), then returns log of the mixture distribution.
+    For a single model, computes log_softmax(logits) then extracts the
+    diagonal. For multiple models, averages softmax probabilities at each
+    token position (Section 7.5, Eq 27), then extracts the diagonal.
+    For an APIModel, delegates to ``APIModel.score_sequences``.
 
     Args:
-        models: List of models to ensemble. For standard (non-ensemble) use,
-            pass a single-element list.
+        models: List of models to ensemble, a single-element list, or an
+            APIModel instance.
         input_ids: ``(batch, seq_len)`` token IDs.
         attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
 
     Returns:
-        Log-probability tensor of shape ``(batch, seq_len, vocab_size)``.
-        On the model's device for single model, on CPU for ensemble.
+        ``(batch, seq_len)`` tensor where entry ``[b, t]`` =
+        ``log2 P(input_ids[b, t+1] | input_ids[b, 0..t])`` in **bits**.
+        Last position is 0.0. On the model's device for single model, on
+        CPU for ensemble/API.
     """
+    # API model dispatch
+    if _is_api_model(models):
+        return models.score_sequences(input_ids, attention_mask)  # type: ignore[union-attr]
+
     if len(models) == 1:
         model = models[0]
         ids = input_ids.to(model.device)
         mask = attention_mask.to(model.device) if attention_mask is not None else None
         with torch.no_grad():
             logits = model(ids, attention_mask=mask).logits
-        return torch.nn.functional.log_softmax(logits, dim=-1)
+        log_probs_full = torch.nn.functional.log_softmax(logits, dim=-1)
+        return _gather_diagonal_log_probs(log_probs_full, ids)
 
     # Ensemble: average softmax probabilities across models (Eq 27)
     accumulated_probs: torch.Tensor | None = None
@@ -114,7 +168,8 @@ def _forward_log_probs(
         del logits, probs
     assert accumulated_probs is not None
     accumulated_probs /= len(models)
-    return torch.log(accumulated_probs.clamp(min=1e-45))
+    log_probs_full = torch.log(accumulated_probs.clamp(min=1e-45))
+    return _gather_diagonal_log_probs(log_probs_full, input_ids)
 
 
 def _find_response_boundaries(
@@ -161,17 +216,15 @@ def _find_response_boundaries(
 
 def _extract_response_log_probs(
     log_probs: torch.Tensor,
-    full_ids: list[int],
     boundaries: list[tuple[int, int]],
     responses: list[str],
 ) -> tuple[list[float], list[int]]:
-    """Extract per-response total bits from a log-probs tensor.
+    """Extract per-response total bits from a diagonal log-probs tensor.
 
     Args:
-        log_probs: ``(seq_len, vocab_size)`` log-probs for one sequence.
-        full_ids: Token IDs of the full (unpadded) sequence.
-        boundaries: ``(start, end)`` token ranges for each response
-            (indices into ``full_ids``).
+        log_probs: ``(seq_len,)`` per-position next-token log-probs in bits.
+            Entry ``[t]`` = ``log2 P(token[t+1] | token[0..t])``.
+        boundaries: ``(start, end)`` token ranges for each response.
         responses: Response texts (for byte count computation).
 
     Returns:
@@ -187,14 +240,10 @@ def _extract_response_log_probs(
             curve.append(0.0)
             continue
 
-        positions = torch.arange(start, end, device=log_probs.device)
-        token_ids = torch.tensor(
-            full_ids[start:end], device=log_probs.device, dtype=torch.long
-        )
-        # Causal shift: log_probs[t-1] predicts token at position t
-        total_log_prob = log_probs[positions - 1, token_ids].sum().item()
-        total_log2 = total_log_prob / math.log(2)
-        curve.append(-total_log2)
+        # log_probs[t-1] gives log2 P(token[t] | token[0..t-1])
+        # Already in bits from _forward_log_probs
+        total_bits = -log_probs[start - 1 : end - 1].sum().item()
+        curve.append(total_bits)
 
     return curve, byte_counts
 
@@ -343,24 +392,12 @@ def compute_cross_entropy(
         return 0.0, byte_count
 
     input_ids = torch.tensor([full_ids])
-    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len, vocab)
+    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len,) in bits
 
-    # Vectorized extraction of log-probs for text tokens
-    token_positions = torch.arange(
-        n_prefix_tokens, n_full_tokens, device=log_probs.device
-    )
-    token_ids = torch.tensor(
-        full_ids[n_prefix_tokens:n_full_tokens],
-        device=log_probs.device,
-        dtype=torch.long,
-    )
-    total_log_prob = log_probs[token_positions - 1, token_ids].sum().item()
+    # log_probs[t-1] = log2 P(token[t] | token[0..t-1])
+    # Sum over text token positions (already in bits)
+    total_bits = -log_probs[n_prefix_tokens - 1 : n_full_tokens - 1].sum().item()
 
-    # Convert from nats (ln) to bits (log2): log2(x) = ln(x) / ln(2)
-    total_log2_prob = total_log_prob / math.log(2)
-
-    # Total cross-entropy in bits (Eq 1 without the 1/||r|| normalization)
-    total_bits = -total_log2_prob
     return total_bits, byte_count
 
 
@@ -458,9 +495,9 @@ def compute_progressive_surprise_curve_single_pass(
 
     # Single forward pass (ensemble-aware)
     input_ids = torch.tensor([full_ids])
-    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len, vocab)
+    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len,) in bits
 
-    return _extract_response_log_probs(log_probs, full_ids, boundaries, responses)
+    return _extract_response_log_probs(log_probs, boundaries, responses)
 
 
 def compute_unconditional_surprises(
@@ -531,14 +568,10 @@ def compute_unconditional_surprises(
             start = prefix_len
             end = len(ids)
 
-            positions = torch.arange(start, end, device=log_probs.device)
-            token_ids = torch.tensor(
-                ids[prefix_len:], device=log_probs.device, dtype=torch.long
-            )
-            total_log_prob = log_probs[i, positions - 1, token_ids].sum().item()
-            total_log2 = total_log_prob / math.log(2)
-            total_bits_list[seq_idx] = -total_log2
-            per_byte_surprises[seq_idx] = -total_log2 / bc if bc > 0 else 0.0
+            # log_probs[i, t-1] = log2 P(token[t] | token[0..t-1]), already in bits
+            total_bits = -log_probs[i, start - 1 : end - 1].sum().item()
+            total_bits_list[seq_idx] = total_bits
+            per_byte_surprises[seq_idx] = total_bits / bc if bc > 0 else 0.0
 
         del log_probs
 
@@ -546,7 +579,7 @@ def compute_unconditional_surprises(
 
 
 def _compute_permutation_curves_batched(
-    models: list[PreTrainedModel],
+    models: list[PreTrainedModel] | "APIModel",
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
@@ -603,7 +636,6 @@ def _compute_permutation_curves_batched(
             perm_idx = batch_start + i
             curve, byte_counts = _extract_response_log_probs(
                 log_probs[i],
-                all_full_ids[perm_idx],
                 all_boundaries[perm_idx],
                 all_permuted_responses[perm_idx],
             )
@@ -732,7 +764,7 @@ def _compute_metrics_from_curves(
 
 def compute_icl_diversity_metrics(
     model: ModelInput,
-    tokenizer: PreTrainedTokenizerBase,
+    tokenizer: PreTrainedTokenizerBase | None,
     prompt: str,
     responses: list[str],
     n_permutations: int = 1,
@@ -793,6 +825,13 @@ def compute_icl_diversity_metrics(
             The ordering used for each permutation.
     """
     models = _ensure_models(model)
+
+    # For API models, auto-resolve tokenizer if not provided
+    if tokenizer is None:
+        if _is_api_model(models):
+            tokenizer = models.tokenizer  # type: ignore[union-attr]
+        else:
+            raise ValueError("tokenizer is required for local models")
 
     # Unconditional surprises are order-independent, compute once (batched)
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
