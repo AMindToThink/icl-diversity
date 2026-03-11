@@ -225,13 +225,15 @@ The off-diagonal mean of +1.9 bits sounds small next to the diagonal mean of 122
 
 ### Simple model
 
-At m=10 with n=20 (2 responses per mode), response k's mode-mate has probability (k-1)/(n-1) of being among positions 1..k-1. The expected marginal drop from a_{k-1} to a_k has two components:
+At m=10 with n=20 (2 responses per mode), each response has exactly one mode-mate among the other 19 responses. Response k's mode-mate has probability **(k-1)/(n-1)** of being somewhere among positions 1..k-1. This grows with k: 5% at position 2, 21% at position 5, 47% at position 10.
 
-1. **Off-diagonal**: 1 new cross-mode response × 1.9 bits = **1.9 bits**
-2. **Diagonal (marginal)**: P(response k-1 is the mode-mate) × (diagonal - offdiag) = 1/19 × 120.5 = **6.3 bits**
-3. **Total expected marginal drop per step**: ~8.2 bits
+The expected **cumulative** surprise reduction at position k (compared to unconditional) comes from two sources:
 
-**Breakdown**: The diagonal contributes **77%** and the off-diagonal contributes **23%** of each step's expected drop.
+1. **Off-diagonal**: Each of the k-1 prior cross-mode responses contributes ~1.9 bits. Cumulative: **(k-1) × 1.9** bits.
+2. **Diagonal**: If the mode-mate is among positions 1..k-1 (probability (k-1)/19), the extra reduction beyond off-diagonal is (122.4 - 1.9) = 120.5 bits. Expected cumulative diagonal contribution: **(k-1)/19 × 120.5** bits.
+3. **Total expected cumulative drop at position k**: (k-1) × 1.9 + (k-1)/19 × 120.5 = **(k-1) × 8.2** bits.
+
+This predicts the cumulative drop is **linear in k** (constant 8.2 bits/step), with the diagonal contributing 77% and the off-diagonal 23%.
 
 ### Comparison with observations
 
@@ -246,13 +248,15 @@ a_4→a_5     8.2 bits     1.9 bits
 a_5→a_6     8.2 bits     3.4 bits
 ```
 
-The model predicts constant 8.2 bits/step; reality averages ~4 bits/step with high variance. The discrepancy is expected — prior responses' contributions overlap (diminishing marginal returns), so the true effect is sublinear in k.
+The model predicts constant 8.2 bits/step; reality averages ~4 bits/step with high variance. The discrepancy is expected — the simple model assumes each prior response contributes independently, but in reality information overlaps (diminishing marginal returns).
+
+Note the simple model actually predicts a **linear** cumulative drop (constant marginal), not an exponential one. The observed *decelerating* drops (large early, smaller later) suggest that the first few responses provide most of the format/topic calibration, and additional responses have diminishing marginal value. This saturation effect is what gives the curve its exponential-looking shape.
 
 ### Key insight
 
-**The off-diagonal (+1.9 bits) is not the main driver.** The exponential shape comes primarily from the diagonal: even at m=10, a 5% chance of hitting a mode-mate worth 122 bits produces a 6.3-bit expected drop *every step*. This is large enough to produce monotonic decay and prevent the flat discovery phase.
+**The off-diagonal (+1.9 bits/step) is not the main driver.** The dominant term is the diagonal: even though P(mode-mate present) starts at only 5%, the same-mode reduction is so large (122.4 bits) that the expected contribution is 6.3 bits/step — 3× the off-diagonal contribution.
 
-The off-diagonal adds ~1.9 bits/step on top, which is real but secondary. The critical question becomes: **why is Qwen's diagonal so large (122 bits) that even at 5% probability it dominates?** And conversely, **GPT-2's diagonal must be much smaller** — if GPT-2's same-mode reduction were ~30 bits, then 1/19 × 30 = 1.6 bits/step, barely detectable, consistent with its flat discovery phase.
+The critical question is: **why is Qwen's diagonal so large (122 bits)?** And conversely, **GPT-2's diagonal must be much smaller** — if GPT-2's same-mode reduction were ~30 bits, then 1/19 × 30 = 1.6 bits/step from diagonal + ~0 from off-diagonal ≈ 1.6 bits/step total — barely detectable, consistent with GPT-2's flat discovery phase.
 
 ## What We Now Understand
 
@@ -263,7 +267,7 @@ The core question has two layers:
 1. **Format calibration** (front-loaded): Seeing any response recalibrates expectations about what follows "Response B:".
 2. **Topic vocabulary priming** (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode.
 
-**Layer 2 — Why is the drop so steep (exponential, not sigmoidal)?** The off-diagonal alone (+1.9 bits/step) would produce a gentle slope, not the observed exponential. The steep decay is primarily driven by the **diagonal**: same-mode reduction averaging 122.4 bits, which at P=1/19 per step contributes ~6.3 bits — 3× larger than the off-diagonal. Because mode repetitions happen with ~5% probability *every* step (not just once modes start repeating), the curve decays from position 1 rather than showing a flat discovery phase.
+**Layer 2 — Why is the drop so steep (exponential, not sigmoidal)?** The off-diagonal alone (+1.9 bits/step) would produce a gentle linear slope, not the observed convex decay. The steep *early* decay is primarily driven by the **diagonal**: same-mode reduction averaging 122.4 bits, which even at P=(k-1)/19 contributes ~6.3 bits/step in expectation. Combined with the off-diagonal, the simple model predicts ~8.2 bits/step of linear cumulative drop. The observed *decelerating* shape (large early drops, smaller later) comes from diminishing marginal returns — the first few responses provide most of the format/topic calibration, so subsequent responses add less. This saturation is what produces the exponential-looking curve rather than the predicted sigmoid.
 
 **Why GPT-2 doesn't show this**: GPT-2 almost certainly has a much smaller diagonal (weaker same-mode ICL) and near-zero off-diagonal. If its diagonal were ~30 bits, the expected drop per step would be only ~1.6 bits — small enough to be noise, producing the observed flat/rising early curve. The sigmoid shape at high m in GPT-2 is not evidence that modes are independent — it's evidence that GPT-2's ICL is too weak to detect either cross-mode or (at low P) same-mode structure until enough repetitions accumulate.
 
