@@ -6,6 +6,9 @@
 \usepackage{natbib}
 \usepackage{booktabs}
 \usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\graphicspath{{../figures/}{../investigations/cross_mode_surprise_drop/figures/}}
 \usepackage{pgfplots}
 \usepgfplotslibrary{fillbetween}
 \pgfplotsset{compat=1.18}
@@ -23,7 +26,7 @@
 \maketitle
 
 \begin{abstract}
-We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} whose shape characterizes the learnable structure among the policy's outputs --- including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via excess entropy (how many bits of structure the base model can extract from the responses) and pair it with a separate coherence term (how plausible the outputs are). All quantities are computed in total bits, making the metric tokenizer-agnostic; a length-normalized variant in bits/byte is also provided for use cases where responses of different lengths should be compared on equal footing. These two quantities answer orthogonal questions and are best reported jointly; their product yields a single scalar --- plausibility-weighted structural diversity --- that is dimensionally consistent and does not reward noise.
+We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} whose shape characterizes the learnable structure among the policy's outputs --- including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via excess entropy (how many bits of structure the base model can extract from the responses) and pair it with a separate coherence term (how plausible the outputs are). All quantities are computed in total bits, making the metric tokenizer-agnostic; a length-normalized variant in bits/byte is also provided for use cases where responses of different lengths should be compared on equal footing. These two quantities answer orthogonal questions and are best reported jointly; their product yields a single scalar --- plausibility-weighted structural diversity --- that is dimensionally consistent and does not reward noise. We validate the metric empirically on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-32B), demonstrating that coherence and spread correctly separate scenarios with known diversity structure, and that parametric sigmoid extrapolation recovers the expected monotonic relationship between mode count and excess entropy where the raw estimator does not.
 \end{abstract}
 
 \section{Motivation}
@@ -112,7 +115,7 @@ The $a_k$ curve is the fundamental object of interest. Its shape reveals the str
 
 This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
-\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}).
+\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}). Section~\ref{sec:cross-mode-learning} provides empirical evidence that the sigmoid prediction holds for GPT-2 but not for more capable models, where cross-mode learning produces exponential decay even at high $m$.
 
 \section{Excess Entropy}
 
@@ -138,7 +141,7 @@ This underestimates $E$ (since $a_n \geq a_\infty$), but the bias decreases with
 \begin{equation}\label{eq:sigmoid-fit}
     a_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
 \end{equation}
-where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point. This fit has several advantages: (i) it yields $a_\infty$ without requiring $n$ to be large enough for convergence, reducing the tension between wanting large $n$ for a good estimate and keeping $n$ small to avoid out-of-distribution effects; (ii) the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (see Section~\ref{sec:mode-count-from-curve}); and (iii) it unifies the exponential and sigmoidal regimes --- when the fit returns $k_0 < 1$, the curve is effectively exponential (few modes), and when $k_0 > 1$, the curve has a genuine plateau (many modes). In practice, we recommend fitting Eq.~\ref{eq:sigmoid-fit} by nonlinear least squares and using the fitted $a_\infty$ in place of $a_n$ in Eq.~\ref{eq:excess-hat}, particularly when the curve has not visibly converged by $k = n$.
+where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point. This fit has several advantages: (i) it yields $a_\infty$ without requiring $n$ to be large enough for convergence, reducing the tension between wanting large $n$ for a good estimate and keeping $n$ small to avoid out-of-distribution effects; (ii) the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (see Section~\ref{sec:mode-count-from-curve}); and (iii) it unifies the exponential and sigmoidal regimes --- when the fit returns $k_0 < 1$, the curve is effectively exponential (few modes), and when $k_0 > 1$, the curve has a genuine plateau (many modes). In practice, we recommend fitting Eq.~\ref{eq:sigmoid-fit} by nonlinear least squares and using the fitted $a_\infty$ in place of $a_n$ in Eq.~\ref{eq:excess-hat}, particularly when the curve has not visibly converged by $k = n$. Section~\ref{sec:mode-count-scaling} provides empirical evidence that the sigmoid-extrapolated $E_{\mathrm{fit}}$ recovers the expected monotonic relationship between mode count and excess entropy, while the raw $\hat{E}_n$ estimator does not.
 
 \paragraph{Out-of-distribution risk.} In practice, the conditioning context grows with $k$. For large $k$, the concatenation of many responses may push $\theta$ out of distribution: the context may exceed lengths seen during pretraining, or the repeated-response formatting may be sufficiently unusual that $\theta$'s predictions become unreliable. When $\theta$ goes out of distribution, $a_k$ may \emph{increase} rather than decrease (reflecting model confusion rather than genuine novelty), violating the monotonicity assumption and corrupting the excess entropy estimate. It is therefore important to monitor $a_k$ for non-monotonicity, particularly at large $k$, and to keep $n$ within a range where the total context length remains well within $\theta$'s reliable operating regime. If responses are long, $n$ may need to be reduced accordingly.
 
@@ -492,7 +495,7 @@ This compares favorably to all-pairs PMI, which requires $O(n^2)$ forward passes
 
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
 
-The $a_k$ values depend on the ordering of $\{r_i\}$. Since $a_k$ is in total bits, responses of different lengths produce different $a_k$ values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context. In expectation over random permutations the summary statistics ($E$, $D$) are invariant. We recommend averaging over a small number of random permutations (e.g., 3--5), which substantially reduces variance at a proportional increase in cost.
+The $a_k$ values depend on the ordering of $\{r_i\}$. Since $a_k$ is in total bits, responses of different lengths produce different $a_k$ values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context. In expectation over random permutations the summary statistics ($E$, $D$) are invariant. We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $E_{\mathrm{rate}}$ is unstable at 3 permutations and that $\geq$50 permutations are needed for reliable rankings.
 
 For the per-byte excess entropy rate $E_{\mathrm{rate}}$ (Section~\ref{sec:per-byte-rate}), per-response normalization by byte count must be performed \emph{before} averaging across permutations, since the byte count depends on which response lands at each position.
 
@@ -517,6 +520,268 @@ The na\"ive alternative --- computing $a_k$ curves independently per model and a
 \paragraph{Tokenizer compatibility.} Token-level ensembling requires all models to share a tokenizer, since the mixture averages distributions over the vocabulary. Fortunately, several cross-family groups share tokenizers: Llama~2, Mistral 7B/Large/Mixtral, Yi, and Solar all use the same SentencePiece BPE tokenizer (32K vocabulary); Gemma and Gemini share Google's SentencePiece tokenizer. Cross-family ensembles are preferable to within-family ensembles (e.g., Llama~3 8B + 70B), because models from different families have different training data and architectures, reducing the correlation of their failure modes. A practical recommendation is to ensemble a smaller and a larger model from different families that share a tokenizer: the smaller model is cheaper but more likely to fail on long contexts, while the larger model provides robustness.
 
 \paragraph{Fallback for incompatible tokenizers.} When the desired models use different tokenizers, one can average the total-bits $a_k$ values across models, since total log-probability is tokenizer-agnostic. This is not a principled probabilistic mixture and does not provide the robustness guarantee of token-level ensembling, but it may still reduce variance from individual model quirks when the models are not simultaneously out of distribution.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SECTION 8: EXPERIMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments}\label{sec:experiments}
+
+\subsection{Experimental Setup}\label{sec:exp-setup}
+
+We evaluate the metric using two base models: GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} and Qwen2.5-32B (32B parameters, 32K-token context window) \citep{yang2024qwen25}. For mode-count scaling and cross-mode learning experiments, we additionally use Qwen2.5-3B to enable larger-scale sampling within reasonable compute budgets.
+
+All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}). Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments. Responses are formatted as described in Section~\ref{sec:cost}. All code is publicly available.\footnote{\url{https://github.com/mkhoriaty/icl-diversity}}
+
+\subsection{Scenario Validation}\label{sec:scenario-validation}
+
+We construct five synthetic scenarios with known diversity structure:
+\begin{enumerate}[nosep]
+    \item \textbf{Pure noise}: Random word salad with no learnable structure.
+    \item \textbf{Multi-incoherent}: Responses from 5 distinct modes, each internally incoherent (scrambled words within a template).
+    \item \textbf{Multi-mode}: Responses from 5 distinct modes, each internally coherent (e.g., recipe, poem, code).
+    \item \textbf{One-mode}: All responses from a single coherent mode (paraphrases of the same content).
+    \item \textbf{Mixed}: A mixture of coherent and incoherent responses.
+\end{enumerate}
+
+Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100 permutations and seed 42.
+
+\paragraph{Important caveat.} The results in this section use the raw $\hat{E}_n$ estimator (with $a_n$ as floor), not the sigmoid-extrapolated $E_{\mathrm{fit}}$. With only $n=10$ responses, the curves may not have converged, so $E_{\mathrm{rate}}$ values should be interpreted cautiously. The qualitative orderings of $C$ and $\sigma_\ell$ are more reliable since they do not depend on the floor estimate.
+
+\begin{table}[t]
+\centering
+\caption{Scenario validation metrics (mean $\pm$ std across 5 prompts). $E_{\mathrm{rate}}$ is per-byte excess entropy, $C$ is coherence, $D$ is plausibility-weighted diversity, $\sigma_\ell$ is coherence spread. All computed with 100 permutations, $n=10$ responses.}
+\label{tab:scenarios}
+\small
+\begin{tabular}{@{}l rrrr rrrr@{}}
+\toprule
+& \multicolumn{4}{c}{\textbf{GPT-2 (124M)}} & \multicolumn{4}{c}{\textbf{Qwen2.5-32B}} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9}
+Scenario & $E_{\mathrm{rate}}$ & $C$ & $D$ & $\sigma_\ell$ & $E_{\mathrm{rate}}$ & $C$ & $D$ & $\sigma_\ell$ \\
+\midrule
+Pure noise      & 0.55 & 0.006 & 0.003 & 0.20 & 0.44 & 0.009 & 0.004 & 0.09 \\
+Multi-incoher.  & 5.64 & 0.121 & 0.681 & 0.51 & 2.42 & 0.273 & 0.659 & 0.84 \\
+Multi-mode      & 1.55 & 0.495 & 0.748 & 0.08 & 1.22 & 0.617 & 0.742 & 0.09 \\
+One-mode        & 1.24 & 0.496 & 0.610 & 0.06 & 0.85 & 0.603 & 0.507 & 0.08 \\
+Mixed           & $-$1.27 & 0.290 & $-$0.339 & 1.12 & 0.69 & 0.572 & 0.386 & 0.47 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results.} Table~\ref{tab:scenarios} summarizes the metrics. Figure~\ref{fig:scenario-curves} shows the $a_k$ curves for all scenarios.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{comparison_v2/comparison_ak_curves_all.png}
+\caption{Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-32B (right). Shaded regions show $\pm 1$ standard deviation across 100 permutations. Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}
+\label{fig:scenario-curves}
+\end{figure}
+
+The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise. The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
+
+Across models, 12--13 of 13 within-model hypotheses pass. $C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text). Cross-model $E_{\mathrm{rate}}$ comparisons are less reliable: only 5 of 10 cross-model hypotheses pass, partly because the stronger model's lower unconditional surprise compresses the $E_{\mathrm{rate}}$ range.
+
+One informative failure: the hypothesis that multi-incoherent should have lower $E_{\mathrm{rate}}$ than multi-mode fails because incoherent modes \emph{do} contain learnable structure (repeated templates, fixed vocabulary), which the metric correctly detects. This is not a bug---the metric measures learnable structure, not coherent structure.
+
+\subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
+
+To test whether the metric reflects the number of distinct modes, we construct response sets with $m \in \{1, \ldots, 10\}$ modes drawn from a pool of 50 format-based generators (haiku, code, recipe, legal disclaimer, etc.), all responding to the same prompt (``Write a short piece about rain''). For Qwen2.5-3B: $n=20$ responses, 1000 random draws of mode assignments, averaged over permutations.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
+    \caption{$a_k$ curves fan out with increasing $m$.}
+    \label{fig:ak-overlay}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
+    \caption{Summary metrics vs.\ mode count $m$.}
+    \label{fig:metrics-vs-m}
+\end{subfigure}
+\caption{Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). Left: $a_k$ curves by mode count, showing progressively higher floors and slower convergence with more modes. Right: metric summaries. $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
+\label{fig:mode-count}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy (bits); $a_n$ is the mean floor at $k=20$; $\sigma_\ell$ is coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}
+\label{tab:mode-count}
+\small
+\begin{tabular}{@{}r rrrr@{}}
+\toprule
+$m$ & $E_{\mathrm{fit}}$ (bits) & $a_n$ (bits) & $\sigma_\ell$ (bits) & $k_0$ \\
+\midrule
+1  & $296 \pm 11$ & 9.3  & 5.9  & $-10.0$ \\
+2  & $568 \pm 24$ & 16.9 & 23.7 & $-10.0$ \\
+3  & $704 \pm 41$ & 26.7 & 30.1 & $-10.0$ \\
+4  & $799 \pm 67$ & 37.4 & 38.9 & $-10.0$ \\
+5  & $855 \pm 113$ & 48.0 & 41.5 & $-10.0$ \\
+6  & $940 \pm 127$ & 56.1 & 44.1 & $-10.0$ \\
+7  & $1069 \pm 194$ & 61.5 & 45.7 & $-10.0$ \\
+8  & $1138 \pm 253$ & 66.9 & 44.6 & $-10.0$ \\
+9  & $1563 \pm 705$ & 72.8 & 44.7 & $-10.0$ \\
+10 & $1807 \pm 1194$ & 77.8 & 43.5 & $-10.0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key findings.} Figure~\ref{fig:mode-count} and Table~\ref{tab:mode-count} show the results. The sigmoid-extrapolated $E_{\mathrm{fit}}$ increases monotonically with $m$: from 296 bits at $m=1$ to 1807 bits at $m=10$. This vindicates the parametric extrapolation approach from Section~\ref{sec:excess-entropy}. However, confidence intervals widen substantially at high $m$ (the $m=10$ interval spans 1202--3591 bits), reflecting the difficulty of extrapolating a curve that has not converged at $k=n$.
+
+The raw estimator $\hat{E}_n$ (using $a_n$ as the floor) is \emph{non-monotonic}: it peaks at $m \approx 3$--$4$ and then decreases. This occurs because $a_n$ overestimates $a_\infty$ when the curve has not converged---at high $m$ with limited $n$, the curve is still dropping at $k=n$, so $a_n$ compresses $\hat{E}_n$.
+
+The floor $a_n$ increases monotonically with $m$ (9.3 bits at $m=1$ to 77.8 bits at $m=10$), reflecting more irreducible entropy remaining after full conditioning. The coherence spread $\sigma_\ell$ also increases, but this reflects the heterogeneous formats of our synthetic modes (code vs.\ haiku vs.\ recipe have very different per-byte cross-entropies) rather than diversity per se.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.7\textwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
+\caption{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B). The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau---inconsistent with the sigmoidal prediction for high $m$ (see Section~\ref{sec:cross-mode-learning}).}
+\label{fig:fit-params}
+\end{figure}
+
+Notably, the sigmoid inflection point $k_0$ remains at the lower bound ($-10$, the optimizer constraint) for all $m$ (Figure~\ref{fig:fit-params}), indicating that all curves are purely exponential even at $m=10$. The expected transition to sigmoidal shape at high $m$ does not occur for Qwen2.5-3B. Section~\ref{sec:cross-mode-learning} investigates why.
+
+\subsection{Cross-Mode Learning and Curve Shape}\label{sec:cross-mode-learning}
+
+The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate. GPT-2 shows this pattern at $m=10$. Qwen2.5-3B does not---it shows immediate exponential decay at all $m$. This section investigates the discrepancy through systematic pairwise analysis.
+
+\paragraph{Pairwise cross-mode surprise matrix.} For 15 modes, we compute a $15 \times 15$ matrix $M_{ij}$: the surprise reduction (in bits) when a response from mode $j$ is in the context and mode $i$ is the target. Diagonal entries measure same-mode learning; off-diagonal entries measure cross-mode information transfer. Each entry averages over 5 context--target samples (using different samples for context and target to avoid self-prediction inflation).
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{pairwise_matrix_heatmap.png}
+    \caption{Qwen2.5-3B: positive off-diagonal.}
+    \label{fig:pairwise-qwen}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{gpt2/pairwise_matrix_heatmap.png}
+    \caption{GPT-2: negative off-diagonal.}
+    \label{fig:pairwise-gpt2}
+\end{subfigure}
+\caption{Pairwise cross-mode surprise reduction matrices. Each cell $(i,j)$ shows how many bits of surprise reduction mode $i$ (target) receives from seeing mode $j$ (context). Qwen shows diagonal dominance with pervasive positive off-diagonal (+1.9 bits mean); GPT-2 shows diagonal dominance with negative off-diagonal ($-$3.7 bits mean).}
+\label{fig:pairwise-matrices}
+\end{figure}
+
+\paragraph{Results.}
+\begin{itemize}[nosep]
+    \item \textbf{Qwen2.5-3B}: diagonal mean = $60.5 \pm 14.4$ bits, off-diagonal mean = $+1.9 \pm 2.5$ bits, 64\% of off-diagonal entries positive.
+    \item \textbf{GPT-2}: diagonal mean = $83.0 \pm 20.0$ bits, off-diagonal mean = $-3.7$ bits, only 31\% of off-diagonal entries positive.
+\end{itemize}
+
+The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwise-matrices}):
+\begin{itemize}[nosep]
+    \item \textbf{Positive off-diagonal (Qwen)}: Every response helps predict every other response through format calibration and topic priming. The $a_k$ curve drops from position 1, producing exponential decay.
+    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions. At $m=10$, the expected first-step net drop is only $+0.9$ bits (cross-mode damage nearly cancels diagonal gain), producing a flat plateau until same-mode repetitions accumulate---the predicted sigmoid.
+\end{itemize}
+
+\paragraph{The independent model fails.} If cross-mode contributions were independent, summing pairwise contributions should predict the observed $a_k$ curve. Figure~\ref{fig:predicted-observed} compares the predicted and observed cumulative drops at $m=10$: the independent model overpredicts by $10.6\times$ (622 bits predicted vs.\ 58.8 bits observed). The first few responses provide most of the format/topic calibration; subsequent responses have rapidly diminishing marginal value.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\textwidth]{predicted_vs_observed_m10.png}
+\caption{Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $10.6\times$, demonstrating that pairwise contributions are not additive---information saturates rapidly with context length.}
+\label{fig:predicted-observed}
+\end{figure}
+
+\paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is 5.6 bits (2.9$\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric. This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
+
+\paragraph{Connections to information-theoretic properties.} Two information-theoretic properties are relevant to interpreting the pairwise matrix:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Non-negative conditioning} ($H(X) \geq H(X \mid Y)$): Under the true distribution, conditioning can never increase entropy on average. For cross-entropies this is not guaranteed (the KL term can increase), but a well-calibrated $\theta$ should show mostly non-negative off-diagonal entries.
+    \item \textbf{Symmetry of mutual information} ($I(X;Y) = I(Y;X)$): Under the true joint, row means (how informative mode $i$ is as context) should correlate with column means (how much mode $i$ benefits from context).
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{pairwise_row_vs_col.png}
+    \caption{Qwen2.5-3B: slope = 0.84, $R^2 = 0.34$.}
+    \label{fig:rowcol-qwen}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{gpt2/pairwise_row_vs_col.png}
+    \caption{GPT-2: slope = 0.35, $R^2 = 0.08$.}
+    \label{fig:rowcol-gpt2}
+\end{subfigure}
+\caption{Row mean (how informative as context) vs.\ column mean (how much benefit from context) for each mode. Qwen shows tighter correlation closer to the identity, consistent with approximate symmetry of mutual information. GPT-2 shows widespread violations of non-negative conditioning (modes in the negative-row-mean region).}
+\label{fig:row-vs-col}
+\end{figure}
+
+Figure~\ref{fig:row-vs-col} compares the two models. Qwen shows a tighter row--column relationship (slope = 0.84, $R^2 = 0.34$) with only 1 of 15 modes having a negative column mean. GPT-2 shows widespread violations of non-negative conditioning (many modes with negative row means) and a barely-existent row--column relationship (slope = 0.35, $R^2 = 0.08$). With only two base models tested, we have suggestive but not conclusive evidence that stronger models better satisfy these information-theoretic properties.
+
+\paragraph{Token-level mechanisms.} Per-token attribution analysis reveals two mechanisms for cross-mode surprise reduction:
+\begin{itemize}[nosep]
+    \item \textbf{Format calibration} (front-loaded): Seeing any structured response recalibrates the model's expectations about what follows ``Response B:''. This is a $\sim$5--10 bit effect concentrated in the first few tokens.
+    \item \textbf{Topic/vocabulary priming} (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode. This contributes $\sim$5--15 bits spread across the response.
+\end{itemize}
+
+\paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent. For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes. The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals. If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves---but confirming this requires testing additional base models of varying sizes.
+
+\subsection{Preliminary External Validation}\label{sec:tevet}
+
+We conduct a preliminary evaluation against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which contains 13,679 response sets from three evaluation frameworks (ConTest, DecTest, McDiv\_nuggets) with human diversity annotations. We compute the metric using GPT-2 with 50 permutations.
+
+\paragraph{Strong caveats.} These results are preliminary for several reasons: (i) only GPT-2 was tested (124M parameters, weak ICL capability); (ii) only 5 responses per set---well below the 10--20+ the metric is designed for, so the $\hat{E}_n$ estimator is unreliable; (iii) we have not carefully audited the experimental logs to confirm we are measuring what we intend; and (iv) the benchmark's diversity labels (surface variation, $n$-gram overlap) may not align with what $E$ captures (distributional structure as perceived by $\theta$).
+
+\begin{table}[t]
+\centering
+\caption{Spearman rank correlation $\rho$ between metrics and ground-truth diversity labels on Tevet's diversity-eval (GPT-2, 50 permutations). $E$ shows negative correlations with diversity labels, while distinct-$n$ shows positive correlations. These results are preliminary---see caveats in text.}
+\label{tab:tevet}
+\small
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Dataset & Task & $\rho(E, \text{label})$ & $\rho(\text{distinct-}n, \text{label})$ \\
+\midrule
+DecTest (1000) & prompt\_gen & $-0.493$ & $0.912$ \\
+DecTest (1000) & story\_gen & $-0.272$ & $0.758$ \\
+DecTest (1000) & resp\_gen  & $-0.057$ & $0.894$ \\
+McDiv\_nuggets & story\_gen & $-0.396$ & $0.039$ \\
+McDiv\_nuggets & resp\_gen  & $-0.242$ & $-0.014$ \\
+McDiv\_nuggets & prompt\_gen & $-0.361$ & $0.120$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results.} Table~\ref{tab:tevet} summarizes the correlations. $E$ shows negative correlation with diversity labels ($\rho = -0.49$ on DecTest prompt\_gen): higher temperature $\to$ lower $E$ (Figure~\ref{fig:e-vs-temp}). On McDiv\_nuggets, $|E|$ outperforms distinct-$n$ in magnitude, but with opposite sign.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{tevet_validation/dectest_E_vs_temperature_gpt2.png}
+    \caption{$E$ decreases with temperature on DecTest.}
+    \label{fig:e-vs-temp}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{tevet_validation/metric_correlations_gpt2.png}
+    \caption{$E$ is orthogonal to surface metrics.}
+    \label{fig:metric-corr}
+\end{subfigure}
+\caption{External validation on Tevet's diversity-eval with GPT-2. Left: $E$ decreases as sampling temperature increases---opposite to the expected direction for a diversity metric. Right: Pearson correlation between $E$ and distinct-$n$ is $-0.375$, confirming orthogonality.}
+\label{fig:tevet}
+\end{figure}
+
+The key positive finding is \textbf{orthogonality}: the overall Pearson $r(E, \text{distinct-}n) = -0.375$ (Figure~\ref{fig:metric-corr}), confirming that $E$ captures genuinely different information from surface-level metrics. What exactly this signal means in the diversity-eval context remains an open question. The negative correlation could reflect a real property of $E$ (measuring inter-response redundancy rather than diversity) or experimental limitations (too few responses, weak base model). Further investigation with stronger models and more responses per set is needed before drawing conclusions.
+
+\subsection{Practical Findings}\label{sec:practical-findings}
+
+\paragraph{Permutation sensitivity.} $E_{\mathrm{rate}}$ is highly sensitive to the number of permutations. At 3 permutations, scenario rankings are unreliable: multi\_incoherent can flip from last to first in the $E_{\mathrm{rate}}$ ranking across different seeds. At 100 permutations, rankings stabilize. We recommend $n_{\mathrm{permutations}} \geq 50$. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
+
+\paragraph{BPE boundary artifacts.} Single-pass computation introduces a small systematic bias ($<0.02$ bits/byte per position) when the tokenizer merges boundary characters across the response separator (e.g., Qwen's tokenizer creates a single token for ``.\textbackslash n\textbackslash n''). This artifact accounts for $<6\%$ of the total curve decline and does not affect qualitative conclusions.
+
+\subsection{Discussion}\label{sec:exp-discussion}
+
+\paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.} $\sigma_\ell$ increased monotonically with $m$ in our synthetic experiments because our modes have very different formats (code vs.\ haiku vs.\ recipe $\to$ different per-byte cross-entropies). But $\sigma_\ell$ measures coherence \emph{heterogeneity}, not diversity: modes with similar fluency would have low $\sigma_\ell$ despite high diversity, and a single mode with high quality variance could have high $\sigma_\ell$ with zero diversity. Its role is diagnostic (detecting mixed coherence), not as a standalone diversity score.
+
+\paragraph{Cross-mode learning is model-dependent.} The off-diagonal sign determines curve shape, and this sign depends on $\theta$'s ICL capability. The metric's behavior is entangled with $\theta$'s capabilities in ways theory did not anticipate. Stronger models may produce systematically different $E$ values for the same response set---not because the responses changed, but because $\theta$ detects more cross-mode structure.
+
+\paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent. This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay). The sigmoid fit still provides a useful parametric form for extrapolating $a_\infty$, even when the inflection point is degenerate ($k_0 < 1$).
+
+\paragraph{External validation is preliminary.} The Tevet results show that $E$ is orthogonal to existing metrics, which is promising, but the negative correlation with diversity labels raises questions about what $E$ fundamentally measures in the low-$n$, weak-model regime. More careful validation with a stronger base model, more responses per set, and systematic auditing of the experimental setup is needed.
 
 \section{Related Concepts}
 
@@ -631,6 +896,21 @@ James~P. Crutchfield and David~P. Feldman.
 Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
 \newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
 \newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Radford et al.(2019)]{radford2019language}
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever.
+\newblock Language models are unsupervised multitask learners.
+\newblock \emph{OpenAI Blog}, 2019.
+
+\bibitem[Tevet and Berant(2021)]{tevet2020evaluating}
+Guy Tevet and Jonathan Berant.
+\newblock Evaluating the evaluation of diversity in natural language generation.
+\newblock In \emph{Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL)}, pages 326--346, 2021.
+
+\bibitem[Yang et al.(2024)]{yang2024qwen25}
+An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li, Chengyuan Li, Dayiheng Liu, Fei Huang, et~al.
+\newblock Qwen2.5: A party of foundation models.
+\newblock \emph{arXiv preprint arXiv:2412.15115}, 2024.
 
 \bibitem[Zhang et al.(2024)]{zhang2024writingprompts}
 Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.

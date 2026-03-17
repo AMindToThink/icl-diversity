@@ -5,7 +5,7 @@
 \citation{lai2024llmmeans}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Motivation}{1}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Why a separate base model?}{1}{section*.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Important caveat.}{1}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Important caveat.}{2}{section*.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Setup and Notation}{2}{section.2}\protected@file@percent }
 \newlabel{eq:total-xent}{{1}{2}{Setup and Notation}{equation.1}{}}
 \newlabel{eq:pertok}{{2}{2}{Setup and Notation}{equation.2}{}}
@@ -22,87 +22,164 @@
 \@writefile{toc}{\contentsline {section}{\numberline {4}Excess Entropy}{4}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The Excess Entropy}{4}{subsection.4.1}\protected@file@percent }
 \newlabel{sec:excess-entropy}{{4.1}{4}{The Excess Entropy}{subsection.4.1}{}}
-\newlabel{eq:excess}{{6}{4}{The Excess Entropy}{equation.6}{}}
+\newlabel{eq:excess}{{6}{5}{The Excess Entropy}{equation.6}{}}
 \newlabel{eq:excess-hat}{{7}{5}{The Excess Entropy}{equation.7}{}}
 \@writefile{toc}{\contentsline {paragraph}{Parametric extrapolation of $a_\infty $.}{5}{section*.5}\protected@file@percent }
 \newlabel{eq:sigmoid-fit}{{8}{5}{Parametric extrapolation of $a_\infty $}{equation.8}{}}
 \@writefile{toc}{\contentsline {paragraph}{Out-of-distribution risk.}{5}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Relationship to total correlation.}{5}{section*.7}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Decomposition of the gap between unconditional surprise $\bar  {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar  {a}_1 - a_\infty $ splits into mutual information $I_k = \bar  {a}_1 - \bar  {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar  {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\mathrm  {TC}_n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar  {a}_1 - a_\infty $ to $\mathrm  {TC}_n$, so $\mathrm  {TC}_n$ grows linearly while $E$ converges. All quantities are in bits.}}{6}{figure.1}\protected@file@percent }
-\newlabel{fig:decomposition}{{1}{6}{Decomposition of the gap between unconditional surprise $\bar {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar {a}_1 - a_\infty $ splits into mutual information $I_k = \bar {a}_1 - \bar {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\TC _n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar {a}_1 - a_\infty $ to $\TC _n$, so $\TC _n$ grows linearly while $E$ converges. All quantities are in bits}{figure.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Relationship to total correlation.}{6}{section*.7}\protected@file@percent }
 \newlabel{eq:tc-decomp}{{12}{6}{Relationship to total correlation}{equation.12}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Per-Byte Excess Entropy Rate}{6}{subsection.4.2}\protected@file@percent }
 \newlabel{sec:per-byte-rate}{{4.2}{6}{Per-Byte Excess Entropy Rate}{subsection.4.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Decomposition of the gap between unconditional surprise $\bar  {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar  {a}_1 - a_\infty $ splits into mutual information $I_k = \bar  {a}_1 - \bar  {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar  {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\mathrm  {TC}_n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar  {a}_1 - a_\infty $ to $\mathrm  {TC}_n$, so $\mathrm  {TC}_n$ grows linearly while $E$ converges. All quantities are in bits.}}{7}{figure.caption.8}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:decomposition}{{1}{7}{Decomposition of the gap between unconditional surprise $\bar {a}_1$ and the asymptotic floor $a_\infty $ at each step $k$. The per-step gap $\bar {a}_1 - a_\infty $ splits into mutual information $I_k = \bar {a}_1 - \bar {a}_k$ (\textcolor {red!70}{red}, above the curve) and excess $e_k = \bar {a}_k - a_\infty $ (\textcolor {blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\TC _n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar {a}_1 - a_\infty $ to $\TC _n$, so $\TC _n$ grows linearly while $E$ converges. All quantities are in bits}{figure.caption.8}{}}
 \newlabel{eq:per-byte-E}{{15}{7}{Per-Byte Excess Entropy Rate}{equation.15}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}The Coherence Term}{7}{section.5}\protected@file@percent }
 \newlabel{sec:coherence}{{5}{7}{The Coherence Term}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Does Excess Entropy Already Handle Incoherence?}{7}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Definition}{7}{subsection.5.2}\protected@file@percent }
-\newlabel{eq:coherence}{{17}{7}{Definition}{equation.17}{}}
 \citation{crutchfield2003regularities}
-\@writefile{toc}{\contentsline {paragraph}{Distributional distance.}{8}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Note on comparability.}{8}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Definition}{8}{subsection.5.2}\protected@file@percent }
+\newlabel{eq:coherence}{{17}{8}{Definition}{equation.17}{}}
+\@writefile{toc}{\contentsline {paragraph}{Distributional distance.}{8}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Note on comparability.}{8}{section*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Why Not Weight Excess Entropy by Coherence?}{8}{subsection.5.3}\protected@file@percent }
 \newlabel{sec:why-not-weight}{{5.3}{8}{Why Not Weight Excess Entropy by Coherence?}{subsection.5.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {6}Reporting the Metric}{9}{section.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.1}The Curve Is the Metric}{9}{subsection.6.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.2}The $(E, C, \sigma _\ell )$ Triple}{9}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Scalar Summary: Plausibility-Weighted Structural Diversity}{9}{subsection.6.3}\protected@file@percent }
-\newlabel{sec:scalar}{{6.3}{9}{Scalar Summary: Plausibility-Weighted Structural Diversity}{subsection.6.3}{}}
-\newlabel{eq:D-total}{{20}{9}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.20}{}}
-\newlabel{eq:D}{{21}{9}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.21}{}}
-\@writefile{toc}{\contentsline {paragraph}{Typical range of $C$.}{10}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Limitations of the scalar summary.}{10}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Scalar Summary: Plausibility-Weighted Structural Diversity}{10}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:scalar}{{6.3}{10}{Scalar Summary: Plausibility-Weighted Structural Diversity}{subsection.6.3}{}}
+\newlabel{eq:D-total}{{20}{10}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.20}{}}
+\newlabel{eq:D}{{21}{10}{Scalar Summary: Plausibility-Weighted Structural Diversity}{equation.21}{}}
+\@writefile{toc}{\contentsline {paragraph}{Typical range of $C$.}{10}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations of the scalar summary.}{10}{section*.12}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Coherence Heterogeneity}{11}{subsection.6.4}\protected@file@percent }
 \newlabel{sec:coherence-hetero}{{6.4}{11}{Coherence Heterogeneity}{subsection.6.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{What to report.}{11}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Estimating Mode Count from the Curve}{11}{subsection.6.5}\protected@file@percent }
-\newlabel{sec:mode-count-from-curve}{{6.5}{11}{Estimating Mode Count from the Curve}{subsection.6.5}{}}
-\@writefile{toc}{\contentsline {paragraph}{Caveat: elbow detection requires $m$ comparable to $n$.}{12}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What to report.}{11}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Estimating Mode Count from the Curve}{12}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:mode-count-from-curve}{{6.5}{12}{Estimating Mode Count from the Curve}{subsection.6.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Caveat: elbow detection requires $m$ comparable to $n$.}{12}{section*.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Aggregation Across Prompts}{12}{subsection.6.6}\protected@file@percent }
 \newlabel{sec:aggregation}{{6.6}{12}{Aggregation Across Prompts}{subsection.6.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{Length-normalized aggregation.}{12}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Why not a ratio?}{12}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}What to Report}{12}{subsection.6.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Length-normalized aggregation.}{12}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why not a ratio?}{13}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}What to Report}{13}{subsection.6.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Practical Considerations}{13}{section.7}\protected@file@percent }
 \newlabel{sec:practical}{{7}{13}{Practical Considerations}{section.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Formatting the Conditioning Context}{13}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Base vs.\ instruction-tuned models.}{13}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.1.1}Dimension-Specific Prompt Structures}{13}{subsubsection.7.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Base vs.\ instruction-tuned models.}{13}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.1.1}Dimension-Specific Prompt Structures}{14}{subsubsection.7.1.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Computational Cost}{14}{subsection.7.2}\protected@file@percent }
 \newlabel{sec:cost}{{7.2}{14}{Computational Cost}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Dependence on Sample Ordering}{15}{subsection.7.3}\protected@file@percent }
 \newlabel{sec:ordering}{{7.3}{15}{Dependence on Sample Ordering}{subsection.7.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Choice of $n$}{15}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Detectable mode weight.}{15}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Detectable mode weight.}{15}{section*.18}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Ensembling Base Models}{15}{subsection.7.5}\protected@file@percent }
 \newlabel{sec:ensemble}{{7.5}{15}{Ensembling Base Models}{subsection.7.5}{}}
+\citation{radford2019language}
+\citation{yang2024qwen25}
+\@writefile{toc}{\contentsline {paragraph}{Tokenizer compatibility.}{16}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Fallback for incompatible tokenizers.}{16}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Experiments}{16}{section.8}\protected@file@percent }
+\newlabel{sec:experiments}{{8}{16}{Experiments}{section.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Experimental Setup}{16}{subsection.8.1}\protected@file@percent }
+\newlabel{sec:exp-setup}{{8.1}{16}{Experimental Setup}{subsection.8.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Scenario Validation}{16}{subsection.8.2}\protected@file@percent }
+\newlabel{sec:scenario-validation}{{8.2}{16}{Scenario Validation}{subsection.8.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Scenario validation metrics (mean $\pm $ std across 5 prompts). $E_{\mathrm  {rate}}$ is per-byte excess entropy, $C$ is coherence, $D$ is plausibility-weighted diversity, $\sigma _\ell $ is coherence spread. All computed with 100 permutations, $n=10$ responses.}}{17}{table.caption.22}\protected@file@percent }
+\newlabel{tab:scenarios}{{1}{17}{Scenario validation metrics (mean $\pm $ std across 5 prompts). $E_{\mathrm {rate}}$ is per-byte excess entropy, $C$ is coherence, $D$ is plausibility-weighted diversity, $\sigma _\ell $ is coherence spread. All computed with 100 permutations, $n=10$ responses}{table.caption.22}{}}
+\@writefile{toc}{\contentsline {paragraph}{Important caveat.}{17}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results.}{17}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Mode Count Scaling}{17}{subsection.8.3}\protected@file@percent }
+\newlabel{sec:mode-count-scaling}{{8.3}{17}{Mode Count Scaling}{subsection.8.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-32B (right). Shaded regions show $\pm 1$ standard deviation across 100 permutations. Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}}{18}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:scenario-curves}{{2}{18}{Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-32B (right). Shaded regions show $\pm 1$ standard deviation across 100 permutations. Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten}{figure.caption.24}{}}
+\@writefile{toc}{\contentsline {paragraph}{Key findings.}{18}{section*.27}\protected@file@percent }
+\newlabel{fig:ak-overlay}{{3a}{19}{$a_k$ curves fan out with increasing $m$}{figure.caption.25}{}}
+\newlabel{sub@fig:ak-overlay}{{a}{19}{$a_k$ curves fan out with increasing $m$}{figure.caption.25}{}}
+\newlabel{fig:metrics-vs-m}{{3b}{19}{Summary metrics vs.\ mode count $m$}{figure.caption.25}{}}
+\newlabel{sub@fig:metrics-vs-m}{{b}{19}{Summary metrics vs.\ mode count $m$}{figure.caption.25}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). Left: $a_k$ curves by mode count, showing progressively higher floors and slower convergence with more modes. Right: metric summaries. $E_{\mathrm  {fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat  {E}_n$ does not.}}{19}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:mode-count}{{3}{19}{Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). Left: $a_k$ curves by mode count, showing progressively higher floors and slower convergence with more modes. Right: metric summaries. $E_{\mathrm {fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat {E}_n$ does not}{figure.caption.25}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm  {fit}}$ is the sigmoid-extrapolated excess entropy (bits); $a_n$ is the mean floor at $k=20$; $\sigma _\ell $ is coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}}{19}{table.caption.26}\protected@file@percent }
+\newlabel{tab:mode-count}{{2}{19}{Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm {fit}}$ is the sigmoid-extrapolated excess entropy (bits); $a_n$ is the mean floor at $k=20$; $\sigma _\ell $ is coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap}{table.caption.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Cross-Mode Learning and Curve Shape}{19}{subsection.8.4}\protected@file@percent }
+\newlabel{sec:cross-mode-learning}{{8.4}{19}{Cross-Mode Learning and Curve Shape}{subsection.8.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Pairwise cross-mode surprise matrix.}{19}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results.}{19}{section*.31}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B). The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau---inconsistent with the sigmoidal prediction for high $m$ (see Section~\ref {sec:cross-mode-learning}).}}{20}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:fit-params}{{4}{20}{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B). The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau---inconsistent with the sigmoidal prediction for high $m$ (see Section~\ref {sec:cross-mode-learning})}{figure.caption.28}{}}
+\@writefile{toc}{\contentsline {paragraph}{The independent model fails.}{20}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Pairwise asymmetry.}{20}{section*.34}\protected@file@percent }
+\newlabel{fig:pairwise-qwen}{{5a}{21}{Qwen2.5-3B: positive off-diagonal}{figure.caption.30}{}}
+\newlabel{sub@fig:pairwise-qwen}{{a}{21}{Qwen2.5-3B: positive off-diagonal}{figure.caption.30}{}}
+\newlabel{fig:pairwise-gpt2}{{5b}{21}{GPT-2: negative off-diagonal}{figure.caption.30}{}}
+\newlabel{sub@fig:pairwise-gpt2}{{b}{21}{GPT-2: negative off-diagonal}{figure.caption.30}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Pairwise cross-mode surprise reduction matrices. Each cell $(i,j)$ shows how many bits of surprise reduction mode $i$ (target) receives from seeing mode $j$ (context). Qwen shows diagonal dominance with pervasive positive off-diagonal (+1.9 bits mean); GPT-2 shows diagonal dominance with negative off-diagonal ($-$3.7 bits mean).}}{21}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:pairwise-matrices}{{5}{21}{Pairwise cross-mode surprise reduction matrices. Each cell $(i,j)$ shows how many bits of surprise reduction mode $i$ (target) receives from seeing mode $j$ (context). Qwen shows diagonal dominance with pervasive positive off-diagonal (+1.9 bits mean); GPT-2 shows diagonal dominance with negative off-diagonal ($-$3.7 bits mean)}{figure.caption.30}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $10.6\times $, demonstrating that pairwise contributions are not additive---information saturates rapidly with context length.}}{21}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:predicted-observed}{{6}{21}{Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $10.6\times $, demonstrating that pairwise contributions are not additive---information saturates rapidly with context length}{figure.caption.33}{}}
+\@writefile{toc}{\contentsline {paragraph}{Connections to information-theoretic properties.}{21}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Token-level mechanisms.}{21}{section*.37}\protected@file@percent }
+\citation{tevet2020evaluating}
+\newlabel{fig:rowcol-qwen}{{7a}{22}{Qwen2.5-3B: slope = 0.84, $R^2 = 0.34$}{figure.caption.36}{}}
+\newlabel{sub@fig:rowcol-qwen}{{a}{22}{Qwen2.5-3B: slope = 0.84, $R^2 = 0.34$}{figure.caption.36}{}}
+\newlabel{fig:rowcol-gpt2}{{7b}{22}{GPT-2: slope = 0.35, $R^2 = 0.08$}{figure.caption.36}{}}
+\newlabel{sub@fig:rowcol-gpt2}{{b}{22}{GPT-2: slope = 0.35, $R^2 = 0.08$}{figure.caption.36}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Row mean (how informative as context) vs.\ column mean (how much benefit from context) for each mode. Qwen shows tighter correlation closer to the identity, consistent with approximate symmetry of mutual information. GPT-2 shows widespread violations of non-negative conditioning (modes in the negative-row-mean region).}}{22}{figure.caption.36}\protected@file@percent }
+\newlabel{fig:row-vs-col}{{7}{22}{Row mean (how informative as context) vs.\ column mean (how much benefit from context) for each mode. Qwen shows tighter correlation closer to the identity, consistent with approximate symmetry of mutual information. GPT-2 shows widespread violations of non-negative conditioning (modes in the negative-row-mean region)}{figure.caption.36}{}}
+\@writefile{toc}{\contentsline {paragraph}{Discussion.}{22}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Preliminary External Validation}{22}{subsection.8.5}\protected@file@percent }
+\newlabel{sec:tevet}{{8.5}{22}{Preliminary External Validation}{subsection.8.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Strong caveats.}{22}{section*.39}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Spearman rank correlation $\rho $ between metrics and ground-truth diversity labels on Tevet's diversity-eval (GPT-2, 50 permutations). $E$ shows negative correlations with diversity labels, while distinct-$n$ shows positive correlations. These results are preliminary---see caveats in text.}}{23}{table.caption.40}\protected@file@percent }
+\newlabel{tab:tevet}{{3}{23}{Spearman rank correlation $\rho $ between metrics and ground-truth diversity labels on Tevet's diversity-eval (GPT-2, 50 permutations). $E$ shows negative correlations with diversity labels, while distinct-$n$ shows positive correlations. These results are preliminary---see caveats in text}{table.caption.40}{}}
+\newlabel{fig:e-vs-temp}{{8a}{23}{$E$ decreases with temperature on DecTest}{figure.caption.42}{}}
+\newlabel{sub@fig:e-vs-temp}{{a}{23}{$E$ decreases with temperature on DecTest}{figure.caption.42}{}}
+\newlabel{fig:metric-corr}{{8b}{23}{$E$ is orthogonal to surface metrics}{figure.caption.42}{}}
+\newlabel{sub@fig:metric-corr}{{b}{23}{$E$ is orthogonal to surface metrics}{figure.caption.42}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces External validation on Tevet's diversity-eval with GPT-2. Left: $E$ decreases as sampling temperature increases---opposite to the expected direction for a diversity metric. Right: Pearson correlation between $E$ and distinct-$n$ is $-0.375$, confirming orthogonality.}}{23}{figure.caption.42}\protected@file@percent }
+\newlabel{fig:tevet}{{8}{23}{External validation on Tevet's diversity-eval with GPT-2. Left: $E$ decreases as sampling temperature increases---opposite to the expected direction for a diversity metric. Right: Pearson correlation between $E$ and distinct-$n$ is $-0.375$, confirming orthogonality}{figure.caption.42}{}}
+\@writefile{toc}{\contentsline {paragraph}{Results.}{23}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.6}Practical Findings}{23}{subsection.8.6}\protected@file@percent }
+\newlabel{sec:practical-findings}{{8.6}{23}{Practical Findings}{subsection.8.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Permutation sensitivity.}{23}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{BPE boundary artifacts.}{23}{section*.44}\protected@file@percent }
 \citation{crutchfield2003regularities}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.7}Discussion}{24}{subsection.8.7}\protected@file@percent }
+\newlabel{sec:exp-discussion}{{8.7}{24}{Discussion}{subsection.8.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{$\sigma _\ell $ is a diagnostic, not a diversity signal.}{24}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cross-mode learning is model-dependent.}{24}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sigmoid prediction partially supported.}{24}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{External validation is preliminary.}{24}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Related Concepts}{24}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Excess entropy.}{24}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Perplexity.}{24}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Total correlation.}{24}{section*.51}\protected@file@percent }
 \citation{lai2024llmmeans}
 \citation{zhang2024writingprompts}
-\@writefile{toc}{\contentsline {paragraph}{Tokenizer compatibility.}{16}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Fallback for incompatible tokenizers.}{16}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Related Concepts}{16}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Excess entropy.}{16}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Perplexity.}{16}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Total correlation.}{16}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Embedding-based diversity.}{16}{section*.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sampling diversity metrics.}{16}{section*.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}Relating the Sigmoid Inflection Point to Mode Count}{17}{appendix.A}\protected@file@percent }
-\newlabel{app:k0-derivation}{{A}{17}{Relating the Sigmoid Inflection Point to Mode Count}{appendix.A}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Setup}{17}{subsection.A.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}The Mode Discovery Crossover}{17}{subsection.A.2}\protected@file@percent }
-\newlabel{eq:kstar}{{31}{17}{The Mode Discovery Crossover}{equation.31}{}}
-\newlabel{eq:kstar-approx}{{32}{17}{The Mode Discovery Crossover}{equation.32}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Hypothesis: $k_0 \approx k^*$}{17}{subsection.A.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Embedding-based diversity.}{25}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sampling diversity metrics.}{25}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Relating the Sigmoid Inflection Point to Mode Count}{25}{appendix.A}\protected@file@percent }
+\newlabel{app:k0-derivation}{{A}{25}{Relating the Sigmoid Inflection Point to Mode Count}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Setup}{25}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}The Mode Discovery Crossover}{25}{subsection.A.2}\protected@file@percent }
+\newlabel{eq:kstar}{{31}{25}{The Mode Discovery Crossover}{equation.31}{}}
+\newlabel{eq:kstar-approx}{{32}{25}{The Mode Discovery Crossover}{equation.32}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Hypothesis: $k_0 \approx k^*$}{26}{subsection.A.3}\protected@file@percent }
+\newlabel{eq:k0-proportional}{{34}{26}{Hypothesis: \texorpdfstring {$k_0 \approx k^*$}{k0 approx k*}}{equation.34}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Mode Count Estimator}{26}{subsection.A.4}\protected@file@percent }
+\newlabel{eq:mode-count-estimator}{{35}{26}{Mode Count Estimator}{equation.35}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Non-Uniform Mode Weights}{26}{subsection.A.5}\protected@file@percent }
+\newlabel{eq:kstar-nonuniform}{{37}{26}{Non-Uniform Mode Weights}{equation.37}{}}
 \bibstyle{plainnat}
 \bibcite{crutchfield2003regularities}{{1}{2003}{{Crutchfield and Feldman}}{{}}}
-\newlabel{eq:k0-proportional}{{34}{18}{Hypothesis: \texorpdfstring {$k_0 \approx k^*$}{k0 approx k*}}{equation.34}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Mode Count Estimator}{18}{subsection.A.4}\protected@file@percent }
-\newlabel{eq:mode-count-estimator}{{35}{18}{Mode Count Estimator}{equation.35}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Non-Uniform Mode Weights}{18}{subsection.A.5}\protected@file@percent }
-\newlabel{eq:kstar-nonuniform}{{37}{18}{Non-Uniform Mode Weights}{equation.37}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Caveats}{18}{subsection.A.6}\protected@file@percent }
 \bibcite{lai2024llmmeans}{{2}{2024}{{Lai et al.}}{{}}}
-\bibcite{zhang2024writingprompts}{{3}{2024}{{Zhang et al.}}{{}}}
-\gdef \@abspage@last{19}
+\bibcite{radford2019language}{{3}{2019}{{Radford et al.}}{{}}}
+\bibcite{tevet2020evaluating}{{4}{2021}{{Tevet and Berant}}{{}}}
+\bibcite{yang2024qwen25}{{5}{2024}{{Yang et al.}}{{}}}
+\bibcite{zhang2024writingprompts}{{6}{2024}{{Zhang et al.}}{{}}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Caveats}{27}{subsection.A.6}\protected@file@percent }
+\gdef \@abspage@last{27}

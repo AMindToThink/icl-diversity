@@ -1,10 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.9)  11 MAR 2026 17:34
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.9)  13 MAR 2026 20:25
 entering extended mode
  restricted \write18 enabled.
- file:line:error style messages enabled.
  %&-line parsing enabled.
-**/Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper/in_context_diversity_metric.tex
-(/Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper/in_context_diversity_metric.tex
+**in_context_diversity_metric.tex
+(./in_context_diversity_metric.tex
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
 (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls
@@ -260,9 +259,7 @@ Package: enumitem 2025/02/06 v3.11 Customized lists
 \enit@inbox=\box55
 \enit@count@id=\count315
 \enitdp@description=\count316
-) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgfplots/pgfplots.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.revision.tex)
-Package: pgfplots 2025/08/14 v1.18.2 Data Visualization (1.18.2)
- (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphicx.sty
+) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphics.sty
 Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)
@@ -277,10 +274,36 @@ File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
 ))
 \Gin@req@height=\dimen184
 \Gin@req@width=\dimen185
-) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex
+) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/caption/subcaption.sty
+Package: subcaption 2023/07/28 v1.6b Sub-captions (AR)
+ (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2023/08/05 v3.6o Customizing captions (AR)
+ (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
+\caption@tempdima=\dimen186
+\captionmargin=\dimen187
+\caption@leftmargin=\dimen188
+\caption@rightmargin=\dimen189
+\caption@width=\dimen190
+\caption@indent=\dimen191
+\caption@parindent=\dimen192
+\caption@hangindent=\dimen193
+Package caption Info: Standard document class detected.
+)
+\c@caption@flags=\count317
+\c@continuedfloat=\count318
+Package caption Info: hyperref package is loaded.
+)
+Package caption Info: New subtype `subfigure' on input line 238.
+\c@subfigure=\count319
+Package caption Info: New subtype `subtable' on input line 238.
+\c@subtable=\count320
+) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgfplots/pgfplots.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.revision.tex)
+Package: pgfplots 2025/08/14 v1.18.2 Data Visualization (1.18.2)
+ (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex
 \pgfutil@everybye=\toks31
-\pgfutil@tempdima=\dimen186
-\pgfutil@tempdimb=\dimen187
+\pgfutil@tempdima=\dimen194
+\pgfutil@tempdimb=\dimen195
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def
 \pgfutil@abb=\box56
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfrcs.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/pgf.revision.tex)
@@ -295,26 +318,26 @@ Package: pgfsys 2025-08-29 v3.1.11a (3.1.11a)
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfkeyslibraryfiltered.code.tex
 \pgfkeys@tmptoks=\toks34
 ))
-\pgf@x=\dimen188
-\pgf@y=\dimen189
-\pgf@xa=\dimen190
-\pgf@ya=\dimen191
-\pgf@xb=\dimen192
-\pgf@yb=\dimen193
-\pgf@xc=\dimen194
-\pgf@yc=\dimen195
-\pgf@xd=\dimen196
-\pgf@yd=\dimen197
+\pgf@x=\dimen196
+\pgf@y=\dimen197
+\pgf@xa=\dimen198
+\pgf@ya=\dimen199
+\pgf@xb=\dimen256
+\pgf@yb=\dimen257
+\pgf@xc=\dimen258
+\pgf@yc=\dimen259
+\pgf@xd=\dimen260
+\pgf@yd=\dimen261
 \w@pgf@writea=\write3
 \r@pgf@reada=\read2
-\c@pgf@counta=\count317
-\c@pgf@countb=\count318
-\c@pgf@countc=\count319
-\c@pgf@countd=\count320
+\c@pgf@counta=\count321
+\c@pgf@countb=\count322
+\c@pgf@countc=\count323
+\c@pgf@countd=\count324
 \t@pgf@toka=\toks35
 \t@pgf@tokb=\toks36
 \t@pgf@tokc=\toks37
-\pgf@sys@id@count=\count321
+\pgf@sys@id@count=\count325
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg
 File: pgf.cfg 2025-08-29 v3.1.11a (3.1.11a)
 )
@@ -325,8 +348,8 @@ File: pgfsys-pdftex.def 2025-08-29 v3.1.11a (3.1.11a)
 File: pgfsys-common-pdf.def 2025-08-29 v3.1.11a (3.1.11a)
 ))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsyssoftpath.code.tex
 File: pgfsyssoftpath.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfsyssoftpath@smallbuffer@items=\count322
-\pgfsyssoftpath@bigbuffer@items=\count323
+\pgfsyssoftpath@smallbuffer@items=\count326
+\pgfsyssoftpath@bigbuffer@items=\count327
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsysprotocol.code.tex
 File: pgfsysprotocol.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 )) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/xcolor/xcolor.sty
@@ -348,52 +371,52 @@ Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcore.code.tex
 Package: pgfcore 2025-08-29 v3.1.11a (3.1.11a)
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathutil.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathparser.code.tex
-\pgfmath@dimen=\dimen198
-\pgfmath@count=\count324
+\pgfmath@dimen=\dimen262
+\pgfmath@count=\count328
 \pgfmath@box=\box57
 \pgfmath@toks=\toks38
 \pgfmath@stack@operand=\toks39
 \pgfmath@stack@operation=\toks40
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.basic.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.trigonometric.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.random.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.comparison.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.base.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.round.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.misc.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.integerarithmetics.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathcalc.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfloat.code.tex
-\c@pgfmathroundto@lastzeros=\count325
+\c@pgfmathroundto@lastzeros=\count329
 )) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfint.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepoints.code.tex
 File: pgfcorepoints.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@picminx=\dimen199
-\pgf@picmaxx=\dimen256
-\pgf@picminy=\dimen257
-\pgf@picmaxy=\dimen258
-\pgf@pathminx=\dimen259
-\pgf@pathmaxx=\dimen260
-\pgf@pathminy=\dimen261
-\pgf@pathmaxy=\dimen262
-\pgf@xx=\dimen263
-\pgf@xy=\dimen264
-\pgf@yx=\dimen265
-\pgf@yy=\dimen266
-\pgf@zx=\dimen267
-\pgf@zy=\dimen268
+\pgf@picminx=\dimen263
+\pgf@picmaxx=\dimen264
+\pgf@picminy=\dimen265
+\pgf@picmaxy=\dimen266
+\pgf@pathminx=\dimen267
+\pgf@pathmaxx=\dimen268
+\pgf@pathminy=\dimen269
+\pgf@pathmaxy=\dimen270
+\pgf@xx=\dimen271
+\pgf@xy=\dimen272
+\pgf@yx=\dimen273
+\pgf@yy=\dimen274
+\pgf@zx=\dimen275
+\pgf@zy=\dimen276
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathconstruct.code.tex
 File: pgfcorepathconstruct.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@path@lastx=\dimen269
-\pgf@path@lasty=\dimen270
+\pgf@path@lastx=\dimen277
+\pgf@path@lasty=\dimen278
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathusage.code.tex
 File: pgfcorepathusage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@shorten@end@additional=\dimen271
-\pgf@shorten@start@additional=\dimen272
+\pgf@shorten@end@additional=\dimen279
+\pgf@shorten@start@additional=\dimen280
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorescopes.code.tex
 File: pgfcorescopes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 \pgfpic=\box58
 \pgf@hbox=\box59
 \pgf@layerbox@main=\box60
-\pgf@picture@serial@count=\count326
+\pgf@picture@serial@count=\count330
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoregraphicstate.code.tex
 File: pgfcoregraphicstate.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgflinewidth=\dimen273
+\pgflinewidth=\dimen281
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransformations.code.tex
 File: pgfcoretransformations.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@pt@x=\dimen274
-\pgf@pt@y=\dimen275
-\pgf@pt@temp=\dimen276
+\pgf@pt@x=\dimen282
+\pgf@pt@y=\dimen283
+\pgf@pt@temp=\dimen284
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorequick.code.tex
 File: pgfcorequick.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreobjects.code.tex
@@ -402,12 +425,12 @@ File: pgfcoreobjects.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 File: pgfcorepathprocessing.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorearrows.code.tex
 File: pgfcorearrows.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfarrowsep=\dimen277
+\pgfarrowsep=\dimen285
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreshade.code.tex
 File: pgfcoreshade.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@max=\dimen278
-\pgf@sys@shading@range@num=\count327
-\pgf@shadingcount=\count328
+\pgf@max=\dimen286
+\pgf@sys@shading@range@num=\count331
+\pgf@shadingcount=\count332
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreimage.code.tex
 File: pgfcoreimage.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreexternal.code.tex
@@ -428,112 +451,112 @@ File: pgfmoduleshapes.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 File: pgfmoduleplot.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-0-65.sty
 Package: pgfcomp-version-0-65 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@nodesepstart=\dimen279
-\pgf@nodesepend=\dimen280
+\pgf@nodesepstart=\dimen287
+\pgf@nodesepend=\dimen288
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-1-18.sty
 Package: pgfcomp-version-1-18 2025-08-29 v3.1.11a (3.1.11a)
 )) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgffor.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgfkeys.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/pgf/math/pgfmath.sty (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgffor.code.tex
 Package: pgffor 2025-08-29 v3.1.11a (3.1.11a)
-\pgffor@iter=\dimen281
-\pgffor@skip=\dimen282
+\pgffor@iter=\dimen289
+\pgffor@skip=\dimen290
 \pgffor@stack=\toks41
 \pgffor@toks=\toks42
-)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex
+))
+(/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex
 Package: tikz 2025-08-29 v3.1.11a (3.1.11a)
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex
 File: pgflibraryplothandlers.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgf@plot@mark@count=\count329
-\pgfplotmarksize=\dimen283
+\pgf@plot@mark@count=\count333
+\pgfplotmarksize=\dimen291
 )
-\tikz@lastx=\dimen284
-\tikz@lasty=\dimen285
-\tikz@lastxsaved=\dimen286
-\tikz@lastysaved=\dimen287
-\tikz@lastmovetox=\dimen288
-\tikz@lastmovetoy=\dimen289
-\tikzleveldistance=\dimen290
-\tikzsiblingdistance=\dimen291
+\tikz@lastx=\dimen292
+\tikz@lasty=\dimen293
+\tikz@lastxsaved=\dimen294
+\tikz@lastysaved=\dimen295
+\tikz@lastmovetox=\dimen296
+\tikz@lastmovetoy=\dimen297
+\tikzleveldistance=\dimen298
+\tikzsiblingdistance=\dimen299
 \tikz@figbox=\box63
 \tikz@figbox@bg=\box64
 \tikz@tempbox=\box65
 \tikz@tempbox@bg=\box66
-\tikztreelevel=\count330
-\tikznumberofchildren=\count331
-\tikznumberofcurrentchild=\count332
-\tikz@fig@count=\count333
-
-(/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex
+\tikztreelevel=\count334
+\tikznumberofchildren=\count335
+\tikznumberofcurrentchild=\count336
+\tikz@fig@count=\count337
+ (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex
 File: pgfmodulematrix.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-\pgfmatrixcurrentrow=\count334
-\pgfmatrixcurrentcolumn=\count335
-\pgf@matrix@numberofcolumns=\count336
+\pgfmatrixcurrentrow=\count338
+\pgfmatrixcurrentcolumn=\count339
+\pgf@matrix@numberofcolumns=\count340
 )
-\tikz@expandcount=\count337
+\tikz@expandcount=\count341
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotscore.code.tex
 \t@pgfplots@toka=\toks43
 \t@pgfplots@tokb=\toks44
 \t@pgfplots@tokc=\toks45
-\pgfplots@tmpa=\dimen292
-\c@pgfplots@coordindex=\count338
-\c@pgfplots@scanlineindex=\count339
+\pgfplots@tmpa=\dimen300
+\c@pgfplots@coordindex=\count342
+\c@pgfplots@scanlineindex=\count343
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/sys/pgfplotssysgeneric.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/libs/pgfplotslibrary.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/oldpgfcompatib/pgfplotsoldpgfsupp_loader.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryfpu.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/oldpgfcompatib/pgfplotsoldpgfsupp_pgfutil-common-lists.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotsutil.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/liststructure/pgfplotsliststructure.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/liststructure/pgfplotsliststructureext.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/liststructure/pgfplotsarray.code.tex
-\c@pgfplotsarray@tmp=\count340
+\c@pgfplotsarray@tmp=\count344
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/liststructure/pgfplotsmatrix.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/numtable/pgfplotstableshared.code.tex
-\c@pgfplotstable@counta=\count341
+\c@pgfplotstable@counta=\count345
 \t@pgfplotstable@a=\toks46
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/liststructure/pgfplotsdeque.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotsbinary.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotsbinary.data.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotsutil.verb.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/libs/pgflibrarypgfplots.surfshading.code.tex
-\c@pgfplotslibrarysurf@no=\count342
+\c@pgfplotslibrarysurf@no=\count346
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/sys/pgflibrarypgfplots.surfshading.pgfsys-pdftex.def))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotscolormap.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/util/pgfplotscolor.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotsstackedplots.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotsplothandlers.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotsmeshplothandler.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotsmeshplotimage.code.tex))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.scaling.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotscoordprocessing.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.errorbars.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.markers.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplotsticks.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfplots.paths.code.tex) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarydecorations.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmoduledecorations.code.tex
-\pgfdecoratedcompleteddistance=\dimen293
-\pgfdecoratedremainingdistance=\dimen294
-\pgfdecoratedinputsegmentcompleteddistance=\dimen295
-\pgfdecoratedinputsegmentremainingdistance=\dimen296
-\pgf@decorate@distancetomove=\dimen297
-\pgf@decorate@repeatstate=\count343
-\pgfdecorationsegmentamplitude=\dimen298
-\pgfdecorationsegmentlength=\dimen299
+\pgfdecoratedcompleteddistance=\dimen301
+\pgfdecoratedremainingdistance=\dimen302
+\pgfdecoratedinputsegmentcompleteddistance=\dimen303
+\pgfdecoratedinputsegmentremainingdistance=\dimen304
+\pgf@decorate@distancetomove=\dimen305
+\pgf@decorate@repeatstate=\count347
+\pgfdecorationsegmentamplitude=\dimen306
+\pgfdecorationsegmentlength=\dimen307
 )
 \tikz@lib@dec@box=\box67
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarydecorations.pathmorphing.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/decorations/pgflibrarydecorations.pathmorphing.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarydecorations.pathreplacing.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/decorations/pgflibrarydecorations.pathreplacing.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/libs/tikzlibrarypgfplots.contourlua.code.tex)
-\pgfplots@numplots=\count344
-\pgfplots@xmin@reg=\dimen300
-\pgfplots@xmax@reg=\dimen301
-\pgfplots@ymin@reg=\dimen302
-\pgfplots@ymax@reg=\dimen303
-\pgfplots@zmin@reg=\dimen304
-\pgfplots@zmax@reg=\dimen305
+\pgfplots@numplots=\count348
+\pgfplots@xmin@reg=\dimen308
+\pgfplots@xmax@reg=\dimen309
+\pgfplots@ymin@reg=\dimen310
+\pgfplots@ymax@reg=\dimen311
+\pgfplots@zmin@reg=\dimen312
+\pgfplots@zmax@reg=\dimen313
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryplotmarks.code.tex
 File: tikzlibraryplotmarks.code.tex 2025-08-29 v3.1.11a (3.1.11a)
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryplotmarks.code.tex
 File: pgflibraryplotmarks.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/libs/tikzlibrarypgfplots.fillbetween.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfcontrib/tikzlibraryfillbetween.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryintersections.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryintersections.code.tex
-\pgf@intersect@solutions=\count345
+\pgf@intersect@solutions=\count349
 )) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfcontrib/tikzlibrarydecorations.softclip.code.tex (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/pgfcontrib/pgflibraryfillbetween.code.tex))) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/generic/pgfplots/libs/tikzlibrarypgfplots.decorations.softclip.code.tex)) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count346
+\l__color_backend_stack_int=\count350
 ) (./in_context_diversity_metric.aux)
 \openout1 = `in_context_diversity_metric.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 22.
-LaTeX Font Info:    ... okay on input line 22.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -569,23 +592,23 @@ LaTeX Font Info:    ... okay on input line 22.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 22.
+Package hyperref Info: Link coloring OFF on input line 25.
 (./in_context_diversity_metric.out) (./in_context_diversity_metric.out)
 \@outlinefile=\write4
 \openout4 = `in_context_diversity_metric.out'.
 
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count347
-\scratchdimen=\dimen306
+\scratchcounter=\count351
+\scratchdimen=\dimen314
 \scratchbox=\box68
-\nofMPsegments=\count348
-\nofMParguments=\count349
+\nofMPsegments=\count352
+\nofMParguments=\count353
 \everyMPshowfont=\toks47
-\MPscratchCnt=\count350
-\MPscratchDim=\dimen307
-\MPnumerator=\count351
-\makeMPintoPDFobject=\count352
+\MPscratchCnt=\count354
+\MPscratchDim=\dimen315
+\MPnumerator=\count355
+\makeMPintoPDFobject=\count356
 \everyMPtoPDFconversion=\toks48
 ) (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -593,24 +616,27 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
+
 Package pgfplots notification 'compat/show suggested version=true': document has been generated with the most recent feature set (\pgfplotsset{compat=1.18}).
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 24.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 27.
 (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 24.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 27.
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
 {/Users/matthew.khoriaty/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Overfull \hbox (1.43013pt too wide) in paragraph at lines 46--47
+Overfull \hbox (1.43013pt too wide) in paragraph at lines 49--50
 []$\OML/cmm/m/it/10.95 ^^R$ \OT1/cmr/m/n/10.95 be a trusted base model with white-box ac-cess (we can com-pute token-level log-probabilities), 
  []
 
 [2{/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [3] [4] [5]
-Package pgfplots info on input line 239: fill between: activating layered graphics
+Package pgfplots info on input line 242: fill between: activating layered graphics
 \pgf@layerbox@axis background=\box69
 \pgf@layerboxsaved@axis background=\box70
 \pgf@layerbox@axis grid=\box71
@@ -627,47 +653,114 @@ Package pgfplots info on input line 239: fill between: activating layered graphi
 \pgf@layerboxsaved@axis descriptions=\box82
 \pgf@layerbox@axis foreground=\box83
 \pgf@layerboxsaved@axis foreground=\box84
-Package pgfplots info on input line 239: Setting layers 'axis background,axis grid,axis ticks,axis lines,axis tick labels,pre main,main,axis descriptions,axis foreground'...
+Package pgfplots info on input line 242: Setting layers 'axis background,axis grid,axis ticks,axis lines,axis tick labels,pre main,main,axis descriptions,axis foreground'...
 
-Overfull \hbox (10.22061pt too wide) in paragraph at lines 249--250
+Overfull \hbox (10.22061pt too wide) in paragraph at lines 252--253
 []\OT1/cmr/m/n/10.95 For a sin-gle per-mu-ta-tion $\OML/cmm/m/it/10.95 ^^[$\OT1/cmr/m/n/10.95 , the per-byte con-di-tional sur-prise at po-si-tion $\OML/cmm/m/it/10.95 k$ \OT1/cmr/m/n/10.95 is $\OML/cmm/m/it/10.95 a[]=\OMS/cmsy/m/n/10.95 k\OML/cmm/m/it/10.95 r[]\OMS/cmsy/m/n/10.95 k$ \OT1/cmr/m/n/10.95 (bits/byte).
  []
 
 [6] [7] [8] [9] [10] [11] [12] [13] [14]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 499.
+(hyperref)                removing `math shift' on input line 502.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 499.
+(hyperref)                removing `math shift' on input line 502.
 
-[15]
-Overfull \hbox (16.32857pt too wide) in paragraph at lines 529--530
+[15] [16]
+<../figures/comparison_v2/comparison_ak_curves_all.png, id=389, 994.4352pt x 1433.8368pt>
+File: ../figures/comparison_v2/comparison_ak_curves_all.png Graphic file (type png)
+<use ../figures/comparison_v2/comparison_ak_curves_all.png>
+Package pdftex.def Info: ../figures/comparison_v2/comparison_ak_curves_all.png  used on input line 574.
+(pdftex.def)             Requested size: 180.43213pt x 260.15794pt.
+<../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png, id=391, 711.1368pt x 422.5386pt>
+File: ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png Graphic file (type png)
+<use ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png>
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png  used on input line 592.
+(pdftex.def)             Requested size: 225.4804pt x 133.97076pt.
+<../figures/mode_count/qwen2.5-3b/metrics_vs_m.png, id=392, 1436.2458pt x 711.1368pt>
+File: ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png Graphic file (type png)
+<use ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png>
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png  used on input line 598.
+(pdftex.def)             Requested size: 225.4804pt x 111.6357pt.
+ [17]
+<../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png, id=409, 863.3856pt x 640.3122pt>
+File: ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png Graphic file (type png)
+<use ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png>
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png  used on input line 637.
+(pdftex.def)             Requested size: 328.82707pt x 243.8683pt.
+ [18 <../figures/comparison_v2/comparison_ak_curves_all.png>]
+<../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png, id=423, 1871.3112pt x 569.0058pt>
+File: ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png  used on input line 653.
+(pdftex.def)             Requested size: 225.4804pt x 68.55557pt.
+<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png, id=424, 1871.3112pt x 569.0058pt>
+File: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png  used on input line 659.
+(pdftex.def)             Requested size: 225.4804pt x 68.55557pt.
+ [19 <../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png> <../figures/mode_count/qwen2.5-3b/metrics_vs_m.png>]
+<../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png, id=437, 1291.224pt x 422.0568pt>
+File: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png  used on input line 683.
+(pdftex.def)             Requested size: 281.85587pt x 92.12505pt.
+ [20 <../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png>]
+<../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png, id=447, 438.9198pt x 569.0058pt>
+File: ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png  used on input line 700.
+(pdftex.def)             Requested size: 225.4804pt x 292.3076pt.
+<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png, id=448, 566.5968pt x 561.7788pt>
+File: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png  used on input line 706.
+(pdftex.def)             Requested size: 225.4804pt x 223.55888pt.
+ [21 <../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png>] [22 <../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png>]
+<../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png, id=476, 1293.1512pt x 356.532pt>
+File: ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png Graphic file (type png)
+<use ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png>
+Package pdftex.def Info: ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png  used on input line 754.
+(pdftex.def)             Requested size: 225.4804pt x 62.16554pt.
+<../figures/tevet_validation/metric_correlations_gpt2.png, id=477, 859.5312pt x 356.532pt>
+File: ../figures/tevet_validation/metric_correlations_gpt2.png Graphic file (type png)
+<use ../figures/tevet_validation/metric_correlations_gpt2.png>
+Package pdftex.def Info: ../figures/tevet_validation/metric_correlations_gpt2.png  used on input line 760.
+(pdftex.def)             Requested size: 225.4804pt x 93.52847pt.
+LaTeX Font Info:    Trying to load font information for OMS+cmr on input line 774.
+ (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 2024/11/19 v2.5n Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 774.
+ [23 <../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png> <../figures/tevet_validation/metric_correlations_gpt2.png>] [24]
+Overfull \hbox (16.32857pt too wide) in paragraph at lines 794--795
  []\OT1/cmr/bx/n/10.95 Embedding-based di-ver-sity.[] \OT1/cmr/m/n/10.95 Prior work uses em-bed-ding dis-tances or clus-ter-ing (e.g., $\OML/cmm/m/it/10.95 k$\OT1/cmr/m/n/10.95 -LLMmeans
  []
 
-[16] [17] [18] [19] (./in_context_diversity_metric.aux)
+[25] [26] [27] (./in_context_diversity_metric.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `in_context_diversity_metric.out' has not changed.
-(rerunfilecheck)             Checksum: DE61F24D70569CC7037CEBC17B8F94E4;6848.
+(rerunfilecheck)             Checksum: BFB9B9EF56DFC4F392517F2B084ECDFF;8131.
  ) 
 Here is how much of TeX's memory you used:
- 32583 strings out of 469472
- 770371 string characters out of 5466767
- 1292777 words of memory out of 5000000
- 60602 multiletter control sequences out of 15000+600000
- 640531 words of font info for 89 fonts, out of 8000000 for 9000
+ 34241 strings out of 469472
+ 806607 string characters out of 5466767
+ 1317536 words of memory out of 5000000
+ 62193 multiletter control sequences out of 15000+600000
+ 640698 words of font info for 90 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 99i,16n,118p,1654b,2167s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on in_context_diversity_metric.pdf (19 pages, 414100 bytes).
+ 99i,16n,118p,1803b,2185s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
+Output written on in_context_diversity_metric.pdf (27 pages, 6401428 bytes).
 PDF statistics:
- 536 PDF objects out of 1000 (max. 8388607)
- 452 compressed objects within 5 object streams
- 140 named destinations out of 1000 (max. 500000)
- 301 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 709 PDF objects out of 1000 (max. 8388607)
+ 591 compressed objects within 6 object streams
+ 195 named destinations out of 1000 (max. 500000)
+ 420 words of extra memory for PDF output out of 10000 (max. 10000000)
 
