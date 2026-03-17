@@ -1,0 +1,1 @@
+I would like a full plot with 15x15 = 225 pairs to accompany the pairwise_row_vs_col.png. The existing pairwise_row_vs_col.png aggregates, but seeing the (weather report informativeness towards haiku, haiku informativeness towards weather) pairs plotted would be interesting. 
