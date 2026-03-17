@@ -1,8 +1,8 @@
-PWD /Users/matthew.khoriaty/Desktop/research/era/steering_diversity/icl-diversity/paper
+PWD /Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf.cnf
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/web2c/texmf.cnf
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/matthew.khoriaty/Desktop/research/era/steering_diversity/icl-diversity/paper/in_context_diversity_metric.tex
+INPUT /Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper/in_context_diversity_metric.tex
 OUTPUT in_context_diversity_metric.log
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls
 INPUT /Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls
