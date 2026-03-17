@@ -78,7 +78,7 @@ The natural starting point is the mutual information between two responses. For 
 
 Note the distinction from mutual information proper: $I_\theta(R_1; R_2 \mid p) = \E_{r_1, r_2 \sim \pi}[\pmi_\theta(r_1; r_2 \mid p)]$. PMI for a single pair can be negative, unlike MI. With $n$ samples, the average of $\binom{n}{2}$ pairwise PMI values estimates MI.
 
-\paragraph{Asymmetry.} PMI is symmetric under the true joint distribution, but the quantity above is computed via autoregressive conditioning: $\theta(r_1 \mid r_2, p)$ places $r_2$ before $r_1$ in context, and there is no guarantee that swapping the order yields the same value. The asymmetry $\pmi_\theta(r_1; r_2 \mid p) \neq \pmi_\theta(r_2; r_1 \mid p)$ is an artifact of $\theta$'s context-order sensitivity. One could symmetrize by averaging both orderings, at the cost of doubling the computation. Since the progressive conditional surprise framework (Section~3.3) commits to a single ordering anyway and does not rely on pairwise PMI, this asymmetry does not affect our final metric, but it illustrates why pairwise approaches are less natural than sequential conditioning for autoregressive models.
+\paragraph{Asymmetry.} PMI is symmetric under the true joint distribution, but the quantity above is computed via autoregressive conditioning: $\theta(r_1 \mid r_2, p)$ places $r_2$ before $r_1$ in context, and there is no guarantee that swapping the order yields the same value. The asymmetry $\pmi_\theta(r_1; r_2 \mid p) \neq \pmi_\theta(r_2; r_1 \mid p)$ is an artifact of $\theta$'s context-order sensitivity. One could symmetrize by averaging both orderings, at the cost of doubling the computation. The progressive conditional surprise framework (Section~3.3) relies on permutations of the $n$ responses to alleviate this asymmetry.
 
 \subsection{The Coherence Problem}\label{sec:coherence-problem}
 
@@ -88,11 +88,11 @@ Low MI (or low average PMI) means responses are approximately statistically inde
     \item \textbf{Random/incoherent}: $\pi$ produces noise; each sample is improbable under $\theta$ but trivially independent.
 \end{enumerate}
 
-Both yield $\pmi \approx 0$. The distinguishing signal lies in the marginal $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
+Both yield $\pmi \approx 0$. The distinguishing signal lies in the probability $\theta$ puts on the response without seeing other responses, $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
-Rather than all-pairs PMI (which costs $O(n^2)$ forward passes), we use the chain rule of mutual information. Define:
+Rather than all-pairs PMI (a metric which cannot notice the 'low diversity' case when a response is a mix of other two), we use the chain rule of mutual information. Define:
 \begin{equation}\label{eq:ak}
     a_k = -\log_2 \theta(r_k \mid r_{<k}, p) \quad \text{for } k = 1, \ldots, n
 \end{equation}

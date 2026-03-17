@@ -1,4 +1,5 @@
 # Fdb version 4
+<<<<<<< HEAD
 ["pdflatex"] 1773433365.92977 "/Users/matthew.khoriaty/Desktop/research/era/steering_diversity/icl-diversity/paper/in_context_diversity_metric.tex" "in_context_diversity_metric.pdf" "in_context_diversity_metric" 1773433369.88103 0
   "../figures/comparison_v2/comparison_ak_curves_all.png" 1773404814.33706 4073033 80b3626f3d75bd2ef463dbd8ad1bfcd6 ""
   "../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png" 1773404814.35159 388769 845026b1e41d5d03fdb1acb53db47c44 ""
@@ -12,6 +13,10 @@
   "../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png" 1773404814.38579 99753 e2d17a1bddafe2883f579f22e6bcb24e ""
   "../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png" 1773404814.38723 263597 dbbf3133836c6343709e66e9a5436d41 ""
   "/Users/matthew.khoriaty/Desktop/research/era/steering_diversity/icl-diversity/paper/in_context_diversity_metric.tex" 1773433361.6896 91529 f77436bd41bf19ace63ab9c4beb16a8d ""
+=======
+["pdflatex"] 1773757176.02936 "/Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper/in_context_diversity_metric.tex" "in_context_diversity_metric.pdf" "in_context_diversity_metric" 1773757176.88379 0
+  "/Users/matthew.khoriaty/Desktop/research/era/icl_diversity/paper/in_context_diversity_metric.tex" 1773757175.81749 66454 4cd3347f4fb564983d5590167688ea7c ""
+>>>>>>> 92c9e12 (Touching up first 2.5 pages)
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm" 1136768653 1536 02c06700a42be0f5a28664c7273f82e7 ""
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -249,9 +254,15 @@
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1773060549 326118 9935cfe1152dced53800fc27ea3df562 ""
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1773060634 2286226 6df0e30d7754aadacbe2c71ad4383e64 ""
   "/Users/matthew.khoriaty/Library/TinyTeX/texmf.cnf" 1764041583 637 edd806fb06a89761a6034e1968af9017 ""
+<<<<<<< HEAD
   "in_context_diversity_metric.aux" 1773433369.77621 25388 667b000b4e0acf54546411e09d4f0cb9 "pdflatex"
   "in_context_diversity_metric.out" 1773433369.77828 8131 bfb9b9ef56dfc4f392517f2b084ecdff "pdflatex"
   "in_context_diversity_metric.tex" 1773433361.6896 91529 f77436bd41bf19ace63ab9c4beb16a8d ""
+=======
+  "in_context_diversity_metric.aux" 1773757176.78729 12088 de295d153f3d1bb645b88f7b61349fd1 "pdflatex"
+  "in_context_diversity_metric.out" 1773757176.7884 6848 de61f24d70569cc7037cebc17b8f94e4 "pdflatex"
+  "in_context_diversity_metric.tex" 1773757175.81749 66454 4cd3347f4fb564983d5590167688ea7c ""
+>>>>>>> 92c9e12 (Touching up first 2.5 pages)
   (generated)
   "in_context_diversity_metric.aux"
   "in_context_diversity_metric.log"
