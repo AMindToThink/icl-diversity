@@ -1,0 +1,122 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        code_path: code/scripts/run_mode_count_experiment.py
+        e:
+            t0une6nj8f18nz3o2dr9qvg4vww6qdq7:
+                args:
+                    - --mode-counts
+                    - "1"
+                    - "2"
+                    - "3"
+                    - "4"
+                    - "5"
+                    - "6"
+                    - "7"
+                    - "8"
+                    - "9"
+                    - "10"
+                    - --n-responses
+                    - "20"
+                    - --n-draws
+                    - "1000"
+                    - --base-model
+                    - Qwen/Qwen2.5-3B
+                    - --device
+                    - cuda:1
+                    - --torch-dtype
+                    - float16
+                    - --batch-size
+                    - "32"
+                    - --gpu-memory-fraction
+                    - "0.90"
+                    - --wandb
+                    - --output
+                    - results/mode_count/qwen2.5-3b_1k_draws.json
+                codePath: scripts/run_mode_count_experiment.py
+                codePathLocal: scripts/run_mode_count_experiment.py
+                cpu_count: 16
+                cpu_count_logical: 16
+                cudaVersion: "12.9"
+                disk:
+                    /:
+                        total: "2106063220736"
+                        used: "2086096023552"
+                email: matthewkhoriaty@gmail.com
+                executable: /home/cs29824/matthew/icl-diversity/.venv/bin/python3
+                git:
+                    commit: 56f4ecb5e3d8a77fe6a9c00a9a1c93a66285f75f
+                    remote: https://github.com/AMindToThink/icl-diversity.git
+                gpu: Quadro RTX 8000
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 4608
+                      memoryTotal: "48318382080"
+                      name: Quadro RTX 8000
+                      uuid: GPU-0f30e6ab-fd4f-01e6-b206-66f6e6256412
+                    - architecture: Turing
+                      cudaCores: 4608
+                      memoryTotal: "48318382080"
+                      name: Quadro RTX 8000
+                      uuid: GPU-1e33d333-a725-f74a-6c4c-368b138d1876
+                host: sting-vm-1
+                memory:
+                    total: "135079645184"
+                os: Linux-5.19.0-1010-nvidia-lowlatency-x86_64-with-glibc2.35
+                program: /home/cs29824/matthew/icl-diversity/scripts/run_mode_count_experiment.py
+                python: CPython 3.10.12
+                root: /home/cs29824/matthew/icl-diversity
+                startedAt: "2026-03-11T00:43:48.576609Z"
+                writerId: t0une6nj8f18nz3o2dr9qvg4vww6qdq7
+        m: []
+        python_version: 3.10.12
+        t:
+            "1":
+                - 1
+                - 11
+                - 49
+                - 71
+                - 95
+            "2":
+                - 1
+                - 11
+                - 49
+                - 71
+                - 95
+            "3":
+                - 2
+                - 16
+            "4": 3.10.12
+            "5": 0.25.0
+            "6": 5.3.0
+            "12": 0.25.0
+            "13": linux-x86_64
+base_model:
+    value: Qwen/Qwen2.5-3B
+batch_size:
+    value: 32
+device:
+    value: cuda:1
+experiment:
+    value: mode_count
+gpu_memory_fraction:
+    value: 0.9
+mode_counts:
+    value:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+n_draws:
+    value: 1000
+n_responses:
+    value: 20
+provider:
+    value: local

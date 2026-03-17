@@ -1,0 +1,24 @@
+2026-03-10 17:40:20,191 INFO    MainThread:2543124 [wandb_setup.py:_flush():81] Current SDK version is 0.25.0
+2026-03-10 17:40:20,191 INFO    MainThread:2543124 [wandb_setup.py:_flush():81] Configure stats pid to 2543124
+2026-03-10 17:40:20,191 INFO    MainThread:2543124 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-03-10 17:40:20,191 INFO    MainThread:2543124 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/cs29824/matthew/icl-diversity/wandb/run-20260310_174020-rx8w7r97/logs/debug.log
+2026-03-10 17:40:20,192 INFO    MainThread:2543124 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/cs29824/matthew/icl-diversity/wandb/run-20260310_174020-rx8w7r97/logs/debug-internal.log
+2026-03-10 17:40:20,192 INFO    MainThread:2543124 [wandb_init.py:init():844] calling init triggers
+2026-03-10 17:40:20,192 INFO    MainThread:2543124 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'experiment': 'mode_count', 'base_model': 'gpt2', 'mode_counts': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'n_responses': 12, 'n_draws': 1000, 'batch_size': 32, 'device': 'cuda:1', 'gpu_memory_fraction': 0.15, '_wandb': {'code_path': 'code/scripts/run_mode_count_experiment.py'}}
+2026-03-10 17:40:20,192 INFO    MainThread:2543124 [wandb_init.py:init():892] starting backend
+2026-03-10 17:40:20,472 INFO    MainThread:2543124 [wandb_init.py:init():895] sending inform_init request
+2026-03-10 17:40:20,480 INFO    MainThread:2543124 [wandb_init.py:init():903] backend started and connected
+2026-03-10 17:40:20,482 INFO    MainThread:2543124 [wandb_init.py:init():973] updated telemetry
+2026-03-10 17:40:20,488 INFO    MainThread:2543124 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-03-10 17:40:21,339 INFO    MainThread:2543124 [wandb_init.py:init():1042] starting run threads in backend
+2026-03-10 17:40:21,437 INFO    MainThread:2543124 [wandb_run.py:_console_start():2524] atexit reg
+2026-03-10 17:40:21,438 INFO    MainThread:2543124 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-03-10 17:40:21,438 INFO    MainThread:2543124 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-03-10 17:40:21,438 INFO    MainThread:2543124 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-03-10 17:40:21,446 INFO    MainThread:2543124 [wandb_init.py:init():1082] run started, returning control to user process
+2026-03-10 17:50:03,593 INFO    MainThread:2543124 [wandb_run.py:_finish():2291] finishing run matthewkhoriaty-northwestern-university/icl-diversity/rx8w7r97
+2026-03-10 17:50:03,594 INFO    MainThread:2543124 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-03-10 17:50:03,594 INFO    MainThread:2543124 [wandb_run.py:_restore():2472] restore
+2026-03-10 17:50:03,594 INFO    MainThread:2543124 [wandb_run.py:_restore():2478] restore done
+2026-03-10 17:50:04,968 INFO    MainThread:2543124 [wandb_run.py:_footer_sync_info():3868] logging synced files

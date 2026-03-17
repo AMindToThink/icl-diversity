@@ -1,0 +1,77 @@
+{
+  "os":  "Linux-5.19.0-1010-nvidia-lowlatency-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.12",
+  "startedAt":  "2026-03-11T00:43:48.576609Z",
+  "args":  [
+    "--mode-counts",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "--n-responses",
+    "20",
+    "--n-draws",
+    "1000",
+    "--base-model",
+    "Qwen/Qwen2.5-3B",
+    "--device",
+    "cuda:1",
+    "--torch-dtype",
+    "float16",
+    "--batch-size",
+    "32",
+    "--gpu-memory-fraction",
+    "0.90",
+    "--wandb",
+    "--output",
+    "results/mode_count/qwen2.5-3b_1k_draws.json"
+  ],
+  "program":  "/home/cs29824/matthew/icl-diversity/scripts/run_mode_count_experiment.py",
+  "codePath":  "scripts/run_mode_count_experiment.py",
+  "codePathLocal":  "scripts/run_mode_count_experiment.py",
+  "git":  {
+    "remote":  "https://github.com/AMindToThink/icl-diversity.git",
+    "commit":  "56f4ecb5e3d8a77fe6a9c00a9a1c93a66285f75f"
+  },
+  "email":  "matthewkhoriaty@gmail.com",
+  "root":  "/home/cs29824/matthew/icl-diversity",
+  "host":  "sting-vm-1",
+  "executable":  "/home/cs29824/matthew/icl-diversity/.venv/bin/python3",
+  "cpu_count":  16,
+  "cpu_count_logical":  16,
+  "gpu":  "Quadro RTX 8000",
+  "gpu_count":  2,
+  "disk":  {
+    "/":  {
+      "total":  "2106063220736",
+      "used":  "2086096023552"
+    }
+  },
+  "memory":  {
+    "total":  "135079645184"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "48318382080",
+      "cudaCores":  4608,
+      "architecture":  "Turing",
+      "uuid":  "GPU-0f30e6ab-fd4f-01e6-b206-66f6e6256412"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "48318382080",
+      "cudaCores":  4608,
+      "architecture":  "Turing",
+      "uuid":  "GPU-1e33d333-a725-f74a-6c4c-368b138d1876"
+    }
+  ],
+  "cudaVersion":  "12.9",
+  "writerId":  "t0une6nj8f18nz3o2dr9qvg4vww6qdq7"
+}

@@ -1,0 +1,13 @@
+{"time":"2026-03-11T00:43:48.80697108Z","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-11T00:43:48.981943697Z","level":"INFO","msg":"stream: created new stream","id":"3f7vt0xe"}
+{"time":"2026-03-11T00:43:48.982243422Z","level":"INFO","msg":"stream: started","id":"3f7vt0xe"}
+{"time":"2026-03-11T00:43:48.982225665Z","level":"INFO","msg":"handler: started","stream_id":"3f7vt0xe"}
+{"time":"2026-03-11T00:43:48.982360839Z","level":"INFO","msg":"writer: started","stream_id":"3f7vt0xe"}
+{"time":"2026-03-11T00:43:48.982373127Z","level":"INFO","msg":"sender: started","stream_id":"3f7vt0xe"}
+{"time":"2026-03-11T01:37:03.74747075Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-03-11T01:37:03.888818975Z","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-03-11T01:37:03.896576545Z","level":"INFO","msg":"stream: closing","id":"3f7vt0xe"}
+{"time":"2026-03-11T01:37:03.896592203Z","level":"INFO","msg":"handler: closed","stream_id":"3f7vt0xe"}
+{"time":"2026-03-11T01:37:03.896661671Z","level":"INFO","msg":"sender: closed","stream_id":"3f7vt0xe"}
+{"time":"2026-03-11T01:37:03.896683926Z","level":"INFO","msg":"stream: closed","id":"3f7vt0xe"}
+{"time":"2026-03-11T01:37:03.896627568Z","level":"WARN","msg":"runwork: ignoring record after close","work":{"Work":{"Record":{"RecordType":{"Exit":{"exit_code":1}},"control":{"always_send":true}}},"TBHandler":{}}}

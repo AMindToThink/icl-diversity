@@ -1,0 +1,18 @@
+Loading gpt2 (dtype=None, device=cuda:1)...
+Loading weights: 100%|██████████| 148/148 [00:00<00:00, 5553.03it/s]
+Model max context length: 1024 tokens
+  m=  1, n= 12, ~  526 tokens (worst-case) — OK
+  m=  2, n= 12, ~  659 tokens (worst-case) — OK
+  m=  3, n= 12, ~  589 tokens (worst-case) — OK
+  m=  4, n= 12, ~  601 tokens (worst-case) — OK
+  m=  5, n= 12, ~  531 tokens (worst-case) — OK
+  m=  6, n= 12, ~  538 tokens (worst-case) — OK
+  m=  7, n= 12, ~  507 tokens (worst-case) — OK
+  m=  8, n= 12, ~  506 tokens (worst-case) — OK
+  m=  9, n= 12, ~  490 tokens (worst-case) — OK
+  m= 10, n= 12, ~  519 tokens (worst-case) — OK
+
+Running experiment: mode_counts=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], n_responses=12, n_draws=1000, batch_size=32
+mode count runs: 100%|██████████| 10000/10000 [09:39<00:00, 17.25it/s, E=-1175.2, draw=1000/1000, m=10]
+
+Results saved to: results/mode_count/gpt2_1k_draws.json

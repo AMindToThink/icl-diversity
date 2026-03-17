@@ -1,0 +1,13 @@
+{"time":"2026-03-10T17:40:20.484014727Z","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-10T17:40:20.698099501Z","level":"INFO","msg":"stream: created new stream","id":"rx8w7r97"}
+{"time":"2026-03-10T17:40:20.698365267Z","level":"INFO","msg":"handler: started","stream_id":"rx8w7r97"}
+{"time":"2026-03-10T17:40:20.698441185Z","level":"INFO","msg":"writer: started","stream_id":"rx8w7r97"}
+{"time":"2026-03-10T17:40:20.698442137Z","level":"INFO","msg":"stream: started","id":"rx8w7r97"}
+{"time":"2026-03-10T17:40:20.698445548Z","level":"INFO","msg":"sender: started","stream_id":"rx8w7r97"}
+{"time":"2026-03-10T17:48:15.463462195Z","level":"INFO","msg":"api: retrying HTTP error","status":502,"url":"https://api.wandb.ai/files/matthewkhoriaty-northwestern-university/icl-diversity/rx8w7r97/file_stream","body":"\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>502 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1>Error: Server Error</h1>\n<h2>The server encountered a temporary error and could not complete your request.<p>Please try again in 30 seconds.</h2>\n<h2></h2>\n</body></html>\n"}
+{"time":"2026-03-10T17:50:04.51922581Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-03-10T17:50:04.964092202Z","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-03-10T17:50:04.968900566Z","level":"INFO","msg":"stream: closing","id":"rx8w7r97"}
+{"time":"2026-03-10T17:50:04.968921526Z","level":"INFO","msg":"handler: closed","stream_id":"rx8w7r97"}
+{"time":"2026-03-10T17:50:04.969028204Z","level":"INFO","msg":"sender: closed","stream_id":"rx8w7r97"}
+{"time":"2026-03-10T17:50:04.96904674Z","level":"INFO","msg":"stream: closed","id":"rx8w7r97"}

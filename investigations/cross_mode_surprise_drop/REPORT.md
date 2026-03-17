@@ -256,29 +256,58 @@ The model predicts constant 5.0 bits/step; the observed first step (~7.4 bits) o
 
 Note the simple model actually predicts a **linear** cumulative drop (constant marginal), not an exponential one. The observed *decelerating* drops (large early, smaller later) suggest that the first few responses provide most of the format/topic calibration, and additional responses have diminishing marginal value. This saturation effect is what gives the curve its exponential-looking shape.
 
-### The independent model fails catastrophically (`09_predicted_vs_observed.py`)
+### The additive model fails catastrophically (`09_predicted_vs_observed.py`)
 
-Comparing the pairwise prediction with observed 1k-draw mean curves reveals that the independent model is fundamentally wrong:
+The additive model (each response removes a fixed number of bits) fails in two ways:
 
-**At m=10**: The "pairwise w/ growing P(mate)" model predicts 622 bits of cumulative drop (a_1 to a_20), but the observed drop is only **58.8 bits** — a **10.6× overprediction**. Even the constant-rate independent model predicts 95 bits (1.6× overprediction).
+**At m=10**: The additive pairwise model predicts 622 bits of cumulative drop (a_1 to a_20), but the observed drop is only **58.8 bits** — a **10.6× overprediction**.
 
-More critically, the models predict the **wrong shape**:
-- **Predicted**: Marginal drops should **increase** with k (more repetitions become likely at later positions). At k=1 the model predicts 5.0 bits; at k=19 it predicts 60.5 bits.
-- **Observed**: Marginal drops **decrease** with k. The first step drops ~7.4 bits; subsequent steps average ~3 bits; some steps are negative.
+More critically, it predicts the **wrong shape**: marginal drops should **increase** with k (more repetitions become likely at later positions), but the observed marginal drops **decrease** with k.
 
-The "efficiency" (observed/predicted) starts above 1.0 at k=1 (the model slightly underpredicts the first step) but drops rapidly to ~10% by k=5 and near 0% thereafter. The pairwise matrix is only predictive of the very first step.
+### Fractional (multiplicative) model
 
-**Why the independent model fails**: Responses do not contribute independent information. The model rapidly **saturates** — seeing the first 1-3 responses provides most of the format calibration and topic priming available, and additional responses (whether same-mode or cross-mode) add almost nothing. The 60.5-bit same-mode pairwise reduction measures how much a *single* same-mode response helps in isolation, but when there are already 5+ responses in context, the marginal value of a same-mode response is much smaller — most of that information is already captured.
+The additive model's failure suggests a different framing: each response should resolve a **fraction** of remaining uncertainty rather than a fixed number of bits. The pairwise matrix gives us these fractions:
+
+- `r_offdiag = offdiag / a_1 = 1.9 / 136.6 = 1.4%` — cross-mode fraction resolved per step
+- `r_diag = diag / a_1 = 60.5 / 136.6 = 44.3%` — same-mode fraction resolved per step
+
+The model: `a_{k+1} = a_∞ + (a_k - a_∞) × (1 - r_k)`, where `r_k = r_offdiag + P(mate at k) × (r_diag - r_offdiag)` and `a_∞` is the irreducible floor.
+
+The floor `a_∞ = 7.1 bits` is estimated from the m=1 asymptote (mean of positions 15-20 where same-mode saturation is complete). This is independently measured, not fitted to the curves being predicted.
+
+**Results**:
+
+| m | Observed drop | Fractional + floor | Ratio | Additive | Ratio |
+|---|--------------|-------------------|-------|----------|-------|
+| 1 | 127.5 | 129.8 | **1.0x** | 1149.7 | 9.0x |
+| 2 | 121.2 | 131.0 | 1.1x | 1091.1 | 9.0x |
+| 5 | 88.1 | 129.0 | 1.5x | 915.2 | 10.4x |
+| 10 | 58.8 | 129.0 | 2.2x | 622.2 | 10.6x |
+
+**What the fractional model gets right**:
+1. **Shape**: Produces exponentially decaying marginals (matching observation), not increasing marginals (additive)
+2. **m=1**: Nearly perfect prediction (1.0x) — validates the floor estimate and fractional rate
+3. **First few steps**: First 2-3 positions match well at all m values
+
+**What the fractional model gets wrong**:
+1. **Predicts the same total drop (~130 bits) for all m values**. By k=20, the cumulative fractional decay drives the curve to the floor regardless of mode composition. The real data shows total drops ranging from 128 bits (m=1) to 59 bits (m=10).
+2. **Decays too fast at high m**. At m=10, the predicted a_20 = 7.6 bits but observed = 77.8 bits.
+
+**Why the fractional model fails at high m**: The fractional rate `r_diag = 44%` is measured from a *single* same-mode encounter in isolation. The model applies this same 44% to every same-mode encounter, but the second same-mode response should resolve *less* than 44% of the remaining uncertainty because much of the "easy" information (format, vocabulary, topic specifics) was already extracted by the first encounter. The pairwise matrix only measures first-encounter effects and cannot predict multi-step saturation dynamics.
 
 ### Revised understanding
 
-The pairwise matrix measures **potential** information transfer in isolation but not **marginal** contribution in a long context. The exponential shape of the a_k curve is NOT well-explained by summing pairwise contributions. Instead, the curve shape reflects:
+Neither model adequately predicts the a_k curve from pairwise measurements alone:
 
-1. **Rapid early saturation**: The first few responses (regardless of mode) teach the model most of what it can learn about the response format, topic, and length distribution. This produces the large early drops.
-2. **Diminishing returns**: Each additional response provides less new information because the context already contains most of the learnable structure.
-3. **Mode repetitions provide extra but diminishing boosts**: When a same-mode response finally appears, it does help, but much less than the 60.5 bits predicted by the isolated pairwise measure.
+- The **additive** model gets the first step right but predicts the wrong shape (increasing marginals, 10x overprediction)
+- The **fractional** model gets the shape right but can't distinguish m values (constant ~130-bit total drop)
 
-The difference between Qwen and GPT-2 likely comes from ICL capacity — Qwen saturates quickly (strong early drops) while GPT-2 barely detects cross-mode structure (flat early curve). But this is about the **first few positions**, not the accumulation of pairwise effects across 20 positions.
+The core limitation is that the pairwise matrix measures **single-encounter** information transfer. Real a_k curves involve **repeated encounters** with overlapping information, where each subsequent encounter has diminishing marginal returns. A complete model would need to account for how much of the "resolvable uncertainty" is shared between different responses — information that the pairwise matrix does not capture.
+
+What the pairwise matrix *does* successfully explain:
+1. **The first step at each m** — well-calibrated, validates the measurement
+2. **Why Qwen drops and GPT-2 doesn't** — the sign of the off-diagonal (Qwen: +1.9, GPT-2: −3.7) determines whether the curve drops or rises initially
+3. **The qualitative shape** — fractional decay produces the right exponential-looking curve
 
 ## What We Now Understand
 
@@ -289,7 +318,7 @@ The core question has two layers:
 1. **Format calibration** (front-loaded): Seeing any response recalibrates expectations about what follows "Response B:".
 2. **Topic vocabulary priming** (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode.
 
-**Layer 2 — Why is the drop so steep (exponential, not sigmoidal)?** The off-diagonal alone (+1.9 bits/step) would produce a gentle linear slope, not the observed convex decay. The steep *early* decay is primarily driven by the **diagonal**: same-mode reduction averaging 60.5 bits, which even at P=(k-1)/19 contributes ~3.1 bits/step in expectation. Combined with the off-diagonal, the simple model predicts ~5.0 bits/step of linear cumulative drop. The observed *decelerating* shape (large early drops, smaller later) comes from diminishing marginal returns — the first few responses provide most of the format/topic calibration, so subsequent responses add less. This saturation is what produces the exponential-looking curve rather than the predicted sigmoid.
+**Layer 2 — Why is the drop so steep (exponential, not sigmoidal)?** The fractional model explains the shape: each response resolves ~1.4% (cross-mode) or ~44% (same-mode) of remaining resolvable uncertainty. This produces exponentially decaying marginals — large early drops that shrink as uncertainty is depleted. The additive model incorrectly predicts increasing marginals. The fractional model correctly predicts the first few steps and the qualitative shape, but overpredicts the total drop at high m because the pairwise-measured fractional rates don't account for diminishing returns from repeated encounters.
 
 **Why GPT-2 doesn't show this**: GPT-2 actually has a *larger* diagonal (83 vs 60.5 bits — better same-mode ICL) but a **negative** off-diagonal (−3.7 bits). At m=10, the expected first-step net drop is only +0.9 bits (cross-mode damage almost cancels diagonal gain). The sigmoid shape at high m in GPT-2 is not evidence that modes are independent — it's evidence that cross-mode context actively interferes with GPT-2's predictions, producing a flat or slightly rising early curve until enough same-mode repetitions accumulate to overcome the cross-mode penalty.
 
@@ -332,7 +361,7 @@ At m=10 with 95% probability of seeing a cross-mode response first, GPT-2 *loses
 1. **Why does GPT-2 have negative off-diagonal?** GPT-2 apparently treats cross-mode context as noise that interferes with prediction. Qwen learned to extract cross-mode information (format calibration, topic priming) during pretraining.
 2. **Different topics**: If responses were about completely different topics (not all rain), would Qwen's off-diagonal go negative too?
 3. **Model size scaling**: At what model size does the off-diagonal transition from negative to positive?
-4. **Diminishing returns**: A model accounting for overlapping information would better predict the observed sublinear accumulation (the independent model overpredicts by 10.6×).
+4. **Multi-encounter saturation**: The fractional model applies the same rate to every encounter, but repeated same-mode responses should have diminishing fractional rates. A model with encounter-dependent rates could bridge the gap between the fractional model's shape accuracy and its failure to distinguish m values.
 
 ## Hypothesis Evaluation
 
