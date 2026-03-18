@@ -685,7 +685,41 @@ The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwis
 \label{fig:predicted-observed}
 \end{figure}
 
-\paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is 5.6 bits (2.9$\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric. This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
+\paragraph{A fractional model gets the shape right but not the scale.} The additive model's failure suggests a different framing: each response should resolve a \emph{fraction} of remaining uncertainty rather than a fixed number of bits. The pairwise matrix gives us these fractions: $r_{\mathrm{off}} = \bar{M}_{\mathrm{off}} / a_1 = 1.4\%$ (cross-mode) and $r_{\mathrm{diag}} = \bar{M}_{\mathrm{diag}} / a_1 = 44.3\%$ (same-mode). With an irreducible floor $a_\infty = 7.1$ bits (estimated independently from the $m=1$ asymptote), the recurrence is:
+\begin{equation}
+    a_{k+1} = a_\infty + (a_k - a_\infty)(1 - r_k), \quad r_k = r_{\mathrm{off}} + p_{\mathrm{rep}}(k) \cdot (r_{\mathrm{diag}} - r_{\mathrm{off}})
+\end{equation}
+where $p_{\mathrm{rep}}(k)$ is the probability that position $k{+}1$ shares a mode with some position in $1 \ldots k$.
+
+This model produces exponentially decaying marginals (matching observations) rather than the additive model's increasing marginals. At $m=1$, it is nearly exact ($1.0\times$ ratio). However, it predicts approximately the same total drop (${\sim}130$ bits) for all $m$ values (Figure~\ref{fig:multiplicative-total-drop}), while the observed total drop ranges from 128 bits ($m=1$) to 59 bits ($m=10$)---an overprediction of $2.2\times$ at $m=10$.
+
+The core limitation is that the pairwise matrix measures \emph{single-encounter} information transfer. Real $a_k$ curves involve repeated encounters with overlapping information, where each subsequent encounter has diminishing marginal returns. A complete model would need to account for information overlap between responses---structure that the pairwise matrix does not capture. What the pairwise matrix \emph{does} successfully explain is: (1) the first step at each $m$, (2) why Qwen drops and GPT-2 doesn't (the sign of the off-diagonal), and (3) the qualitative exponential shape.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{predicted_vs_observed_all_m.png}
+    \caption{Fractional model vs.\ observed $a_k$ curves across $m=1$--$10$. The model matches the first few steps but decays too fast at high $m$.}
+    \label{fig:fractional-curves}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{multiplicative_total_drop.png}
+    \caption{Total drop $a_1 - a_{20}$: the fractional model predicts ${\sim}130$ bits regardless of $m$, while the observed drop decreases with $m$.}
+    \label{fig:multiplicative-total-drop}
+\end{subfigure}
+\caption{The fractional (multiplicative) model gets the qualitative shape right but cannot distinguish mode counts. This reveals the fundamental limitation of predicting multi-step learning dynamics from pairwise measurements alone.}
+\label{fig:fractional-model}
+\end{figure}
+
+\paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is 5.6 bits (2.9$\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}). This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{pairwise_symmetry.png}
+\caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$. Under symmetric mutual information, points would lie on $y = x$. The best-fit slope is 0.46 ($R^2 = 0.24$), and many pairs have opposite signs---mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
+\label{fig:pairwise-symmetry}
+\end{figure}
 
 \paragraph{Connections to information-theoretic properties.} Two information-theoretic properties are relevant to interpreting the pairwise matrix:
 
