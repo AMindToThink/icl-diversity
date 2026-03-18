@@ -390,6 +390,37 @@ def experiment3_permutation_efficiency(
     plt.close(fig)
     print("  Saved permutation_efficiency.png")
 
+    # --- Paired difference plot: delta_rho = rho(T>1) - rho(T=1) ---
+    if 1.0 in rho_distributions:
+        fig2, ax2 = plt.subplots(figsize=(8, 5))
+        for temp in [t for t in test_temperatures if t != 1.0]:
+            if temp not in rho_distributions:
+                continue
+            mean_deltas: list[float] = []
+            ci_lo: list[float] = []
+            ci_hi: list[float] = []
+            for n_sub in subsample_sizes:
+                rhos_t1 = np.array(rho_distributions[1.0][n_sub])
+                rhos_alt = np.array(rho_distributions[temp][n_sub])
+                deltas = rhos_alt - rhos_t1
+                mean_deltas.append(float(np.mean(deltas)))
+                ci_lo.append(float(np.percentile(deltas, 2.5)))
+                ci_hi.append(float(np.percentile(deltas, 97.5)))
+            ax2.plot(subsample_sizes, mean_deltas, "o-", label=f"T={temp} - T=1.0")
+            ax2.fill_between(
+                subsample_sizes, ci_lo, ci_hi, alpha=0.2,
+            )
+        ax2.axhline(0, color="black", linestyle="--", linewidth=0.8, label="no difference")
+        ax2.set_xlabel("Number of permutations (subsampled)")
+        ax2.set_ylabel("Δ Spearman rho  (T>1 minus T=1.0)")
+        ax2.set_title(f"H3: Ranking Advantage of Higher Temperature ({n_prompts} prompts, 95% CI)")
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        fig2.tight_layout()
+        fig2.savefig(output_dir / "permutation_efficiency_delta.png", dpi=150)
+        plt.close(fig2)
+        print("  Saved permutation_efficiency_delta.png")
+
     # --- Formal hypothesis test: Mann-Whitney U at each subsample size ---
     for t_alt in [1.5, 2.0]:
         if 1.0 not in rho_distributions or t_alt not in rho_distributions:
