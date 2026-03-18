@@ -1,0 +1,26 @@
+[
+  {
+    "temperature": 1.5,
+    "mean_std_D": 47.59895977979351,
+    "ref_mean_std_D": 58.172102389294714,
+    "wilcoxon_W": 320.0,
+    "p_value": 2.980232238769531e-07,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 2.0,
+    "mean_std_D": 37.76305356756652,
+    "ref_mean_std_D": 58.172102389294714,
+    "wilcoxon_W": 319.0,
+    "p_value": 4.172325134277344e-07,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 3.0,
+    "mean_std_D": 30.922676991642494,
+    "ref_mean_std_D": 58.172102389294714,
+    "wilcoxon_W": 319.0,
+    "p_value": 4.172325134277344e-07,
+    "reject_H0_alpha_0.05": true
+  }
+]
