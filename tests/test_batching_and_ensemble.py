@@ -453,6 +453,33 @@ class TestEnsembleBatching:
 # ---------------------------------------------------------------------------
 
 
+class TestEnsembleWithTemperature:
+    def test_ensemble_with_temperature(self) -> None:
+        """Ensemble at T=2.0 runs without error and gives different results than T=1.0."""
+        model, tokenizer = _make_mock_model_and_tokenizer(vocab_size=100)
+
+        # Use compute_cross_entropy directly for a reliable comparison
+        tb_t1, bc_t1 = compute_cross_entropy(
+            [model, model], tokenizer, "hello world", "prefix ", temperature=1.0
+        )
+        tb_t2, bc_t2 = compute_cross_entropy(
+            [model, model], tokenizer, "hello world", "prefix ", temperature=2.0
+        )
+        assert bc_t1 == bc_t2
+        assert tb_t1 != pytest.approx(tb_t2, rel=1e-3)
+
+        # Also verify full pipeline runs without error
+        r = compute_icl_diversity_metrics(
+            [model, model],
+            tokenizer,
+            "test",
+            ["hello world", "foo bar"],
+            seed=42,
+            temperature=2.0,
+        )
+        assert r["temperature"] == 2.0
+
+
 class TestEnsembleProbabilityAveraging:
     """Verify that ensemble averages softmax probs, not logits."""
 

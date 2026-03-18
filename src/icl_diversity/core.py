@@ -120,6 +120,7 @@ def _forward_log_probs(
     models: list[PreTrainedModel] | "APIModel",
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None = None,
+    temperature: float = 1.0,
 ) -> torch.Tensor:
     """Run forward pass and return per-position next-token log-probs in bits.
 
@@ -133,15 +134,29 @@ def _forward_log_probs(
             APIModel instance.
         input_ids: ``(batch, seq_len)`` token IDs.
         attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
+        temperature: Temperature for scaling logits before softmax. Must be
+            positive. T>1 flattens predictions (reduces variance), T<1
+            sharpens predictions (amplifies signal). Default 1.0 (no scaling).
 
     Returns:
         ``(batch, seq_len)`` tensor where entry ``[b, t]`` =
         ``log2 P(input_ids[b, t+1] | input_ids[b, 0..t])`` in **bits**.
         Last position is 0.0. On the model's device for single model, on
         CPU for ensemble/API.
+
+    Raises:
+        ValueError: If temperature <= 0 or temperature != 1.0 for API models.
     """
+    if temperature <= 0:
+        raise ValueError(f"temperature must be positive, got {temperature}")
+
     # API model dispatch
     if _is_api_model(models):
+        if temperature != 1.0:
+            raise ValueError(
+                f"temperature scaling is not supported for API models "
+                f"(no logits available), got temperature={temperature}"
+            )
         return models.score_sequences(input_ids, attention_mask)  # type: ignore[union-attr]
 
     if len(models) == 1:
@@ -150,16 +165,19 @@ def _forward_log_probs(
         mask = attention_mask.to(model.device) if attention_mask is not None else None
         with torch.no_grad():
             logits = model(ids, attention_mask=mask, use_cache=False).logits
+            logits = logits / temperature
         log_probs_full = torch.nn.functional.log_softmax(logits, dim=-1)
         return _gather_diagonal_log_probs(log_probs_full, ids)
 
     # Ensemble: average softmax probabilities across models (Eq 27)
+    # Temperature is applied per-model before softmax, then probabilities averaged.
     accumulated_probs: torch.Tensor | None = None
     for model in models:
         ids = input_ids.to(model.device)
         mask = attention_mask.to(model.device) if attention_mask is not None else None
         with torch.no_grad():
             logits = model(ids, attention_mask=mask, use_cache=False).logits
+            logits = logits / temperature
         probs = torch.softmax(logits.float(), dim=-1).cpu()
         if accumulated_probs is None:
             accumulated_probs = probs
@@ -376,6 +394,7 @@ def compute_cross_entropy(
     tokenizer: PreTrainedTokenizerBase,
     text: str,
     prefix: str,
+    temperature: float = 1.0,
 ) -> tuple[float, int]:
     """Compute total cross-entropy (in bits) and byte count of text conditioned on prefix.
 
@@ -390,6 +409,7 @@ def compute_cross_entropy(
         tokenizer: Tokenizer for theta.
         text: The response r whose cross-entropy we compute.
         prefix: Everything before the response (prompt + previous responses).
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         Tuple of ``(total_bits, byte_count)`` where total_bits = -sum(log2(p))
@@ -411,7 +431,7 @@ def compute_cross_entropy(
         return 0.0, byte_count
 
     input_ids = torch.tensor([full_ids])
-    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len,) in bits
+    log_probs = _forward_log_probs(models, input_ids, temperature=temperature)[0]  # (seq_len,) in bits
 
     # log_probs[t-1] = log2 P(token[t] | token[0..t-1])
     # Sum over text token positions (already in bits)
@@ -425,6 +445,7 @@ def compute_per_byte_cross_entropy(
     tokenizer: PreTrainedTokenizerBase,
     text: str,
     prefix: str,
+    temperature: float = 1.0,
 ) -> float:
     """Compute per-byte cross-entropy of text conditioned on prefix.
 
@@ -437,11 +458,14 @@ def compute_per_byte_cross_entropy(
         tokenizer: Tokenizer for theta.
         text: The response r whose cross-entropy we compute.
         prefix: Everything before the response (prompt + previous responses).
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         Per-byte cross-entropy in bits/byte.
     """
-    total_bits, byte_count = compute_cross_entropy(model, tokenizer, text, prefix)
+    total_bits, byte_count = compute_cross_entropy(
+        model, tokenizer, text, prefix, temperature=temperature
+    )
     return total_bits / byte_count if byte_count > 0 else 0.0
 
 
@@ -450,6 +474,7 @@ def compute_progressive_surprise_curve(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
+    temperature: float = 1.0,
 ) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve.
 
@@ -463,6 +488,7 @@ def compute_progressive_surprise_curve(
         tokenizer: Tokenizer for theta.
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
@@ -474,7 +500,9 @@ def compute_progressive_surprise_curve(
         previous = responses[:k]
         current = responses[k]
         prefix, target = format_conditioning_context(prompt, previous, current)
-        total_bits, bc = compute_cross_entropy(model, tokenizer, target, prefix)
+        total_bits, bc = compute_cross_entropy(
+            model, tokenizer, target, prefix, temperature=temperature
+        )
         curve.append(total_bits)
         byte_counts.append(bc)
     return curve, byte_counts
@@ -485,6 +513,7 @@ def compute_progressive_surprise_curve_single_pass(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
+    temperature: float = 1.0,
 ) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve using a single forward pass.
 
@@ -500,6 +529,7 @@ def compute_progressive_surprise_curve_single_pass(
         tokenizer: Tokenizer for theta.
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
@@ -514,7 +544,7 @@ def compute_progressive_surprise_curve_single_pass(
 
     # Single forward pass (ensemble-aware)
     input_ids = torch.tensor([full_ids])
-    log_probs = _forward_log_probs(models, input_ids)[0]  # (seq_len,) in bits
+    log_probs = _forward_log_probs(models, input_ids, temperature=temperature)[0]  # (seq_len,) in bits
 
     return _extract_response_log_probs(log_probs, boundaries, responses)
 
@@ -525,6 +555,7 @@ def compute_unconditional_surprises(
     prompt: str,
     responses: list[str],
     batch_size: int = 1,
+    temperature: float = 1.0,
 ) -> tuple[list[float], list[float], list[int]]:
     """Compute unconditional cross-entropy for each response.
 
@@ -541,6 +572,7 @@ def compute_unconditional_surprises(
         responses: List of responses.
         batch_size: Number of responses to process in parallel. Default 1
             (sequential). Increase for GPU acceleration.
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         Tuple of ``(per_byte_surprises, total_bits_list, byte_counts)``:
@@ -573,7 +605,9 @@ def compute_unconditional_surprises(
 
         # Right-pad and batch
         input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
-        log_probs = _forward_log_probs(models, input_ids, attention_mask)
+        log_probs = _forward_log_probs(
+            models, input_ids, attention_mask, temperature=temperature
+        )
 
         for i in range(batch_end - batch_start):
             seq_idx = batch_start + i
@@ -604,6 +638,7 @@ def _compute_permutation_curves_batched(
     responses: list[str],
     permutations: list[list[int]],
     batch_size: int = 1,
+    temperature: float = 1.0,
 ) -> list[tuple[list[float], list[int]]]:
     """Compute single-pass a_k curves for multiple permutations, batched.
 
@@ -618,6 +653,7 @@ def _compute_permutation_curves_batched(
         responses: Original (unpermuted) response list.
         permutations: List of permutation orderings (each a list of indices).
         batch_size: Number of permutations per batch.
+        temperature: Temperature for scaling logits before softmax. Default 1.0.
 
     Returns:
         List of ``(total_bits_curve, byte_counts)`` per permutation.
@@ -649,7 +685,9 @@ def _compute_permutation_curves_batched(
 
         # Right-pad and batch
         input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
-        log_probs = _forward_log_probs(models, input_ids, attention_mask)
+        log_probs = _forward_log_probs(
+            models, input_ids, attention_mask, temperature=temperature
+        )
 
         for i in range(batch_end - batch_start):
             perm_idx = batch_start + i
@@ -789,6 +827,7 @@ def compute_icl_diversity_metrics(
     n_permutations: int = 1,
     seed: int = 42,
     batch_size: int = 1,
+    temperature: float = 1.0,
 ) -> dict[str, Any]:
     """Full ICL diversity metric computation for one prompt.
 
@@ -803,6 +842,9 @@ def compute_icl_diversity_metrics(
     - **Model ensembling** (pass a list of models): softmax probabilities
       are averaged at each token position per Section 7.5 (Eq 27).  All
       models must share the same tokenizer/vocabulary.
+    - **Temperature** (``temperature != 1.0``): scales logits before softmax.
+      T>1 flattens predictions (reduces per-permutation variance), T<1
+      sharpens predictions (amplifies signal).
 
     Args:
         model: The base model theta (should be a base model, not
@@ -816,6 +858,9 @@ def compute_icl_diversity_metrics(
         batch_size: Number of forward passes to batch together. Default 1
             (sequential). Increase for GPU acceleration.  Applies to both
             unconditional surprises and permutation curves.
+        temperature: Temperature for scaling logits before softmax. Must be
+            positive. T>1 reduces variance (fewer permutations needed), T<1
+            amplifies signal. Default 1.0 (no scaling).
 
     Returns:
         Dict with:
@@ -836,6 +881,7 @@ def compute_icl_diversity_metrics(
         - C_plus: float                    # C * 2^sigma
         - C_minus: float                   # C * 2^{-sigma}
         - is_monotone: bool                # diagnostic
+        - temperature: float               # the temperature used
         - per_permutation_a_k_curves: list[list[float]] | None
             Raw a_k curve (total bits) from each permutation.
         - per_permutation_byte_counts: list[list[int]] | None
@@ -855,14 +901,15 @@ def compute_icl_diversity_metrics(
     # Unconditional surprises are order-independent, compute once (batched)
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
         compute_unconditional_surprises(
-            models, tokenizer, prompt, responses, batch_size=batch_size
+            models, tokenizer, prompt, responses, batch_size=batch_size,
+            temperature=temperature,
         )
     )
 
     if n_permutations <= 1:
         # Single ordering — single forward pass
         a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
-            models, tokenizer, prompt, responses
+            models, tokenizer, prompt, responses, temperature=temperature
         )
         # Compute E_rate: normalize per response, then sum excess
         per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
@@ -877,6 +924,7 @@ def compute_icl_diversity_metrics(
             responses,
         )
         metrics["unconditional_total_bits"] = unconditional_total_bits
+        metrics["temperature"] = temperature
         metrics["per_permutation_a_k_curves"] = None
         metrics["per_permutation_byte_counts"] = None
         metrics["permutation_orders"] = None
@@ -892,7 +940,8 @@ def compute_icl_diversity_metrics(
         all_perms.append(perm)
 
     perm_results = _compute_permutation_curves_batched(
-        models, tokenizer, prompt, responses, all_perms, batch_size
+        models, tokenizer, prompt, responses, all_perms, batch_size,
+        temperature=temperature,
     )
 
     # Unpack results
@@ -928,6 +977,7 @@ def compute_icl_diversity_metrics(
         responses,
     )
     metrics["unconditional_total_bits"] = unconditional_total_bits
+    metrics["temperature"] = temperature
     metrics["per_permutation_a_k_curves"] = all_total_bits_curves
     metrics["per_permutation_byte_counts"] = all_byte_counts
     metrics["permutation_orders"] = all_perms

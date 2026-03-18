@@ -56,6 +56,7 @@ def compute_all_scenarios(
     tokenizer: Any,
     base_model: str = "gpt2",
     n_permutations: int = N_PERMUTATIONS,
+    temperature: float = 1.0,
 ) -> dict[str, Any]:
     """Compute metrics for all eight scenarios."""
     result: dict[str, Any] = {
@@ -63,6 +64,7 @@ def compute_all_scenarios(
         "n_permutations": n_permutations,
         "n_responses": N_RESPONSES,
         "seed": SEED,
+        "temperature": temperature,
         "scenarios": {},
     }
 
@@ -133,6 +135,7 @@ def compute_all_scenarios(
             responses,
             n_permutations=n_permutations,
             seed=SEED,
+            temperature=temperature,
         )
         m["prompt_label"] = prompt_label
         m["prompt_text"] = prompt_text
@@ -183,6 +186,12 @@ def main() -> None:
         type=int,
         default=5,
         help="Max concurrent API requests (default: 5)",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Temperature for scaling base model logits before softmax (default: 1.0)",
     )
     parser.add_argument(
         "--offline",
@@ -247,6 +256,7 @@ def main() -> None:
         tokenizer,
         base_model=args.base_model,
         n_permutations=args.n_permutations,
+        temperature=args.temperature,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

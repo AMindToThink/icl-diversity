@@ -44,6 +44,12 @@ uv run python scripts/plot_ak_curves.py --input results/scenario_metrics.json re
 # Run cross-model hypothesis tests
 uv run python scripts/test_hypotheses.py
 
+# Run temperature sweep experiments
+uv run python scripts/run_temperature_experiments.py --device cpu --temperatures 0.5,1.0,2.0 --n-permutations 20
+
+# Analyze temperature experiment results → figures/temperature/
+uv run python scripts/analyze_temperature.py
+
 # Lint and format
 uv run ruff check .
 uv run ruff format .
@@ -56,10 +62,10 @@ uv run calculate-icl-diversity --input responses.jsonl --base-model gpt2 --n-per
 
 ### Core computation pipeline (`src/icl_diversity/core.py`)
 
-The metric flows through these stages, all in one file. All public functions accept `model: ModelInput` (single model or list for ensembling) and the top-level function accepts `batch_size` for GPU parallelism.
+The metric flows through these stages, all in one file. All public functions accept `model: ModelInput` (single model or list for ensembling) and the top-level function accepts `batch_size` for GPU parallelism and `temperature` for logit scaling.
 
 **Internal helpers:**
-- `_forward_log_probs(models, input_ids, attention_mask)` — Runs forward pass through one or more models. For ensembles, averages softmax probabilities at each token position (Section 7.5, Eq 27), then returns log of the mixture.
+- `_forward_log_probs(models, input_ids, attention_mask, temperature)` — Runs forward pass through one or more models. Applies `logits / temperature` before softmax. For ensembles, temperature is applied per-model before softmax, then probabilities are averaged (Section 7.5, Eq 27). Raises `ValueError` for API models when `temperature != 1.0`.
 - `_find_response_boundaries(tokenizer, prompt, responses)` — Tokenizes the full concatenated context and finds token index ranges for each response.
 - `_extract_response_log_probs(log_probs, full_ids, boundaries, responses, pad_offset)` — Extracts per-response total bits from a log-probs tensor. Handles left-padding offset.
 - `_left_pad_and_batch(sequences, pad_token_id)` — Left-pads variable-length token sequences into a batch with attention mask.

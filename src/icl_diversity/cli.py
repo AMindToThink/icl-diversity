@@ -129,6 +129,12 @@ def main() -> None:
         default="float16",
         help="Model dtype: float16, bfloat16, float32 (default: float16, only for local provider)",
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Temperature for scaling base model logits before softmax (default: 1.0)",
+    )
     args = parser.parse_args()
 
     # Resolve output path
@@ -215,6 +221,7 @@ def main() -> None:
                 responses=responses,
                 n_permutations=args.n_permutations,
                 seed=args.seed,
+                temperature=args.temperature,
             )
 
             per_prompt_result = {
