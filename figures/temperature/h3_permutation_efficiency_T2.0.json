@@ -1,0 +1,42 @@
+[
+  {
+    "n_permutations": 3,
+    "mean_rho_T1": 0.6860038461538461,
+    "mean_rho_T2.0": 0.7489807692307693,
+    "mann_whitney_U": 25337.0,
+    "p_value": 1.957869870344251e-06,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_permutations": 5,
+    "mean_rho_T1": 0.7519923076923078,
+    "mean_rho_T2.0": 0.7881230769230769,
+    "mann_whitney_U": 23332.0,
+    "p_value": 0.0019783753544511456,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_permutations": 10,
+    "mean_rho_T1": 0.8548807692307692,
+    "mean_rho_T2.0": 0.8693807692307692,
+    "mann_whitney_U": 21930.5,
+    "p_value": 0.04752133010848238,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_permutations": 20,
+    "mean_rho_T1": 0.9162423076923077,
+    "mean_rho_T2.0": 0.9056923076923077,
+    "mann_whitney_U": 16731.5,
+    "p_value": 0.9976557916246459,
+    "reject_H0_alpha_0.05": false
+  },
+  {
+    "n_permutations": 50,
+    "mean_rho_T1": 0.9605615384615385,
+    "mean_rho_T2.0": 0.9414692307692306,
+    "mann_whitney_U": 8112.5,
+    "p_value": 1.0,
+    "reject_H0_alpha_0.05": false
+  }
+]

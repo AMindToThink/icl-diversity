@@ -284,91 +284,104 @@ def experiment2_ranking_preservation(
         )
 
 
+def _collect_per_prompt_entries(
+    data: dict[str, Any],
+) -> list[tuple[str, int, dict[str, Any]]]:
+    """Flatten all (scenario, prompt_idx, entry) from a temperature result."""
+    entries: list[tuple[str, int, dict[str, Any]]] = []
+    for scenario_name, scenario_entries in data["scenarios"].items():
+        for i, entry in enumerate(scenario_entries):
+            entries.append((scenario_name, i, entry))
+    return entries
+
+
 def experiment3_permutation_efficiency(
     all_results: dict[float, dict[str, Any]],
     output_dir: Path,
 ) -> None:
-    """H3: T=2.0 with n permutations recovers ground-truth ranking better than T=1.0 with n.
+    """H3: T=2.0 with n permutations recovers ground-truth D ranking better than T=1.0.
 
-    H0: tau_sub(T=2, n) = tau_sub(T=1, n)  (no advantage).
-    H1: tau_sub(T=2, n) > tau_sub(T=1, n)  (T=2 more efficient).
+    Ranks all per-prompt D values (not per-scenario means) to get enough items
+    for meaningful correlation. Uses Spearman rho on 25 prompt-level D values.
+
+    H0: rho_sub(T=2, n) = rho_sub(T=1, n)  (no advantage).
+    H1: rho_sub(T=2, n) > rho_sub(T=1, n)  (T=2 more efficient).
     Test: at each subsample size, Mann-Whitney U one-sided test on bootstrap
-        tau distributions.
+        Spearman rho distributions.
     """
     if 1.0 not in all_results:
         print("  WARNING: T=1.0 not in results, skipping permutation efficiency")
         return
 
-    scenario_names = list(all_results[1.0]["scenarios"].keys())
+    # Build ground truth: per-prompt D at T=1.0 with all permutations
+    ref_entries = _collect_per_prompt_entries(all_results[1.0])
+    ref_ds = np.array([e["diversity_score_D"] for _, _, e in ref_entries])
+    n_prompts = len(ref_ds)
+    print(f"  Ranking {n_prompts} per-prompt D values (not {len(all_results[1.0]['scenarios'])} scenario means)")
+
     subsample_sizes = [3, 5, 10, 20, 50]
-    test_temperatures = [t for t in [1.0, 2.0] if t in all_results]
-    n_bootstrap = 50
+    test_temperatures = [t for t in [1.0, 1.5, 2.0] if t in all_results]
+    n_bootstrap = 200
     rng = np.random.RandomState(42)
-
-    # Ground truth: T=1.0, all permutations
-    def get_mean_D_from_all_perms(data: dict[str, Any], scenario: str) -> float:
-        entries = data["scenarios"].get(scenario, [])
-        return float(np.mean([e["diversity_score_D"] for e in entries])) if entries else 0.0
-
-    ref_ds = [get_mean_D_from_all_perms(all_results[1.0], s) for s in scenario_names]
-    ref_ranking = list(np.argsort(ref_ds))
 
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Store bootstrap tau distributions for formal testing
-    tau_distributions: dict[float, dict[int, list[float]]] = {}
+    # Store bootstrap rho distributions for formal testing
+    rho_distributions: dict[float, dict[int, list[float]]] = {}
 
     for temp in test_temperatures:
-        mean_taus: list[float] = []
-        std_taus: list[float] = []
-        tau_distributions[temp] = {}
+        entries = _collect_per_prompt_entries(all_results[temp])
+        # Pre-compute per-permutation D for each prompt
+        all_perm_ds_per_prompt: list[list[float]] = []
+        for _, _, entry in entries:
+            per_perm_curves = entry.get("per_permutation_a_k_curves")
+            per_perm_byte_counts = entry.get("per_permutation_byte_counts")
+            if per_perm_curves is None:
+                all_perm_ds_per_prompt.append([entry["diversity_score_D"]])
+            else:
+                all_perm_ds_per_prompt.append(
+                    compute_per_permutation_D(
+                        per_perm_curves,
+                        per_perm_byte_counts,
+                        entry["unconditional_surprises"],
+                    )
+                )
+
+        mean_rhos: list[float] = []
+        std_rhos: list[float] = []
+        rho_distributions[temp] = {}
 
         for n_sub in subsample_sizes:
-            taus: list[float] = []
+            rhos: list[float] = []
             for _ in range(n_bootstrap):
-                ds: list[float] = []
-                for scenario in scenario_names:
-                    entries = all_results[temp]["scenarios"].get(scenario, [])
-                    entry_ds: list[float] = []
-                    for entry in entries:
-                        per_perm_curves = entry.get("per_permutation_a_k_curves")
-                        per_perm_byte_counts = entry.get("per_permutation_byte_counts")
-                        if per_perm_curves is None:
-                            entry_ds.append(entry["diversity_score_D"])
-                            continue
-                        all_perm_ds = compute_per_permutation_D(
-                            per_perm_curves,
-                            per_perm_byte_counts,
-                            entry["unconditional_surprises"],
-                        )
-                        n_avail = len(all_perm_ds)
-                        if n_avail <= n_sub:
-                            entry_ds.append(float(np.mean(all_perm_ds)))
-                        else:
-                            idx = rng.choice(n_avail, size=n_sub, replace=False)
-                            entry_ds.append(float(np.mean([all_perm_ds[i] for i in idx])))
-                    ds.append(float(np.mean(entry_ds)) if entry_ds else 0.0)
+                ds = np.zeros(n_prompts)
+                for j, perm_ds in enumerate(all_perm_ds_per_prompt):
+                    n_avail = len(perm_ds)
+                    if n_avail <= n_sub:
+                        ds[j] = float(np.mean(perm_ds))
+                    else:
+                        idx = rng.choice(n_avail, size=n_sub, replace=False)
+                        ds[j] = float(np.mean([perm_ds[i] for i in idx]))
 
-                ranking = list(np.argsort(ds))
-                tau = float(stats.kendalltau(ref_ranking, ranking).statistic)
-                taus.append(tau)
+                rho = float(stats.spearmanr(ref_ds, ds).statistic)
+                rhos.append(rho)
 
-            tau_distributions[temp][n_sub] = taus
-            mean_taus.append(float(np.mean(taus)))
-            std_taus.append(float(np.std(taus)))
+            rho_distributions[temp][n_sub] = rhos
+            mean_rhos.append(float(np.mean(rhos)))
+            std_rhos.append(float(np.std(rhos)))
 
         ax.errorbar(
             subsample_sizes,
-            mean_taus,
-            yerr=std_taus,
+            mean_rhos,
+            yerr=std_rhos,
             fmt="o-",
             label=f"T={temp}",
             capsize=3,
         )
 
     ax.set_xlabel("Number of permutations (subsampled)")
-    ax.set_ylabel("Kendall tau vs ground truth (T=1.0, all perms)")
-    ax.set_title("H3: Permutation Efficiency — T=2.0 vs T=1.0")
+    ax.set_ylabel("Spearman rho vs ground truth (T=1.0, all perms)")
+    ax.set_title(f"H3: Permutation Efficiency ({n_prompts} prompt-level D values)")
     ax.legend()
     ax.grid(True, alpha=0.3)
     ax.set_ylim(-0.1, 1.1)
@@ -378,33 +391,35 @@ def experiment3_permutation_efficiency(
     print("  Saved permutation_efficiency.png")
 
     # --- Formal hypothesis test: Mann-Whitney U at each subsample size ---
-    if 1.0 in tau_distributions and 2.0 in tau_distributions:
-        print("\n  H3 formal tests (Mann-Whitney U, one-sided: tau(T=2) > tau(T=1))")
-        print(f"  {'n_perm':>6} | {'mean tau T=1':>12} | {'mean tau T=2':>12} | {'U stat':>8} | {'p-value':>8} | reject H0?")
+    for t_alt in [1.5, 2.0]:
+        if 1.0 not in rho_distributions or t_alt not in rho_distributions:
+            continue
+        print(f"\n  H3 formal tests: T={t_alt} vs T=1.0 (Mann-Whitney U, one-sided: rho(T={t_alt}) > rho(T=1))")
+        print(f"  {'n_perm':>6} | {'mean rho T=1':>12} | {f'mean rho T={t_alt}':>12} | {'U stat':>8} | {'p-value':>8} | reject H0?")
         print(f"  {'---':>6}-+-{'---':>12}-+-{'---':>12}-+-{'---':>8}-+-{'---':>8}-+----------")
 
         h3_results: list[dict[str, Any]] = []
         for n_sub in subsample_sizes:
-            taus_t1 = tau_distributions[1.0][n_sub]
-            taus_t2 = tau_distributions[2.0][n_sub]
-            u_result = stats.mannwhitneyu(taus_t2, taus_t1, alternative="greater")
+            rhos_t1 = rho_distributions[1.0][n_sub]
+            rhos_alt = rho_distributions[t_alt][n_sub]
+            u_result = stats.mannwhitneyu(rhos_alt, rhos_t1, alternative="greater")
             u_stat = float(u_result.statistic)
             p_val = float(u_result.pvalue)
             reject = p_val < 0.05
             print(
-                f"  {n_sub:6d} | {np.mean(taus_t1):12.4f} | {np.mean(taus_t2):12.4f} | "
+                f"  {n_sub:6d} | {np.mean(rhos_t1):12.4f} | {np.mean(rhos_alt):12.4f} | "
                 f"{u_stat:8.1f} | {p_val:8.4f} | {'YES' if reject else 'no'}"
             )
             h3_results.append({
                 "n_permutations": n_sub,
-                "mean_tau_T1": float(np.mean(taus_t1)),
-                "mean_tau_T2": float(np.mean(taus_t2)),
+                "mean_rho_T1": float(np.mean(rhos_t1)),
+                f"mean_rho_T{t_alt}": float(np.mean(rhos_alt)),
                 "mann_whitney_U": u_stat,
                 "p_value": p_val,
                 "reject_H0_alpha_0.05": reject,
             })
 
-        with open(output_dir / "h3_permutation_efficiency.json", "w") as f:
+        with open(output_dir / f"h3_permutation_efficiency_T{t_alt}.json", "w") as f:
             json.dump(h3_results, f, indent=2)
 
 
