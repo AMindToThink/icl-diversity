@@ -1,0 +1,32 @@
+[
+  {
+    "temperature": 0.5,
+    "spearman_rho": 0.9878787878787878,
+    "p_value": 9.307459988955517e-08,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 1.0,
+    "spearman_rho": 0.9999999999999999,
+    "p_value": 6.646897422032013e-64,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 1.5,
+    "spearman_rho": 0.9515151515151514,
+    "p_value": 2.279854920641689e-05,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 2.0,
+    "spearman_rho": 0.9515151515151514,
+    "p_value": 2.279854920641689e-05,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "temperature": 3.0,
+    "spearman_rho": 0.9393939393939393,
+    "p_value": 5.484052998513666e-05,
+    "reject_H0_alpha_0.05": true
+  }
+]

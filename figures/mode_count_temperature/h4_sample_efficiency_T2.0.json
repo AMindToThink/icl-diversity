@@ -1,0 +1,42 @@
+[
+  {
+    "n_draws": 5,
+    "mean_rho_T1": 0.3856363636363636,
+    "mean_rho_T2.0": 0.4586666666666666,
+    "mann_whitney_U": 23083.0,
+    "p_value": 0.0038313450781245445,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_draws": 10,
+    "mean_rho_T1": 0.5161212121212121,
+    "mean_rho_T2.0": 0.5993333333333333,
+    "mann_whitney_U": 24378.0,
+    "p_value": 7.622743027205894e-05,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_draws": 20,
+    "mean_rho_T1": 0.6617575757575758,
+    "mean_rho_T2.0": 0.7367878787878785,
+    "mann_whitney_U": 24574.5,
+    "p_value": 3.781031844625557e-05,
+    "reject_H0_alpha_0.05": true
+  },
+  {
+    "n_draws": 50,
+    "mean_rho_T1": 0.8445454545454545,
+    "mean_rho_T2.0": 0.8624848484848484,
+    "mann_whitney_U": 21897.0,
+    "p_value": 0.050204145839326385,
+    "reject_H0_alpha_0.05": false
+  },
+  {
+    "n_draws": 100,
+    "mean_rho_T1": 0.9267878787878787,
+    "mean_rho_T2.0": 0.9161212121212121,
+    "mann_whitney_U": 15743.0,
+    "p_value": 0.9998954685738267,
+    "reject_H0_alpha_0.05": false
+  }
+]
