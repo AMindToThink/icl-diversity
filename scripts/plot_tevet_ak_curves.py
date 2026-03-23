@@ -55,16 +55,27 @@ def load_csv_and_sidecar(
     csv_path: Path,
     tag: str,
 ) -> tuple[list[dict], dict] | None:
-    """Load CSV rows and corresponding tagged sidecar JSON."""
+    """Load CSV rows and corresponding sidecar/mean-curves JSON.
+
+    Tries the full sidecar first (*.icl_curves.{tag}.json), then falls
+    back to the lightweight mean curves (*.icl_mean_curves.{tag}.json).
+    """
     sidecar_path = csv_path.with_suffix(f".icl_curves.{tag}.json")
-    if not sidecar_path.exists():
-        logger.warning(f"No sidecar found for {csv_path.name} (tag={tag})")
+    mean_curves_path = csv_path.with_suffix(f".icl_mean_curves.{tag}.json")
+
+    curves_path = None
+    if sidecar_path.exists():
+        curves_path = sidecar_path
+    elif mean_curves_path.exists():
+        curves_path = mean_curves_path
+    else:
+        logger.warning(f"No sidecar/mean-curves found for {csv_path.name} (tag={tag})")
         return None
 
     with open(csv_path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
-    with open(sidecar_path) as f:
+    with open(curves_path) as f:
         sidecar = json.load(f)
 
     return rows, sidecar

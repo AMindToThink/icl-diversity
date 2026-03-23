@@ -42,7 +42,7 @@ from __future__ import annotations
 import math
 import random
 import string
-from typing import Any, Union
+from typing import Any, Literal, Union
 
 import numpy as np
 import torch
@@ -52,6 +52,15 @@ from transformers import PreTrainedModel, PreTrainedTokenizerBase
 # Type alias: single model, list of models (ensemble), or API model.
 # APIModel is referenced by string to avoid circular import.
 ModelInput = Union[PreTrainedModel, list[PreTrainedModel], "APIModel"]
+
+# Format mode for how responses are laid out in the context window.
+# "instruct": Response A: {resp}\n\nResponse B: {resp}\n\n...
+# "completion": 1. {prompt}{resp}\n\n2. {prompt}{resp}\n\n...
+#   In completion mode, logprobs are measured only on the completion portion,
+#   not on the repeated prompt prefix. This is appropriate when responses are
+#   continuations of the prompt (e.g. story completions) rather than
+#   instruction-following responses.
+FormatMode = Literal["instruct", "completion"]
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +285,7 @@ def _find_response_boundaries(
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
+    format_mode: FormatMode = "instruct",
 ) -> tuple[list[int], list[tuple[int, int]]]:
     """Find token boundaries for each response in a concatenated context.
 
@@ -283,30 +293,60 @@ def _find_response_boundaries(
     correctly handles BPE merges at response/separator boundaries (e.g. Qwen
     merging ``"."`` + ``"\\n\\n"`` into a single token ``".\\n\\n"``).
 
+    In **completion** mode, boundaries cover only the completion portion of
+    each entry (after the repeated prompt), not the ``"k. {prompt}"`` prefix.
+
     Returns:
         ``(full_ids, boundaries)`` where ``full_ids`` is the tokenized full
         concatenation and ``boundaries[k] = (start, end)`` gives the token
         range for ``responses[k]``.
     """
     n = len(responses)
-    parts = [prompt]
-    for i, resp in enumerate(responses):
-        parts.append(f"\n\nResponse {_response_label(i)}: {resp}")
-    full_text = "".join(parts)
 
-    encoding = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
-    full_ids = encoding["input_ids"]
-    offset_mapping: list[tuple[int, int]] = encoding["offset_mapping"]
+    if format_mode == "instruct":
+        parts = [prompt]
+        for i, resp in enumerate(responses):
+            parts.append(f"\n\nResponse {_response_label(i)}: {resp}")
+        full_text = "".join(parts)
 
-    # Compute character spans for each response in full_text
-    char_spans: list[tuple[int, int]] = []
-    cursor = len(prompt)
-    for k in range(n):
-        label_prefix = f"\n\nResponse {_response_label(k)}: "
-        cursor += len(label_prefix)
-        char_start = cursor
-        cursor += len(responses[k])
-        char_spans.append((char_start, cursor))
+        encoding = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        full_ids = encoding["input_ids"]
+        offset_mapping: list[tuple[int, int]] = encoding["offset_mapping"]
+
+        # Compute character spans for each response in full_text
+        char_spans: list[tuple[int, int]] = []
+        cursor = len(prompt)
+        for k in range(n):
+            label_prefix = f"\n\nResponse {_response_label(k)}: "
+            cursor += len(label_prefix)
+            char_start = cursor
+            cursor += len(responses[k])
+            char_spans.append((char_start, cursor))
+    else:
+        # Completion mode: "1. {prompt}{resp}\n\n2. {prompt}{resp}..."
+        parts_list: list[str] = []
+        for i, resp in enumerate(responses):
+            parts_list.append(f"{i + 1}. {prompt}{resp}")
+            if i < n - 1:
+                parts_list.append("\n\n")
+        full_text = "".join(parts_list)
+
+        encoding = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        full_ids = encoding["input_ids"]
+        offset_mapping = encoding["offset_mapping"]
+
+        # Character spans: only the completion portion (after repeated prompt)
+        char_spans = []
+        cursor = 0
+        for k in range(n):
+            # Skip the "k. {prompt}" prefix
+            entry_prefix = f"{k + 1}. {prompt}"
+            cursor += len(entry_prefix)
+            char_start = cursor
+            cursor += len(responses[k])
+            char_spans.append((char_start, cursor))
+            if k < n - 1:
+                cursor += len("\n\n")  # separator
 
     assert cursor == len(full_text), (
         f"Character span computation mismatch: cursor={cursor}, "
@@ -431,10 +471,11 @@ def format_conditioning_context(
     prompt: str,
     previous_responses: list[str],
     current_response: str,
+    format_mode: FormatMode = "instruct",
 ) -> tuple[str, str]:
     """Format conditioning context per Section 7 of the paper.
 
-    The format is::
+    In **instruct** mode (default)::
 
         [prompt p]
 
@@ -444,23 +485,47 @@ def format_conditioning_context(
         ...
         Response X: [current_response]
 
+    In **completion** mode (for base-model scoring of prompt completions)::
+
+        1. [prompt][r_1]
+
+        2. [prompt][r_2]
+        ...
+        N. [prompt][current_response]
+
+    In completion mode, the prefix includes the repeated prompt so that
+    logprobs are measured only on the completion portion.
+
     Args:
         prompt: The original prompt p.
         previous_responses: List of responses r_1..r_{k-1} seen so far.
         current_response: The response r_k whose surprise we measure.
+        format_mode: "instruct" (default) or "completion".
 
     Returns:
         Tuple of (prefix, target) where prefix is the formatted context
         before the current response text, and target is the current response
         text. The full context is prefix + target.
     """
-    parts = [prompt]
-    for i, resp in enumerate(previous_responses):
-        label = _response_label(i)
-        parts.append(f"\n\nResponse {label}: {resp}")
+    if format_mode == "instruct":
+        parts = [prompt]
+        for i, resp in enumerate(previous_responses):
+            label = _response_label(i)
+            parts.append(f"\n\nResponse {label}: {resp}")
 
-    current_label = _response_label(len(previous_responses))
-    parts.append(f"\n\nResponse {current_label}: ")
+        current_label = _response_label(len(previous_responses))
+        parts.append(f"\n\nResponse {current_label}: ")
+
+        prefix = "".join(parts)
+        return prefix, current_response
+
+    # Completion mode: "1. {prompt}{resp}\n\n2. {prompt}{resp}..."
+    parts: list[str] = []
+    for i, resp in enumerate(previous_responses):
+        parts.append(f"{i + 1}. {prompt}{resp}\n\n")
+
+    current_idx = len(previous_responses) + 1
+    parts.append(f"{current_idx}. {prompt}")
 
     prefix = "".join(parts)
     return prefix, current_response
@@ -557,6 +622,7 @@ def compute_progressive_surprise_curve(
     prompt: str,
     responses: list[str],
     temperature: float = 1.0,
+    format_mode: FormatMode = "instruct",
 ) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve.
 
@@ -571,6 +637,7 @@ def compute_progressive_surprise_curve(
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
         temperature: Temperature for scaling logits before softmax. Default 1.0.
+        format_mode: "instruct" or "completion". See :data:`FormatMode`.
 
     Returns:
         Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
@@ -581,7 +648,9 @@ def compute_progressive_surprise_curve(
     for k in range(len(responses)):
         previous = responses[:k]
         current = responses[k]
-        prefix, target = format_conditioning_context(prompt, previous, current)
+        prefix, target = format_conditioning_context(
+            prompt, previous, current, format_mode=format_mode,
+        )
         total_bits, bc = compute_cross_entropy(
             model, tokenizer, target, prefix, temperature=temperature
         )
@@ -596,6 +665,7 @@ def compute_progressive_surprise_curve_single_pass(
     prompt: str,
     responses: list[str],
     temperature: float = 1.0,
+    format_mode: FormatMode = "instruct",
 ) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve using a single forward pass.
 
@@ -612,6 +682,7 @@ def compute_progressive_surprise_curve_single_pass(
         prompt: The original prompt p.
         responses: List of n responses [r_1, ..., r_n].
         temperature: Temperature for scaling logits before softmax. Default 1.0.
+        format_mode: "instruct" or "completion". See :data:`FormatMode`.
 
     Returns:
         Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
@@ -622,7 +693,9 @@ def compute_progressive_surprise_curve_single_pass(
     if n == 0:
         return [], []
 
-    full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, responses)
+    full_ids, boundaries = _find_response_boundaries(
+        tokenizer, prompt, responses, format_mode=format_mode,
+    )
 
     # Single forward pass (ensemble-aware)
     input_ids = torch.tensor([full_ids])
@@ -638,6 +711,7 @@ def compute_unconditional_surprises(
     responses: list[str],
     batch_size: int = 1,
     temperature: float = 1.0,
+    format_mode: FormatMode = "instruct",
 ) -> tuple[list[float], list[float], list[int]]:
     """Compute unconditional cross-entropy for each response.
 
@@ -655,6 +729,7 @@ def compute_unconditional_surprises(
         batch_size: Number of responses to process in parallel. Default 1
             (sequential). Increase for GPU acceleration.
         temperature: Temperature for scaling logits before softmax. Default 1.0.
+        format_mode: "instruct" or "completion". See :data:`FormatMode`.
 
     Returns:
         Tuple of ``(per_byte_surprises, total_bits_list, byte_counts)``:
@@ -669,7 +744,9 @@ def compute_unconditional_surprises(
     all_prefix_lens: list[int] = []
     all_byte_counts: list[int] = []
     for resp in responses:
-        prefix, target = format_conditioning_context(prompt, [], resp)
+        prefix, target = format_conditioning_context(
+            prompt, [], resp, format_mode=format_mode,
+        )
         full_ids = tokenizer.encode(prefix + target, add_special_tokens=False)
         prefix_len = len(tokenizer.encode(prefix, add_special_tokens=False))
         all_full_ids.append(full_ids)
@@ -721,6 +798,7 @@ def _compute_permutation_curves_batched(
     permutations: list[list[int]],
     batch_size: int = 1,
     temperature: float = 1.0,
+    format_mode: FormatMode = "instruct",
 ) -> list[tuple[list[float], list[int]]]:
     """Compute single-pass a_k curves for multiple permutations, batched.
 
@@ -736,6 +814,7 @@ def _compute_permutation_curves_batched(
         permutations: List of permutation orderings (each a list of indices).
         batch_size: Number of permutations per batch.
         temperature: Temperature for scaling logits before softmax. Default 1.0.
+        format_mode: "instruct" or "completion". See :data:`FormatMode`.
 
     Returns:
         List of ``(total_bits_curve, byte_counts)`` per permutation.
@@ -750,7 +829,9 @@ def _compute_permutation_curves_batched(
     for perm in permutations:
         permuted = [responses[i] for i in perm]
         all_permuted_responses.append(permuted)
-        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, permuted)
+        full_ids, boundaries = _find_response_boundaries(
+            tokenizer, prompt, permuted, format_mode=format_mode,
+        )
         all_full_ids.append(full_ids)
         all_boundaries.append(boundaries)
 
@@ -910,10 +991,12 @@ def _metrics_from_single_ordering(
     unconditional_total_bits: list[float],
     unconditional_byte_counts: list[int],
     temperature: float,
+    format_mode: FormatMode = "instruct",
 ) -> dict[str, Any]:
     """Compute metrics for a single ordering at a single temperature."""
     a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
-        models, tokenizer, prompt, responses, temperature=temperature
+        models, tokenizer, prompt, responses, temperature=temperature,
+        format_mode=format_mode,
     )
     per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
     e_rate = sum(pb - per_byte[-1] for pb in per_byte)
@@ -1014,6 +1097,7 @@ def compute_icl_diversity_metrics(
     seed: int = 42,
     batch_size: int = 1,
     temperature: float | list[float] = 1.0,
+    format_mode: FormatMode = "instruct",
 ) -> dict[str, Any]:
     """Full ICL diversity metric computation for one prompt.
 
@@ -1033,6 +1117,8 @@ def compute_icl_diversity_metrics(
       sharpens predictions (amplifies signal).
     - **Multi-temperature** (``temperature=[0.5, 1.0, 2.0]``): one forward
       pass, derives all temperatures. Returns ``{"temperatures": {T: ...}}``.
+    - **Format mode** (``format_mode="completion"``): for scoring prompt
+      completions rather than instruction-following responses.
 
     Args:
         model: The base model theta (should be a base model, not
@@ -1050,6 +1136,7 @@ def compute_icl_diversity_metrics(
             positive. A float gives single-temperature behavior (backward
             compatible). A list of floats computes metrics for all temperatures
             from a single set of forward passes.
+        format_mode: "instruct" (default) or "completion". See :data:`FormatMode`.
 
     Returns:
         When ``temperature`` is a float: dict with standard metric keys
@@ -1072,6 +1159,7 @@ def compute_icl_diversity_metrics(
         return _compute_single_temperature(
             models, tokenizer, prompt, responses,
             n_permutations, seed, batch_size, float(temperature),
+            format_mode=format_mode,
         )
 
     # Multi-temperature path
@@ -1088,6 +1176,7 @@ def compute_icl_diversity_metrics(
     return _compute_multi_temperature(
         models, tokenizer, prompt, responses,
         n_permutations, seed, batch_size, temperatures,
+        format_mode=format_mode,
     )
 
 
@@ -1100,13 +1189,14 @@ def _compute_single_temperature(
     seed: int,
     batch_size: int,
     temperature: float,
+    format_mode: FormatMode = "instruct",
 ) -> dict[str, Any]:
     """Original single-temperature computation path (unchanged behavior)."""
     # Unconditional surprises are order-independent, compute once (batched)
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
         compute_unconditional_surprises(
             models, tokenizer, prompt, responses, batch_size=batch_size,
-            temperature=temperature,
+            temperature=temperature, format_mode=format_mode,
         )
     )
 
@@ -1115,6 +1205,7 @@ def _compute_single_temperature(
             models, tokenizer, prompt, responses,
             unconditional_per_byte, unconditional_total_bits,
             unconditional_byte_counts, temperature,
+            format_mode=format_mode,
         )
 
     # Multiple permutations: generate all, then batch compute
@@ -1128,7 +1219,7 @@ def _compute_single_temperature(
 
     perm_results = _compute_permutation_curves_batched(
         models, tokenizer, prompt, responses, all_perms, batch_size,
-        temperature=temperature,
+        temperature=temperature, format_mode=format_mode,
     )
 
     return _metrics_from_permutations(
@@ -1147,6 +1238,7 @@ def _compute_multi_temperature(
     seed: int,
     batch_size: int,
     temperatures: list[float],
+    format_mode: FormatMode = "instruct",
 ) -> dict[str, Any]:
     """Multi-temperature path: one forward pass, derive all temperatures.
 
@@ -1160,7 +1252,7 @@ def _compute_multi_temperature(
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
         compute_unconditional_surprises(
             models, tokenizer, prompt, responses, batch_size=batch_size,
-            temperature=1.0,
+            temperature=1.0, format_mode=format_mode,
         )
     )
 
@@ -1168,7 +1260,9 @@ def _compute_multi_temperature(
 
     if n_permutations <= 1:
         # Single ordering — single forward pass, multi-temperature extraction
-        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, responses)
+        full_ids, boundaries = _find_response_boundaries(
+            tokenizer, prompt, responses, format_mode=format_mode,
+        )
         input_ids = torch.tensor([full_ids])
         full_log_probs = _forward_full_log_probs(models, input_ids)
 
@@ -1213,7 +1307,9 @@ def _compute_multi_temperature(
     for perm in all_perms:
         permuted = [responses[i] for i in perm]
         all_permuted_responses.append(permuted)
-        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, permuted)
+        full_ids, boundaries = _find_response_boundaries(
+            tokenizer, prompt, permuted, format_mode=format_mode,
+        )
         all_full_ids.append(full_ids)
         all_boundaries.append(boundaries)
 

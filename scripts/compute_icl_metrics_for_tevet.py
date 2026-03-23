@@ -47,6 +47,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from icl_diversity.core import FormatMode  # noqa: E402
 from icl_diversity.core import compute_icl_diversity_metrics  # noqa: E402
 from icl_diversity.core import format_conditioning_context  # noqa: E402
 
@@ -200,12 +201,14 @@ def count_tokens_for_full_context(
     tokenizer: AutoTokenizer,
     context: str,
     responses: list[str],
+    format_mode: FormatMode = "instruct",
 ) -> int:
     """Count tokens for the full concatenated context using the real formatting."""
     prefix, target = format_conditioning_context(
         prompt=context,
         previous_responses=responses[:-1],
         current_response=responses[-1],
+        format_mode=format_mode,
     )
     full_text = prefix + target
     return len(tokenizer.encode(full_text))
@@ -272,6 +275,15 @@ def sidecar_path_for_tag(csv_path: Path, tag: str) -> Path:
     return csv_path.with_suffix(f".icl_curves.{tag}.json")
 
 
+def mean_curves_path_for_tag(csv_path: Path, tag: str) -> Path:
+    """Return lightweight mean curves path: foo.icl_mean_curves.<tag>.json
+
+    This file is small (~200-400 bytes per sample) and intended to be
+    committed to git, unlike the full sidecar which is gitignored.
+    """
+    return csv_path.with_suffix(f".icl_mean_curves.{tag}.json")
+
+
 def output_csv_path(source_csv: Path, output_dir: Path, source_data_dir: Path) -> Path:
     """Map a source CSV path to its output location under output_dir.
 
@@ -293,6 +305,7 @@ def process_csv(
     max_tokens: int,
     force: bool = False,
     max_skip_fraction: float = 0.1,
+    format_mode: FormatMode = "instruct",
 ) -> ProcessingStats:
     """Process a single CSV file: compute ICL metrics and write to output location.
 
@@ -354,7 +367,7 @@ def process_csv(
         for row in rows:
             context = row.get("context", "")
             responses = [row[col] for col in resp_cols]
-            token_count = count_tokens_for_full_context(tokenizer, context, responses)
+            token_count = count_tokens_for_full_context(tokenizer, context, responses, format_mode)
             row_token_counts.append((row["sample_id"], token_count))
 
         all_counts = [tc for _, tc in row_token_counts]
@@ -455,6 +468,7 @@ def process_csv(
                 responses=responses,
                 n_permutations=n_permutations,
                 batch_size=batch_size,
+                format_mode=format_mode,
             )
         except Exception:
             logger.error(
@@ -553,6 +567,23 @@ def process_csv(
     sidecar_data["__run_config__"] = run_config
     save_sidecar(output_sidecar, sidecar_data)
     logger.info(f"  Wrote {output_csv} and {output_sidecar.name}")
+
+    # Save lightweight mean curves (committed to git, not gitignored)
+    output_mean_curves = mean_curves_path_for_tag(output_csv, tag)
+    mean_curves_data: dict[str, dict] = {}
+    for sample_id, entry in sidecar_data.items():
+        if sample_id.startswith("__") or not isinstance(entry, dict):
+            continue
+        if entry.get("skipped", False):
+            continue
+        mean_curves_data[sample_id] = {
+            "a_k_curve": entry.get("a_k_curve"),
+            "a_k_byte_counts": entry.get("a_k_byte_counts"),
+            "unconditional_surprises": entry.get("unconditional_surprises"),
+            "unconditional_total_bits": entry.get("unconditional_total_bits"),
+        }
+    save_sidecar(output_mean_curves, mean_curves_data)
+    logger.info(f"  Wrote mean curves: {output_mean_curves.name}")
 
     return stats
 
@@ -657,6 +688,14 @@ def main() -> None:
         help="Recompute metrics even if already present",
     )
     parser.add_argument(
+        "--format-mode",
+        type=str,
+        default="instruct",
+        choices=["instruct", "completion"],
+        help="Response formatting mode: 'instruct' (default, Response A: ...) or "
+             "'completion' (1. {prompt}{completion}..., for story completions)",
+    )
+    parser.add_argument(
         "--migrate-from-sidecars",
         action="store_true",
         help="Migrate existing untagged sidecar data to new tagged format (no GPU needed)",
@@ -688,6 +727,7 @@ def main() -> None:
         "n_permutations": args.n_permutations,
         "torch_dtype": args.torch_dtype,
         "batch_size": args.batch_size,
+        "format_mode": args.format_mode,
     }
 
     model = None
@@ -755,6 +795,7 @@ def main() -> None:
             max_tokens=max_tokens,
             force=args.force,
             max_skip_fraction=args.max_skip_fraction,
+            format_mode=args.format_mode,
         )
         all_stats[csv_path.name] = stats
 

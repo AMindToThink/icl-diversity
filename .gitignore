@@ -12,3 +12,6 @@ build/
 # Large sidecar JSON caches (regenerable via --migrate-from-sidecars)
 results/tevet/**/*.icl_curves.*.json
 diversity-eval/data/with_metrics/**/*.icl_curves.json
+
+# Keep mean curves (small, needed for offline sigmoid refitting)
+!results/tevet/**/*.icl_mean_curves.*.json

@@ -5,14 +5,12 @@ Parses the results JSON and CSVs from Tevet's experiment pipeline,
 compares ICL metrics (E, D) against existing baselines, and tests
 each hypothesis from hypotheses/tevet_validation.md.
 
+Now also computes E_fit (from exponential and sigmoid curve fits) using
+the mean a_k curves saved by compute_icl_metrics_for_tevet.py, and
+re-runs hypothesis tests with the corrected metric.
+
 Usage:
-    # After running compute_icl_metrics_for_tevet.py and run_experiments.py:
-    uv run python scripts/analyze_tevet_validation.py --run-tag gpt2
-
-    # Direct CSV analysis (no run_experiments.py needed):
-    uv run python scripts/analyze_tevet_validation.py --run-tag gpt2
-
-    # Analyze all available run tags:
+    uv run python scripts/analyze_tevet_validation.py --run-tag qwen25_completion
     uv run python scripts/analyze_tevet_validation.py
 """
 
@@ -22,11 +20,16 @@ import argparse
 import csv
 import json
 import logging
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
+
+# Import fitting functions from fit_ak_curves.py
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fit_ak_curves import fit_exponential, fit_sigmoid  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +116,385 @@ def load_csv_metrics(csv_path: Path) -> dict[str, list[float]]:
                         val = row[field]
                     data[field].append(val)
     return data
+
+
+def load_mean_curves(data_dir: Path, tag: str) -> dict[str, dict[str, dict]]:
+    """Load mean a_k curves from lightweight JSON files.
+
+    Returns:
+        {csv_stem: {sample_id: {a_k_curve, a_k_byte_counts, ...}}}
+    """
+    all_curves: dict[str, dict[str, dict]] = {}
+    for curves_path in sorted(data_dir.rglob(f"*.icl_mean_curves.{tag}.json")):
+        csv_stem = curves_path.name.replace(f".icl_mean_curves.{tag}.json", "")
+        with open(curves_path) as f:
+            data = json.load(f)
+        # Filter out metadata keys
+        curves = {k: v for k, v in data.items() if not k.startswith("__")}
+        all_curves[csv_stem] = curves
+        logger.info(f"  Loaded {len(curves)} curves from {curves_path.name}")
+    return all_curves
+
+
+def fit_sample_curve(
+    a_k_curve: list[float],
+) -> dict[str, float | bool]:
+    """Fit both exponential and sigmoid to a single sample's a_k curve.
+
+    Returns dict with E_fit_exp, E_fit_sig, r_squared_exp, r_squared_sig,
+    fit_success_exp, fit_success_sig, a_inf_exp, a_inf_sig.
+    """
+    n = len(a_k_curve)
+    k = np.arange(1, n + 1, dtype=float)
+    curve = np.array(a_k_curve)
+
+    result: dict[str, float | bool] = {}
+
+    # Exponential fit (3 params — good for 5+ points)
+    exp_params, exp_ok = fit_exponential(k, curve)
+    result["fit_success_exp"] = exp_ok
+    if exp_ok:
+        result["E_fit_exp"] = exp_params["E_fit"]
+        result["a_inf_exp"] = exp_params["a_inf"]
+        result["r_squared_exp"] = exp_params["r_squared"]
+    else:
+        result["E_fit_exp"] = float("nan")
+        result["a_inf_exp"] = float("nan")
+        result["r_squared_exp"] = float("nan")
+
+    # Sigmoid fit (4 params — tight for 5 points, better for 10)
+    sig_params, sig_ok = fit_sigmoid(k, curve)
+    result["fit_success_sig"] = sig_ok
+    if sig_ok:
+        result["E_fit_sig"] = sig_params["E_fit"]
+        result["a_inf_sig"] = sig_params["a_inf"]
+        result["r_squared_sig"] = sig_params["r_squared"]
+    else:
+        result["E_fit_sig"] = float("nan")
+        result["a_inf_sig"] = float("nan")
+        result["r_squared_sig"] = float("nan")
+
+    return result
+
+
+def compute_fitted_metrics_for_csv(
+    csv_path: Path, curves: dict[str, dict], tag: str,
+) -> dict[str, dict[str, float]]:
+    """Compute E_fit and D_fit for each sample in a CSV.
+
+    Loads C from the CSV, computes E_fit from the curve, D_fit = C * E_fit.
+
+    Returns {sample_id: {E_fit_exp, D_fit_exp, E_fit_sig, D_fit_sig,
+                          E_discrete, D_discrete, ...}}
+    """
+    c_col = f"metric_icl_C_{tag}"
+    e_col = f"metric_icl_E_{tag}"
+    d_col = f"metric_icl_D_{tag}"
+
+    # Load scalar metrics from CSV
+    csv_data: dict[str, dict[str, float]] = {}
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            sid = row["sample_id"]
+            try:
+                csv_data[sid] = {
+                    "C": float(row.get(c_col, "nan")),
+                    "E_discrete": float(row.get(e_col, "nan")),
+                    "D_discrete": float(row.get(d_col, "nan")),
+                }
+            except (ValueError, TypeError):
+                continue
+
+    results: dict[str, dict[str, float]] = {}
+    for sample_id, curve_data in curves.items():
+        a_k_curve = curve_data.get("a_k_curve")
+        if a_k_curve is None or len(a_k_curve) < 2:
+            continue
+
+        csv_row = csv_data.get(sample_id)
+        if csv_row is None:
+            continue
+
+        C = csv_row["C"]
+        fit_results = fit_sample_curve(a_k_curve)
+
+        entry = {
+            "C": C,
+            "E_discrete": csv_row["E_discrete"],
+            "D_discrete": csv_row["D_discrete"],
+            **fit_results,
+        }
+
+        # Compute D_fit = C * E_fit
+        if not np.isnan(fit_results["E_fit_exp"]):
+            entry["D_fit_exp"] = C * fit_results["E_fit_exp"]
+        else:
+            entry["D_fit_exp"] = float("nan")
+
+        if not np.isnan(fit_results["E_fit_sig"]):
+            entry["D_fit_sig"] = C * fit_results["E_fit_sig"]
+        else:
+            entry["D_fit_sig"] = float("nan")
+
+        results[sample_id] = entry
+
+    return results
+
+
+def analyze_fitted_metrics(
+    data_dir: Path, all_curves: dict[str, dict[str, dict]], tag: str,
+    output_dir: Path,
+) -> None:
+    """Run full E_fit analysis: hypothesis tests, diagnostics, and plots."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\n" + "=" * 80)
+    print(f"E_FIT ANALYSIS [{tag}]")
+    print("=" * 80)
+
+    # Collect fitted metrics across all CSVs, grouped by dataset type
+    all_fitted: dict[str, dict[str, dict[str, float]]] = {}  # csv_stem -> {sid -> metrics}
+    for csv_path in sorted(data_dir.rglob("*.csv")):
+        csv_stem = csv_path.stem
+        curves = all_curves.get(csv_stem, {})
+        if not curves:
+            continue
+        fitted = compute_fitted_metrics_for_csv(csv_path, curves, tag)
+        if fitted:
+            all_fitted[csv_stem] = fitted
+            logger.info(f"  Fitted {len(fitted)} samples from {csv_stem}")
+
+    if not all_fitted:
+        print("No fitted metrics computed (no mean curves found).")
+        return
+
+    # --- Fit quality diagnostics ---
+    print("\n--- Fit Quality Diagnostics ---")
+    total_exp_ok = 0
+    total_sig_ok = 0
+    total_samples = 0
+    all_r2_exp: list[float] = []
+    all_r2_sig: list[float] = []
+
+    for csv_stem, fitted in sorted(all_fitted.items()):
+        n = len(fitted)
+        exp_ok = sum(1 for m in fitted.values() if m.get("fit_success_exp"))
+        sig_ok = sum(1 for m in fitted.values() if m.get("fit_success_sig"))
+        r2_exp = [m["r_squared_exp"] for m in fitted.values() if not np.isnan(m.get("r_squared_exp", float("nan")))]
+        r2_sig = [m["r_squared_sig"] for m in fitted.values() if not np.isnan(m.get("r_squared_sig", float("nan")))]
+
+        print(f"  {csv_stem}: {n} samples, exp {exp_ok}/{n} ok, sig {sig_ok}/{n} ok"
+              f", median R2_exp={np.median(r2_exp):.3f}" if r2_exp else "")
+
+        total_exp_ok += exp_ok
+        total_sig_ok += sig_ok
+        total_samples += n
+        all_r2_exp.extend(r2_exp)
+        all_r2_sig.extend(r2_sig)
+
+    print(f"\n  TOTAL: {total_samples} samples")
+    print(f"  Exponential: {total_exp_ok}/{total_samples} fits succeeded ({100*total_exp_ok/total_samples:.1f}%)")
+    print(f"  Sigmoid: {total_sig_ok}/{total_samples} fits succeeded ({100*total_sig_ok/total_samples:.1f}%)")
+    if all_r2_exp:
+        print(f"  Exponential R2: median={np.median(all_r2_exp):.3f}, mean={np.mean(all_r2_exp):.3f}")
+    if all_r2_sig:
+        print(f"  Sigmoid R2: median={np.median(all_r2_sig):.3f}, mean={np.mean(all_r2_sig):.3f}")
+
+    # --- Hypothesis tests with E_fit ---
+    # ConTest (binary labels)
+    _test_fitted_binary(data_dir, all_fitted, tag, "conTest", "ConTest", output_dir)
+
+    # McDiv_nuggets (binary labels — primary dataset for content diversity)
+    _test_fitted_binary(data_dir, all_fitted, tag, "McDiv_nuggets", "McDiv_nuggets", output_dir)
+
+    # DecTest (continuous temperature labels)
+    _test_fitted_continuous(data_dir, all_fitted, tag, "decTest", "DecTest", output_dir)
+
+    # --- E_fit vs E_discrete scatter ---
+    _plot_efit_vs_ediscrete(all_fitted, tag, output_dir)
+
+
+def _test_fitted_binary(
+    data_dir: Path,
+    all_fitted: dict[str, dict[str, dict[str, float]]],
+    tag: str,
+    subdir: str,
+    dataset_name: str,
+    output_dir: Path,
+) -> None:
+    """Test E_fit on datasets with binary diversity labels (high=1, low=0)."""
+    print(f"\n--- {dataset_name}: E_fit vs E_discrete (binary labels) ---")
+
+    csv_dir = data_dir / subdir
+    if not csv_dir.exists():
+        print(f"  {subdir}/ not found, skipping")
+        return
+
+    header = f"  {'Task':<30s} {'E_disc ρ':>10s} {'E_exp ρ':>10s} {'E_sig ρ':>10s} {'E_disc OCA':>10s} {'E_exp OCA':>10s} {'E_sig OCA':>10s}"
+    print(header)
+    print("  " + "─" * len(header.strip()))
+
+    for csv_path in sorted(csv_dir.glob("*.csv")):
+        csv_stem = csv_path.stem
+        fitted = all_fitted.get(csv_stem, {})
+        if not fitted:
+            continue
+
+        # Load labels
+        data = load_csv_metrics(csv_path)
+        labels_list = data.get("label_value", [])
+        sample_ids_list: list[str] = []
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            sample_ids_list = [row["sample_id"] for row in reader]
+
+        label_map = dict(zip(sample_ids_list, labels_list))
+
+        # Collect paired values
+        e_disc: list[float] = []
+        e_exp: list[float] = []
+        e_sig: list[float] = []
+        labs: list[float] = []
+
+        for sid, m in fitted.items():
+            lab = label_map.get(sid)
+            if lab is None or (isinstance(lab, float) and np.isnan(lab)):
+                continue
+            if np.isnan(m["E_discrete"]):
+                continue
+            e_disc.append(m["E_discrete"])
+            e_exp.append(m["E_fit_exp"] if not np.isnan(m.get("E_fit_exp", float("nan"))) else m["E_discrete"])
+            e_sig.append(m["E_fit_sig"] if not np.isnan(m.get("E_fit_sig", float("nan"))) else m["E_discrete"])
+            labs.append(float(lab))
+
+        if len(labs) < 10:
+            continue
+
+        # Spearman rho
+        rho_disc, _ = spearmanr(labs, e_disc)
+        rho_exp, _ = spearmanr(labs, e_exp)
+        rho_sig, _ = spearmanr(labs, e_sig)
+
+        # OCA (optimal classification accuracy): fraction correctly classified
+        # by median split
+        def oca(values: list[float], labels: list[float]) -> float:
+            med = np.median(values)
+            correct = sum(
+                (v >= med and l == 1.0) or (v < med and l == 0.0)
+                for v, l in zip(values, labels)
+            )
+            return correct / len(labels) if labels else 0.0
+
+        oca_disc = oca(e_disc, labs)
+        oca_exp = oca(e_exp, labs)
+        oca_sig = oca(e_sig, labs)
+
+        task = csv_stem.split("_")[-2] + "_" + csv_stem.split("_")[-1]
+        print(f"  {task:<30s} {rho_disc:>10.3f} {rho_exp:>10.3f} {rho_sig:>10.3f} "
+              f"{oca_disc:>10.3f} {oca_exp:>10.3f} {oca_sig:>10.3f}")
+
+
+def _test_fitted_continuous(
+    data_dir: Path,
+    all_fitted: dict[str, dict[str, dict[str, float]]],
+    tag: str,
+    subdir: str,
+    dataset_name: str,
+    output_dir: Path,
+) -> None:
+    """Test E_fit on datasets with continuous labels (temperature)."""
+    print(f"\n--- {dataset_name}: E_fit vs E_discrete (continuous labels) ---")
+
+    csv_dir = data_dir / subdir
+    if not csv_dir.exists():
+        print(f"  {subdir}/ not found, skipping")
+        return
+
+    header = f"  {'Task':<30s} {'E_disc ρ':>10s} {'E_exp ρ':>10s} {'E_sig ρ':>10s}"
+    print(header)
+    print("  " + "─" * len(header.strip()))
+
+    for csv_path in sorted(csv_dir.glob("*1000*.csv")):
+        csv_stem = csv_path.stem
+        fitted = all_fitted.get(csv_stem, {})
+        if not fitted:
+            continue
+
+        data = load_csv_metrics(csv_path)
+        labels_list = data.get("label_value", [])
+        sample_ids_list: list[str] = []
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            sample_ids_list = [row["sample_id"] for row in reader]
+
+        label_map = dict(zip(sample_ids_list, labels_list))
+
+        e_disc: list[float] = []
+        e_exp: list[float] = []
+        e_sig: list[float] = []
+        labs: list[float] = []
+
+        for sid, m in fitted.items():
+            lab = label_map.get(sid)
+            if lab is None or (isinstance(lab, float) and np.isnan(lab)):
+                continue
+            if np.isnan(m["E_discrete"]):
+                continue
+            e_disc.append(m["E_discrete"])
+            e_exp.append(m["E_fit_exp"] if not np.isnan(m.get("E_fit_exp", float("nan"))) else m["E_discrete"])
+            e_sig.append(m["E_fit_sig"] if not np.isnan(m.get("E_fit_sig", float("nan"))) else m["E_discrete"])
+            labs.append(float(lab))
+
+        if len(labs) < 10:
+            continue
+
+        rho_disc, _ = spearmanr(labs, e_disc)
+        rho_exp, _ = spearmanr(labs, e_exp)
+        rho_sig, _ = spearmanr(labs, e_sig)
+
+        task = csv_stem.split("_")[-2] + "_" + csv_stem.split("_")[-1]
+        print(f"  {task:<30s} {rho_disc:>10.3f} {rho_exp:>10.3f} {rho_sig:>10.3f}")
+
+
+def _plot_efit_vs_ediscrete(
+    all_fitted: dict[str, dict[str, dict[str, float]]],
+    tag: str,
+    output_dir: Path,
+) -> None:
+    """Scatter plot of E_fit_exp vs E_discrete across all samples."""
+    e_disc_all: list[float] = []
+    e_exp_all: list[float] = []
+
+    for csv_stem, fitted in all_fitted.items():
+        for m in fitted.values():
+            ed = m.get("E_discrete", float("nan"))
+            ee = m.get("E_fit_exp", float("nan"))
+            if not np.isnan(ed) and not np.isnan(ee):
+                e_disc_all.append(ed)
+                e_exp_all.append(ee)
+
+    if len(e_disc_all) < 10:
+        return
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.scatter(e_disc_all, e_exp_all, alpha=0.1, s=3)
+
+    # Identity line
+    lim = max(max(e_disc_all), max(e_exp_all)) * 1.1
+    ax.plot([0, lim], [0, lim], "--", color="gray", alpha=0.5, label="identity")
+
+    ax.set_xlabel("E_discrete (truncated)")
+    ax.set_ylabel("E_fit_exp (exponential)")
+    ax.set_title(f"E_fit vs E_discrete [{tag}] (n={len(e_disc_all)})")
+    ax.legend()
+    ax.set_aspect("equal")
+
+    plt.tight_layout()
+    out_path = output_dir / f"efit_vs_ediscrete_{tag}.png"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {out_path}")
 
 
 def print_results_table(all_results: dict) -> None:
@@ -464,6 +846,14 @@ def analyze_tag(tag: str, output_dir: Path) -> None:
     compute_metric_correlations(data_dir, tag, output_dir)
     plot_metric_distributions(data_dir, tag, output_dir)
     plot_dectest_e_vs_temperature(data_dir, tag, output_dir)
+
+    # E_fit analysis from mean curves (requires compute step to have saved curves)
+    all_curves = load_mean_curves(data_dir, tag)
+    if all_curves:
+        analyze_fitted_metrics(data_dir, all_curves, tag, output_dir)
+    else:
+        print("\nNo mean curves found. Run compute_icl_metrics_for_tevet.py first.")
+        print("Mean curves are saved as *.icl_mean_curves.<tag>.json files.")
 
 
 def main() -> None:

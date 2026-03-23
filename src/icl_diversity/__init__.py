@@ -1,5 +1,6 @@
 from icl_diversity.api_model import APIModel
 from icl_diversity.core import (
+    FormatMode,
     ModelInput,
     compute_cross_entropy,
     compute_excess_entropy,

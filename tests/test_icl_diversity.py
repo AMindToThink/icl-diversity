@@ -77,6 +77,137 @@ class TestFormatConditioningContext:
         assert "Response D: " in prefix
 
 
+# --- Completion format tests ---
+
+
+class TestCompletionFormat:
+    """Tests for format_mode='completion' in format_conditioning_context."""
+
+    def test_first_response_completion(self) -> None:
+        prefix, target = format_conditioning_context(
+            "The cat sat on", [], "the mat.", format_mode="completion"
+        )
+        assert prefix == "1. The cat sat on"
+        assert target == "the mat."
+
+    def test_with_previous_responses_completion(self) -> None:
+        prefix, target = format_conditioning_context(
+            "The cat sat on",
+            ["the mat.", "the roof."],
+            "the fence.",
+            format_mode="completion",
+        )
+        expected_prefix = (
+            "1. The cat sat onthe mat.\n\n"
+            "2. The cat sat onthe roof.\n\n"
+            "3. The cat sat on"
+        )
+        assert prefix == expected_prefix
+        assert target == "the fence."
+
+    def test_instruct_default_unchanged(self) -> None:
+        """Verify default format_mode='instruct' matches the original behavior."""
+        prefix_default, target_default = format_conditioning_context(
+            "prompt", ["r1"], "r2"
+        )
+        prefix_explicit, target_explicit = format_conditioning_context(
+            "prompt", ["r1"], "r2", format_mode="instruct"
+        )
+        assert prefix_default == prefix_explicit
+        assert target_default == target_explicit
+
+    def test_completion_numbers_sequential(self) -> None:
+        prefix, _ = format_conditioning_context(
+            "p", ["a", "b", "c"], "d", format_mode="completion"
+        )
+        assert "1. p" in prefix
+        assert "2. p" in prefix
+        assert "3. p" in prefix
+        assert "4. p" in prefix
+
+
+class TestCompletionFormatBoundaries:
+    """Tests for _find_response_boundaries with format_mode='completion'."""
+
+    def test_boundaries_exclude_repeated_context(self) -> None:
+        """In completion mode, boundaries should cover only completions, not the repeated prompt."""
+        from icl_diversity.core import _find_response_boundaries
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        prompt = "The cat sat on "
+        responses = ["the mat.", "the roof."]
+
+        full_ids, boundaries = _find_response_boundaries(
+            tokenizer, prompt, responses, format_mode="completion"
+        )
+
+        # Decode just the boundary tokens for each response
+        for k, (start, end) in enumerate(boundaries):
+            if end > start:
+                boundary_tokens = full_ids[start:end]
+                decoded = tokenizer.decode(boundary_tokens)
+                # Should contain the completion text, not the prompt
+                assert responses[k].strip() in decoded.strip() or decoded.strip() in responses[k].strip(), (
+                    f"Response {k}: decoded boundary '{decoded}' doesn't match "
+                    f"completion '{responses[k]}'"
+                )
+                # Should NOT contain the prompt text
+                assert prompt.strip() not in decoded, (
+                    f"Response {k}: boundary '{decoded}' contains prompt '{prompt}'"
+                )
+
+    def test_instruct_boundaries_unchanged(self) -> None:
+        """Instruct mode boundaries should be identical with or without explicit format_mode."""
+        from icl_diversity.core import _find_response_boundaries
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        prompt = "Tell me a story"
+        responses = ["Once upon a time", "In a galaxy far away"]
+
+        ids_default, bounds_default = _find_response_boundaries(
+            tokenizer, prompt, responses
+        )
+        ids_explicit, bounds_explicit = _find_response_boundaries(
+            tokenizer, prompt, responses, format_mode="instruct"
+        )
+
+        assert ids_default == ids_explicit
+        assert bounds_default == bounds_explicit
+
+
+class TestCompletionFormatPipeline:
+    """Test that completion format works end-to-end with mock model."""
+
+    def test_full_pipeline_completion_format(self) -> None:
+        model, tokenizer = _make_mock_model_and_tokenizer(uniform=True)
+        result = compute_icl_diversity_metrics(
+            model, tokenizer, "prompt", ["a", "b", "c"],
+            format_mode="completion",
+        )
+        assert "a_k_curve" in result
+        assert len(result["a_k_curve"]) == 3
+
+    def test_completion_format_changes_token_sequence(self) -> None:
+        """Completion mode should produce a different token sequence than instruct."""
+        from icl_diversity.core import _find_response_boundaries
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        prompt = "The cat sat on "
+        responses = ["the mat.", "the roof."]
+
+        ids_instruct, _ = _find_response_boundaries(
+            tokenizer, prompt, responses, format_mode="instruct"
+        )
+        ids_completion, _ = _find_response_boundaries(
+            tokenizer, prompt, responses, format_mode="completion"
+        )
+        # Different formats → different token sequences
+        assert ids_instruct != ids_completion
+
+
 # --- Per-byte normalization tests ---
 
 
