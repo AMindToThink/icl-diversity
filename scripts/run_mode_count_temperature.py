@@ -75,20 +75,26 @@ def estimate_tokens(responses: list[str], tokenizer: Any) -> int:
     return len(tokenizer.encode(context))
 
 
-def run_single_temperature(
+def run_all_temperatures(
     model: torch.nn.Module,
     tokenizer: Any,
     mode_counts: list[int],
     n_responses: int,
     n_draws: int,
     batch_size: int,
-    temperature: float,
+    temperatures: list[float],
     draw_seeds: list[int],
-) -> list[dict[str, Any]]:
-    """Run mode count experiment at one temperature. Returns list of run entries."""
-    runs: list[dict[str, Any]] = []
+) -> dict[float, list[dict[str, Any]]]:
+    """Run mode count experiment across all temperatures simultaneously.
+
+    Uses multi-temperature API: one forward pass per draw, metrics for all
+    temperatures derived from the same log-probs.
+
+    Returns dict mapping temperature -> list of run entries.
+    """
+    runs_by_temp: dict[float, list[dict[str, Any]]] = {t: [] for t in temperatures}
     total_runs = len(mode_counts) * n_draws
-    pbar = tqdm(total=total_runs, desc=f"  T={temperature}", leave=False)
+    pbar = tqdm(total=total_runs, desc="  all temps", leave=False)
 
     for m in mode_counts:
         for draw_idx, draw_seed in enumerate(draw_seeds):
@@ -101,7 +107,7 @@ def run_single_temperature(
             shuffle_rng = random.Random(draw_seed ^ 0x5A5A5A5A)
             shuffle_rng.shuffle(responses)
 
-            metrics = compute_icl_diversity_metrics(
+            multi_result = compute_icl_diversity_metrics(
                 model,
                 tokenizer,
                 PROMPT,
@@ -109,27 +115,28 @@ def run_single_temperature(
                 n_permutations=1,
                 seed=draw_seed,
                 batch_size=batch_size,
-                temperature=temperature,
+                temperature=temperatures,
             )
 
             elapsed = time.time() - t0
 
-            run_entry = {
-                "m": m,
-                "draw_idx": draw_idx,
-                "draw_seed": draw_seed,
-                "temperature": temperature,
-                "modes_used": modes_used,
-                "elapsed_seconds": round(elapsed, 2),
-                **{k: v for k, v in metrics.items()},
-            }
-            runs.append(run_entry)
+            for temp, metrics in multi_result["temperatures"].items():
+                run_entry = {
+                    "m": m,
+                    "draw_idx": draw_idx,
+                    "draw_seed": draw_seed,
+                    "temperature": temp,
+                    "modes_used": modes_used,
+                    "elapsed_seconds": round(elapsed / len(temperatures), 2),
+                    **{k: v for k, v in metrics.items()},
+                }
+                runs_by_temp[temp].append(run_entry)
 
             pbar.set_postfix(m=m, draw=f"{draw_idx + 1}/{n_draws}")
             pbar.update(1)
 
     pbar.close()
-    return runs
+    return runs_by_temp
 
 
 def main() -> None:
@@ -233,16 +240,17 @@ def main() -> None:
         f"\nMode counts: {args.mode_counts}, n_responses={args.n_responses}, "
         f"n_draws={args.n_draws}, temperatures={temperatures}"
     )
+    print("Using single-pass multi-temperature: 1 forward pass → all temperatures")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    for temp in temperatures:
-        print(f"\n=== Temperature: {temp} ===")
-        runs = run_single_temperature(
-            model, tokenizer, args.mode_counts, args.n_responses,
-            args.n_draws, args.batch_size, temp, draw_seeds,
-        )
+    runs_by_temp = run_all_temperatures(
+        model, tokenizer, args.mode_counts, args.n_responses,
+        args.n_draws, args.batch_size, temperatures, draw_seeds,
+    )
 
+    for temp in temperatures:
+        runs = runs_by_temp[temp]
         result = {
             "experiment": "mode_count_temperature",
             "base_model": args.base_model,
@@ -259,7 +267,7 @@ def main() -> None:
         out_path = args.output_dir / f"T_{temp}.json"
         with open(out_path, "w") as f:
             json.dump(result, f, indent=2, default=str)
-        print(f"  Saved to {out_path}")
+        print(f"  Saved to {out_path} ({len(runs)} runs)")
 
     print("\nDone!")
 

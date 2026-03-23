@@ -66,6 +66,8 @@ The metric flows through these stages, all in one file. All public functions acc
 
 **Internal helpers:**
 - `_forward_log_probs(models, input_ids, attention_mask, temperature)` — Runs forward pass through one or more models. Applies `logits / temperature` before softmax. For ensembles, temperature is applied per-model before softmax, then probabilities are averaged (Section 7.5, Eq 27). Raises `ValueError` for API models when `temperature != 1.0`.
+- `_forward_full_log_probs(models, input_ids, attention_mask)` — Like `_forward_log_probs` but returns full `(batch, seq_len, vocab_size)` log-probs at T=1 (nats) before diagonal extraction. Used by multi-temperature path to avoid redundant forward passes.
+- `_rescale_log_probs(full_log_probs, temperature)` — Rescales T=1 full log-probs to temperature T via `log_softmax(log_probs / T)`. Identity: `log_softmax(logits/T) = log_softmax(log_probs_T1 / T)`.
 - `_find_response_boundaries(tokenizer, prompt, responses)` — Tokenizes the full concatenated context and finds token index ranges for each response.
 - `_extract_response_log_probs(log_probs, full_ids, boundaries, responses, pad_offset)` — Extracts per-response total bits from a log-probs tensor. Handles left-padding offset.
 - `_left_pad_and_batch(sequences, pad_token_id)` — Left-pads variable-length token sequences into a batch with attention mask.
@@ -82,7 +84,7 @@ The metric flows through these stages, all in one file. All public functions acc
 
 5. **`_compute_permutation_curves_batched(models, tokenizer, prompt, responses, permutations, batch_size)`** — Computes single-pass a_k curves for multiple permutations in batched forward passes. Each permutation is an independent sequence.
 
-6. **`compute_icl_diversity_metrics(model, tokenizer, prompt, responses, n_permutations, seed, batch_size)`** — Top-level entry point. Orchestrates the above. When `n_permutations > 1`, generates all permutations upfront and batch-computes their curves. Supports model ensembling by passing a list of models.
+6. **`compute_icl_diversity_metrics(model, tokenizer, prompt, responses, n_permutations, seed, batch_size, temperature)`** — Top-level entry point. Orchestrates the above. When `n_permutations > 1`, generates all permutations upfront and batch-computes their curves. Supports model ensembling by passing a list of models. **Multi-temperature**: when `temperature` is a `list[float]`, performs one forward pass and derives all temperatures, returning `{"temperatures": {T: metrics_dict}}`. When `temperature` is a single float (default), backward-compatible flat dict.
 
 ### Scenario data (`src/icl_diversity/scenarios.py`)
 
@@ -97,6 +99,7 @@ Reads `responses.jsonl` grouped by (scale, prompt_idx), runs `compute_icl_divers
 - **Base model requirement**: θ must be a base model (not instruction-tuned) to avoid confounding coherence-as-fluency with coherence-as-alignment.
 - **Permutation averaging**: When `n_permutations > 1`, the a_k curve is averaged over random response orderings to reduce ordering sensitivity (Section 7.3 of paper). Per-permutation curves are preserved in `per_permutation_a_k_curves`.
 - **Batching**: Unconditional surprises (n short sequences) and permutation forward passes are batched via left-padding with attention mask. `batch_size=1` (default) preserves sequential behavior.
+- **Multi-temperature**: `temperature=list[float]` computes metrics for all temperatures from a single set of forward passes. Uses the identity `log_softmax(logits/T) = log_softmax(log_probs_T1/T)` — only T=1 full log-probs are needed. Unconditional surprises (C) are computed once at T=1 and shared; only the progressive curve (E) varies with T.
 - **Model ensembling** (Section 7.5): `model` parameter accepts `PreTrainedModel | list[PreTrainedModel]`. For ensembles, softmax probabilities are averaged at each token position (Eq 27), forming a mixture distribution. All models must share the same tokenizer. Ensemble log-probs are accumulated on CPU to support models on different devices.
 - **Conditioning format**: Responses are formatted as `"Response A: ...\n\nResponse B: ..."` in the context window (see `format_conditioning_context`).
 - The `__init__.py` re-exports from `core.py` are intentional public API — ruff warns about unused imports but they are re-exports.

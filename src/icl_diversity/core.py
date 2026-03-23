@@ -80,6 +80,28 @@ def _get_pad_token_id(tokenizer: PreTrainedTokenizerBase) -> int:
     return tokenizer.eos_token_id
 
 
+def _rescale_log_probs(
+    full_log_probs: torch.Tensor,
+    temperature: float,
+) -> torch.Tensor:
+    """Rescale T=1 full log-probs to temperature T.
+
+    Uses the identity: log_softmax(logits/T) = log_softmax(log_probs_T1 / T).
+    Since log_probs_T1 = log_softmax(logits), dividing by T and re-normalizing
+    is equivalent to dividing the original logits by T.
+
+    Args:
+        full_log_probs: ``(batch, seq_len, vocab_size)`` log-probs at T=1 (nats).
+        temperature: Target temperature. Must be positive.
+
+    Returns:
+        ``(batch, seq_len, vocab_size)`` log-probs at temperature T (nats).
+    """
+    if temperature == 1.0:
+        return full_log_probs
+    return torch.nn.functional.log_softmax(full_log_probs / temperature, dim=-1)
+
+
 def _gather_diagonal_log_probs(
     log_probs_full: torch.Tensor,
     input_ids: torch.Tensor,
@@ -188,6 +210,66 @@ def _forward_log_probs(
     accumulated_probs /= len(models)
     log_probs_full = torch.log(accumulated_probs.clamp(min=1e-45))
     return _gather_diagonal_log_probs(log_probs_full, input_ids)
+
+
+def _forward_full_log_probs(
+    models: list[PreTrainedModel] | "APIModel",
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Run forward pass and return full log-probs at T=1 (nats).
+
+    Like :func:`_forward_log_probs` but returns the full ``(batch, seq_len,
+    vocab_size)`` log-prob tensor at T=1 *before* diagonal extraction. This
+    allows multi-temperature rescaling via :func:`_rescale_log_probs` without
+    additional forward passes.
+
+    For a single model, returns ``log_softmax(logits)`` (nats).
+    For an ensemble, averages softmax probabilities then takes log (nats).
+
+    Args:
+        models: List of models to ensemble, a single-element list, or an
+            APIModel instance.
+        input_ids: ``(batch, seq_len)`` token IDs.
+        attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
+
+    Returns:
+        ``(batch, seq_len, vocab_size)`` tensor of log-probs in nats at T=1.
+        On model device for single model, on CPU for ensemble.
+
+    Raises:
+        ValueError: If models is an APIModel (no logits available).
+    """
+    if _is_api_model(models):
+        raise ValueError(
+            "Multi-temperature is not supported for API models (no logits available). "
+            "Use a single temperature with _forward_log_probs instead."
+        )
+
+    if len(models) == 1:
+        model = models[0]
+        ids = input_ids.to(model.device)
+        mask = attention_mask.to(model.device) if attention_mask is not None else None
+        with torch.no_grad():
+            logits = model(ids, attention_mask=mask, use_cache=False).logits
+        return torch.nn.functional.log_softmax(logits, dim=-1)
+
+    # Ensemble: average softmax probabilities across models (Eq 27)
+    accumulated_probs: torch.Tensor | None = None
+    for model in models:
+        ids = input_ids.to(model.device)
+        mask = attention_mask.to(model.device) if attention_mask is not None else None
+        with torch.no_grad():
+            logits = model(ids, attention_mask=mask, use_cache=False).logits
+        probs = torch.softmax(logits.float(), dim=-1).cpu()
+        if accumulated_probs is None:
+            accumulated_probs = probs
+        else:
+            accumulated_probs = accumulated_probs + probs
+        del logits, probs
+    assert accumulated_probs is not None
+    accumulated_probs /= len(models)
+    return torch.log(accumulated_probs.clamp(min=1e-45))
 
 
 def _find_response_boundaries(
@@ -819,6 +901,110 @@ def _compute_metrics_from_curves(
 # ---------------------------------------------------------------------------
 
 
+def _metrics_from_single_ordering(
+    models: list[PreTrainedModel] | "APIModel",
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+    unconditional_per_byte: list[float],
+    unconditional_total_bits: list[float],
+    unconditional_byte_counts: list[int],
+    temperature: float,
+) -> dict[str, Any]:
+    """Compute metrics for a single ordering at a single temperature."""
+    a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
+        models, tokenizer, prompt, responses, temperature=temperature
+    )
+    per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
+    e_rate = sum(pb - per_byte[-1] for pb in per_byte)
+
+    metrics = _compute_metrics_from_curves(
+        a_k_total, byte_counts, unconditional_per_byte,
+        unconditional_byte_counts, e_rate, responses,
+    )
+    metrics["unconditional_total_bits"] = unconditional_total_bits
+    metrics["temperature"] = temperature
+    metrics["per_permutation_a_k_curves"] = None
+    metrics["per_permutation_byte_counts"] = None
+    metrics["permutation_orders"] = None
+    return metrics
+
+
+def _metrics_from_permutations(
+    perm_results: list[tuple[list[float], list[int]]],
+    all_perms: list[list[int]],
+    n: int,
+    unconditional_per_byte: list[float],
+    unconditional_total_bits: list[float],
+    unconditional_byte_counts: list[int],
+    responses: list[str],
+    temperature: float,
+) -> dict[str, Any]:
+    """Compute metrics from permutation results at a single temperature."""
+    n_permutations = len(perm_results)
+    all_total_bits_curves = [r[0] for r in perm_results]
+    all_byte_counts = [r[1] for r in perm_results]
+    all_per_byte_curves = [
+        [t / b if b > 0 else 0.0 for t, b in zip(tb, bc)] for tb, bc in perm_results
+    ]
+
+    avg_total_bits = [
+        sum(curves[k] for curves in all_total_bits_curves) / n_permutations
+        for k in range(n)
+    ]
+    avg_per_byte = [
+        sum(curves[k] for curves in all_per_byte_curves) / n_permutations
+        for k in range(n)
+    ]
+    avg_byte_counts = [
+        round(sum(bcs[k] for bcs in all_byte_counts) / n_permutations) for k in range(n)
+    ]
+
+    e_rate = sum(avg_per_byte[k] - avg_per_byte[-1] for k in range(n))
+
+    metrics = _compute_metrics_from_curves(
+        avg_total_bits, avg_byte_counts, unconditional_per_byte,
+        unconditional_byte_counts, e_rate, responses,
+    )
+    metrics["unconditional_total_bits"] = unconditional_total_bits
+    metrics["temperature"] = temperature
+    metrics["per_permutation_a_k_curves"] = all_total_bits_curves
+    metrics["per_permutation_byte_counts"] = all_byte_counts
+    metrics["permutation_orders"] = all_perms
+    return metrics
+
+
+def _extract_curves_at_temperature(
+    full_log_probs: torch.Tensor,
+    input_ids: torch.Tensor,
+    boundaries: list[list[tuple[int, int]]],
+    all_permuted_responses: list[list[str]],
+    temperature: float,
+) -> list[tuple[list[float], list[int]]]:
+    """Extract per-response a_k curves from full log-probs at a given temperature.
+
+    Args:
+        full_log_probs: ``(batch, seq_len, vocab_size)`` log-probs at T=1 (nats).
+        input_ids: ``(batch, seq_len)`` token IDs.
+        boundaries: Per-batch-item response boundaries.
+        all_permuted_responses: Per-batch-item response texts.
+        temperature: Temperature to rescale to.
+
+    Returns:
+        List of ``(total_bits_curve, byte_counts)`` per batch item.
+    """
+    rescaled = _rescale_log_probs(full_log_probs, temperature)
+    diag = _gather_diagonal_log_probs(rescaled, input_ids)
+
+    results: list[tuple[list[float], list[int]]] = []
+    for i in range(len(boundaries)):
+        curve, byte_counts = _extract_response_log_probs(
+            diag[i], boundaries[i], all_permuted_responses[i],
+        )
+        results.append((curve, byte_counts))
+    return results
+
+
 def compute_icl_diversity_metrics(
     model: ModelInput,
     tokenizer: PreTrainedTokenizerBase | None,
@@ -827,7 +1013,7 @@ def compute_icl_diversity_metrics(
     n_permutations: int = 1,
     seed: int = 42,
     batch_size: int = 1,
-    temperature: float = 1.0,
+    temperature: float | list[float] = 1.0,
 ) -> dict[str, Any]:
     """Full ICL diversity metric computation for one prompt.
 
@@ -845,6 +1031,8 @@ def compute_icl_diversity_metrics(
     - **Temperature** (``temperature != 1.0``): scales logits before softmax.
       T>1 flattens predictions (reduces per-permutation variance), T<1
       sharpens predictions (amplifies signal).
+    - **Multi-temperature** (``temperature=[0.5, 1.0, 2.0]``): one forward
+      pass, derives all temperatures. Returns ``{"temperatures": {T: ...}}``.
 
     Args:
         model: The base model theta (should be a base model, not
@@ -859,35 +1047,16 @@ def compute_icl_diversity_metrics(
             (sequential). Increase for GPU acceleration.  Applies to both
             unconditional surprises and permutation curves.
         temperature: Temperature for scaling logits before softmax. Must be
-            positive. T>1 reduces variance (fewer permutations needed), T<1
-            amplifies signal. Default 1.0 (no scaling).
+            positive. A float gives single-temperature behavior (backward
+            compatible). A list of floats computes metrics for all temperatures
+            from a single set of forward passes.
 
     Returns:
-        Dict with:
-        - a_k_curve: list[float]           # total bits (progressive conditional surprise)
-        - a_k_curve_per_byte: list[float]  # per-byte normalized
-        - a_k_byte_counts: list[int]       # byte count per response
-        - unconditional_surprises: list[float]  # h_theta(r_i | p) per-byte
-        - unconditional_total_bits: list[float] # -log2 P(r_i | p) total bits
-        - excess_entropy_E: float          # total bits excess entropy
-        - excess_entropy_E_rate: float     # per-byte excess entropy rate (Option B)
-        - coherence_C: float               # per-byte coherence
-        - coherence_spread_sigma: float    # std of h_theta(r_i|p)
-        - diversity_score_D: float         # C * E (bits)
-        - diversity_score_D_rate: float    # C * E_rate (bits/byte)
-        - mean_byte_length: float          # B_bar
-        - D_plus: float                    # C+ * E_rate
-        - D_minus: float                   # C- * E_rate
-        - C_plus: float                    # C * 2^sigma
-        - C_minus: float                   # C * 2^{-sigma}
-        - is_monotone: bool                # diagnostic
-        - temperature: float               # the temperature used
-        - per_permutation_a_k_curves: list[list[float]] | None
-            Raw a_k curve (total bits) from each permutation.
-        - per_permutation_byte_counts: list[list[int]] | None
-            Byte counts from each permutation.
-        - permutation_orders: list[list[int]] | None
-            The ordering used for each permutation.
+        When ``temperature`` is a float: dict with standard metric keys
+        (a_k_curve, excess_entropy_E, diversity_score_D, temperature, etc.).
+
+        When ``temperature`` is a list: dict with a single key
+        ``"temperatures"`` mapping ``{T: metrics_dict}`` for each T.
     """
     models = _ensure_models(model)
 
@@ -898,6 +1067,41 @@ def compute_icl_diversity_metrics(
         else:
             raise ValueError("tokenizer is required for local models")
 
+    # Dispatch: single temperature (backward compat) vs multi-temperature
+    if isinstance(temperature, (int, float)):
+        return _compute_single_temperature(
+            models, tokenizer, prompt, responses,
+            n_permutations, seed, batch_size, float(temperature),
+        )
+
+    # Multi-temperature path
+    temperatures = [float(t) for t in temperature]
+    for t in temperatures:
+        if t <= 0:
+            raise ValueError(f"All temperatures must be positive, got {t}")
+
+    if _is_api_model(models):
+        raise ValueError(
+            "Multi-temperature is not supported for API models (no logits available)."
+        )
+
+    return _compute_multi_temperature(
+        models, tokenizer, prompt, responses,
+        n_permutations, seed, batch_size, temperatures,
+    )
+
+
+def _compute_single_temperature(
+    models: list[PreTrainedModel] | "APIModel",
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+    n_permutations: int,
+    seed: int,
+    batch_size: int,
+    temperature: float,
+) -> dict[str, Any]:
+    """Original single-temperature computation path (unchanged behavior)."""
     # Unconditional surprises are order-independent, compute once (batched)
     unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
         compute_unconditional_surprises(
@@ -907,28 +1111,11 @@ def compute_icl_diversity_metrics(
     )
 
     if n_permutations <= 1:
-        # Single ordering — single forward pass
-        a_k_total, byte_counts = compute_progressive_surprise_curve_single_pass(
-            models, tokenizer, prompt, responses, temperature=temperature
+        return _metrics_from_single_ordering(
+            models, tokenizer, prompt, responses,
+            unconditional_per_byte, unconditional_total_bits,
+            unconditional_byte_counts, temperature,
         )
-        # Compute E_rate: normalize per response, then sum excess
-        per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
-        e_rate = sum(pb - per_byte[-1] for pb in per_byte)
-
-        metrics = _compute_metrics_from_curves(
-            a_k_total,
-            byte_counts,
-            unconditional_per_byte,
-            unconditional_byte_counts,
-            e_rate,
-            responses,
-        )
-        metrics["unconditional_total_bits"] = unconditional_total_bits
-        metrics["temperature"] = temperature
-        metrics["per_permutation_a_k_curves"] = None
-        metrics["per_permutation_byte_counts"] = None
-        metrics["permutation_orders"] = None
-        return metrics
 
     # Multiple permutations: generate all, then batch compute
     rng = random.Random(seed)
@@ -944,41 +1131,132 @@ def compute_icl_diversity_metrics(
         temperature=temperature,
     )
 
-    # Unpack results
-    all_total_bits_curves = [r[0] for r in perm_results]
-    all_byte_counts = [r[1] for r in perm_results]
-    all_per_byte_curves = [
-        [t / b if b > 0 else 0.0 for t, b in zip(tb, bc)] for tb, bc in perm_results
-    ]
-
-    # Average across permutations
-    avg_total_bits = [
-        sum(curves[k] for curves in all_total_bits_curves) / n_permutations
-        for k in range(n)
-    ]
-    avg_per_byte = [
-        sum(curves[k] for curves in all_per_byte_curves) / n_permutations
-        for k in range(n)
-    ]
-    # Use average byte counts for reference
-    avg_byte_counts = [
-        round(sum(bcs[k] for bcs in all_byte_counts) / n_permutations) for k in range(n)
-    ]
-
-    # E_rate from averaged per-byte curve (Option B)
-    e_rate = sum(avg_per_byte[k] - avg_per_byte[-1] for k in range(n))
-
-    metrics = _compute_metrics_from_curves(
-        avg_total_bits,
-        avg_byte_counts,
-        unconditional_per_byte,
-        unconditional_byte_counts,
-        e_rate,
-        responses,
+    return _metrics_from_permutations(
+        perm_results, all_perms, n,
+        unconditional_per_byte, unconditional_total_bits,
+        unconditional_byte_counts, responses, temperature,
     )
-    metrics["unconditional_total_bits"] = unconditional_total_bits
-    metrics["temperature"] = temperature
-    metrics["per_permutation_a_k_curves"] = all_total_bits_curves
-    metrics["per_permutation_byte_counts"] = all_byte_counts
-    metrics["permutation_orders"] = all_perms
-    return metrics
+
+
+def _compute_multi_temperature(
+    models: list[PreTrainedModel],
+    tokenizer: PreTrainedTokenizerBase,
+    prompt: str,
+    responses: list[str],
+    n_permutations: int,
+    seed: int,
+    batch_size: int,
+    temperatures: list[float],
+) -> dict[str, Any]:
+    """Multi-temperature path: one forward pass, derive all temperatures.
+
+    Unconditional surprises (C) are computed once at T=1.0 and shared across
+    all temperatures — C is low-variance and doesn't benefit from temperature.
+    The progressive surprise curves (E) are derived per-temperature.
+    """
+    n = len(responses)
+
+    # Unconditional surprises: compute once at T=1.0 (shared across all T)
+    unconditional_per_byte, unconditional_total_bits, unconditional_byte_counts = (
+        compute_unconditional_surprises(
+            models, tokenizer, prompt, responses, batch_size=batch_size,
+            temperature=1.0,
+        )
+    )
+
+    pad_token_id = _get_pad_token_id(tokenizer)
+
+    if n_permutations <= 1:
+        # Single ordering — single forward pass, multi-temperature extraction
+        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, responses)
+        input_ids = torch.tensor([full_ids])
+        full_log_probs = _forward_full_log_probs(models, input_ids)
+
+        result: dict[str, Any] = {"temperatures": {}}
+        for temp in temperatures:
+            rescaled = _rescale_log_probs(full_log_probs, temp)
+            diag = _gather_diagonal_log_probs(rescaled, input_ids)
+            a_k_total, byte_counts = _extract_response_log_probs(
+                diag[0], boundaries, responses,
+            )
+
+            per_byte = [t / b if b > 0 else 0.0 for t, b in zip(a_k_total, byte_counts)]
+            e_rate = sum(pb - per_byte[-1] for pb in per_byte)
+
+            metrics = _compute_metrics_from_curves(
+                a_k_total, byte_counts, unconditional_per_byte,
+                unconditional_byte_counts, e_rate, responses,
+            )
+            metrics["unconditional_total_bits"] = unconditional_total_bits
+            metrics["temperature"] = temp
+            metrics["per_permutation_a_k_curves"] = None
+            metrics["per_permutation_byte_counts"] = None
+            metrics["permutation_orders"] = None
+            result["temperatures"][temp] = metrics
+
+        del full_log_probs
+        return result
+
+    # Multiple permutations: generate all, then batch compute with full log-probs
+    rng = random.Random(seed)
+    all_perms: list[list[int]] = []
+    for _ in range(n_permutations):
+        perm = list(range(n))
+        rng.shuffle(perm)
+        all_perms.append(perm)
+
+    # Pre-compute tokenized sequences and boundaries for every permutation
+    all_full_ids: list[list[int]] = []
+    all_boundaries: list[list[tuple[int, int]]] = []
+    all_permuted_responses: list[list[str]] = []
+
+    for perm in all_perms:
+        permuted = [responses[i] for i in perm]
+        all_permuted_responses.append(permuted)
+        full_ids, boundaries = _find_response_boundaries(tokenizer, prompt, permuted)
+        all_full_ids.append(full_ids)
+        all_boundaries.append(boundaries)
+
+    # Accumulate per-temperature results across batches
+    per_temp_results: dict[float, list[tuple[list[float], list[int]]]] = {
+        t: [] for t in temperatures
+    }
+
+    progress = None
+    if len(all_perms) > 5:
+        progress = tqdm(total=len(all_perms), desc="  permutations", leave=False)
+
+    for batch_start in range(0, len(all_perms), batch_size):
+        batch_end = min(batch_start + batch_size, len(all_perms))
+        batch_ids = all_full_ids[batch_start:batch_end]
+
+        input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
+        full_log_probs = _forward_full_log_probs(models, input_ids, attention_mask)
+
+        batch_boundaries = all_boundaries[batch_start:batch_end]
+        batch_responses = all_permuted_responses[batch_start:batch_end]
+
+        for temp in temperatures:
+            batch_curves = _extract_curves_at_temperature(
+                full_log_probs, input_ids, batch_boundaries, batch_responses, temp,
+            )
+            per_temp_results[temp].extend(batch_curves)
+
+        del full_log_probs
+
+        if progress is not None:
+            progress.update(batch_end - batch_start)
+
+    if progress is not None:
+        progress.close()
+
+    # Assemble final result
+    result = {"temperatures": {}}
+    for temp in temperatures:
+        result["temperatures"][temp] = _metrics_from_permutations(
+            per_temp_results[temp], all_perms, n,
+            unconditional_per_byte, unconditional_total_bits,
+            unconditional_byte_counts, responses, temp,
+        )
+
+    return result

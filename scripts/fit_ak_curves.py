@@ -47,6 +47,15 @@ DEFAULT_INPUT = Path(__file__).resolve().parent.parent / "results" / "mode_count
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "figures" / "mode_count"
 
 
+def exponential_ak(k: np.ndarray, a_inf: float, alpha: float, beta: float) -> np.ndarray:
+    """Exponential decay: a_k = a_inf + alpha * exp(-beta * (k - 1))
+
+    3 parameters (vs sigmoid's 4) — better constrained for monotone decay.
+    E_fit has closed form: E_fit = alpha / beta.
+    """
+    return a_inf + alpha * np.exp(-beta * (k - 1))
+
+
 def sigmoid_ak(k: np.ndarray, a_inf: float, alpha: float, beta: float, k0: float) -> np.ndarray:
     """Sigmoid model: a_k = a_inf + alpha / (1 + exp(beta * (k - k0)))"""
     return a_inf + alpha / (1.0 + np.exp(beta * (k - k0)))
@@ -162,6 +171,121 @@ def fit_mean_curves(data: dict[str, Any], n_bootstrap: int = 1000) -> list[dict[
         }
         # Add bootstrap SEM and 95% CI for each parameter
         for name in ["a_inf", "alpha", "beta", "k0", "E_fit"]:
+            vals = boot[name]
+            if len(vals) > 0:
+                entry[f"{name}_boot_sem"] = float(np.std(vals))
+                entry[f"{name}_boot_ci_lo"] = float(np.percentile(vals, 2.5))
+                entry[f"{name}_boot_ci_hi"] = float(np.percentile(vals, 97.5))
+            else:
+                entry[f"{name}_boot_sem"] = np.nan
+                entry[f"{name}_boot_ci_lo"] = np.nan
+                entry[f"{name}_boot_ci_hi"] = np.nan
+
+        results.append(entry)
+    return results
+
+
+def fit_exponential(k: np.ndarray, curve: np.ndarray) -> tuple[dict[str, float], bool]:
+    """Fit exponential decay to a single a_k curve.
+
+    Model: a_k = a_inf + alpha * exp(-beta * (k - 1))
+    E_fit = alpha / beta (closed-form integral from 1 to infinity).
+
+    Returns (params_dict, success).
+    """
+    a_inf_guess = curve[-1]
+    alpha_guess = max(curve[0] - curve[-1], 0.01)
+    beta_guess = 0.5
+    p0 = [a_inf_guess, alpha_guess, beta_guess]
+
+    bounds = ([0, 0, 0.001], [np.inf, np.inf, 50])
+
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            popt, pcov = curve_fit(exponential_ak, k, curve, p0=p0, bounds=bounds, maxfev=10000)
+        perr = np.sqrt(np.diag(pcov))
+        residuals = curve - exponential_ak(k, *popt)
+        rmse = float(np.sqrt(np.mean(residuals**2)))
+
+        a_inf, alpha, beta = popt
+        E_fit = float(alpha / beta)
+
+        ss_res = float(np.sum(residuals**2))
+        ss_tot = float(np.sum((curve - np.mean(curve))**2))
+        r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+
+        return {
+            "a_inf": float(a_inf),
+            "alpha": float(alpha),
+            "beta": float(beta),
+            "E_fit": E_fit,
+            "a_inf_se": float(perr[0]),
+            "alpha_se": float(perr[1]),
+            "beta_se": float(perr[2]),
+            "rmse": rmse,
+            "r_squared": r_squared,
+        }, True
+    except (RuntimeError, ValueError) as e:
+        return {"error": str(e)}, False
+
+
+def bootstrap_fit_exponential(
+    curves: np.ndarray,
+    n_bootstrap: int = 1000,
+    seed: int = 42,
+) -> dict[str, np.ndarray]:
+    """Bootstrap confidence intervals for exponential fit parameters."""
+    rng = np.random.default_rng(seed)
+    n_draws = curves.shape[0]
+    k = np.arange(1, curves.shape[1] + 1, dtype=float)
+
+    param_names = ["a_inf", "alpha", "beta", "E_fit", "r_squared"]
+    boot_params: dict[str, list[float]] = {name: [] for name in param_names}
+
+    for _ in range(n_bootstrap):
+        indices = rng.integers(0, n_draws, size=n_draws)
+        mean_curve = np.mean(curves[indices], axis=0)
+        fit_params, success = fit_exponential(k, mean_curve)
+        if success:
+            for name in param_names:
+                boot_params[name].append(fit_params[name])
+
+    return {name: np.array(vals) for name, vals in boot_params.items()}
+
+
+def fit_mean_curves_exponential(data: dict[str, Any], n_bootstrap: int = 1000) -> list[dict[str, Any]]:
+    """Fit exponential decay to the mean a_k curve for each mode count m.
+
+    Includes bootstrap confidence intervals for all fit parameters.
+    """
+    grouped: dict[int, list[dict]] = defaultdict(list)
+    for run in data["runs"]:
+        grouped[run["m"]].append(run)
+
+    results = []
+    for m in sorted(grouped.keys()):
+        runs = grouped[m]
+        curves = np.array([r["a_k_curve"] for r in runs])
+        mean_curve = np.mean(curves, axis=0)
+        std_curve = np.std(curves, axis=0)
+        k = np.arange(1, len(mean_curve) + 1, dtype=float)
+
+        fit_params, success = fit_exponential(k, mean_curve)
+
+        boot = bootstrap_fit_exponential(curves, n_bootstrap=n_bootstrap)
+
+        entry = {
+            "m": m,
+            "n_draws": len(runs),
+            "n_responses": runs[0]["n_responses"],
+            "a_n_mean": float(mean_curve[-1]),
+            "a_n_std": float(std_curve[-1]),
+            "a_1_mean": float(mean_curve[0]),
+            "fit_success": success,
+            **fit_params,
+        }
+        for name in ["a_inf", "alpha", "beta", "E_fit"]:
             vals = boot[name]
             if len(vals) > 0:
                 entry[f"{name}_boot_sem"] = float(np.std(vals))

@@ -35,12 +35,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-# Import sigmoid fitting from the existing fit_ak_curves script
+# Import fitting from the existing fit_ak_curves script
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fit_ak_curves import fit_mean_curves
+from fit_ak_curves import fit_mean_curves_exponential
 
 DEFAULT_INPUT_DIR = (
-    Path(__file__).resolve().parent.parent / "results" / "mode_count_temperature"
+    Path(__file__).resolve().parent.parent / "results" / "mode_count_temperature_qwen"
 )
 DEFAULT_OUTPUT_DIR = (
     Path(__file__).resolve().parent.parent / "figures" / "mode_count_temperature"
@@ -59,19 +59,20 @@ def load_all_results(input_dir: Path) -> dict[float, dict[str, Any]]:
 
 
 def compute_D_fit_per_m(data: dict[str, Any], n_bootstrap: int = 200) -> dict[int, float]:
-    """Compute D_fit = C_mean * E_fit per mode count m using fit_mean_curves.
+    """Compute D_fit = C_mean * E_fit per mode count m using exponential fit.
 
-    Delegates to fit_mean_curves from fit_ak_curves.py, which averages a_k
-    curves across draws per m, fits one sigmoid, and integrates 1..inf.
+    Delegates to fit_mean_curves_exponential from fit_ak_curves.py, which
+    averages a_k curves across draws per m, fits exponential decay, and
+    computes E_fit = alpha / beta (closed form).
     """
-    # fit_mean_curves expects each run to have "n_responses"; patch if missing
+    # fit_mean_curves_exponential expects each run to have "n_responses"; patch if missing
     n_responses = data.get("n_responses")
     if n_responses is not None:
         for run in data["runs"]:
             if "n_responses" not in run:
                 run["n_responses"] = n_responses
 
-    fit_results = fit_mean_curves(data, n_bootstrap=n_bootstrap)
+    fit_results = fit_mean_curves_exponential(data, n_bootstrap=n_bootstrap)
 
     # Also compute mean C per m
     grouped: dict[int, list[float]] = defaultdict(list)
@@ -82,7 +83,7 @@ def compute_D_fit_per_m(data: dict[str, Any], n_bootstrap: int = 200) -> dict[in
     for fit in fit_results:
         m = fit["m"]
         if not fit.get("fit_success"):
-            print(f"    WARNING: sigmoid fit failed for m={m}")
+            print(f"    WARNING: exponential fit failed for m={m}")
             continue
         mean_C = float(np.mean(grouped[m]))
         d_fit_by_m[m] = mean_C * fit["E_fit"]
@@ -182,7 +183,7 @@ def h2_ordering_preservation(
         print("  WARNING: T=1.0 not in results, skipping H2'")
         return
 
-    print("  Fitting sigmoids for D_fit per (temperature, m)...")
+    print("  Fitting exponential decay for D_fit per (temperature, m)...")
     d_fit_all: dict[float, dict[int, float]] = {}
     for temp in temperatures:
         d_fit_all[temp] = compute_D_fit_per_m(all_results[temp])
@@ -199,7 +200,7 @@ def h2_ordering_preservation(
         ax.plot(mode_counts, means, "o-", label=f"T={temp}", markersize=5)
 
     ax.set_xlabel("Number of modes m")
-    ax.set_ylabel("$D_{fit}$ = C * E_fit (sigmoid-integrated)")
+    ax.set_ylabel("$D_{fit}$ = C * E_fit (exponential: α/β)")
     ax.set_title("H2': Mode Count vs Diversity at Each Temperature")
     ax.legend()
     ax.grid(True, alpha=0.3)

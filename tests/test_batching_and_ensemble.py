@@ -553,3 +553,57 @@ class TestEnsembleProbabilityAveraging:
             lp_a.cpu().numpy(),
             atol=1e-5,
         )
+
+
+# ---------------------------------------------------------------------------
+# Multi-temperature with ensemble
+# ---------------------------------------------------------------------------
+
+
+class TestMultiTemperatureEnsemble:
+    def test_multi_temp_with_ensemble(self) -> None:
+        """Multi-temperature should work with ensemble models."""
+        model, tokenizer = _make_mock_model_and_tokenizer(vocab_size=100)
+        result = compute_icl_diversity_metrics(
+            [model, model],
+            tokenizer,
+            "test",
+            ["hello world", "foo bar"],
+            seed=42,
+            temperature=[1.0, 2.0],
+        )
+        assert "temperatures" in result
+        assert set(result["temperatures"].keys()) == {1.0, 2.0}
+        for temp, metrics in result["temperatures"].items():
+            assert "a_k_curve" in metrics
+            assert metrics["temperature"] == temp
+
+    def test_multi_temp_ensemble_t1_matches_single(self) -> None:
+        """Ensemble multi-temp T=1.0 should match single-temp ensemble."""
+        model, tokenizer = _make_mock_model_and_tokenizer(vocab_size=100)
+        r_single = compute_icl_diversity_metrics(
+            [model, model], tokenizer, "test",
+            ["hello world", "foo bar"], seed=42, temperature=1.0,
+        )
+        r_multi = compute_icl_diversity_metrics(
+            [model, model], tokenizer, "test",
+            ["hello world", "foo bar"], seed=42, temperature=[1.0, 2.0],
+        )
+        m1 = r_multi["temperatures"][1.0]
+        for key in ["excess_entropy_E", "coherence_C", "diversity_score_D"]:
+            assert r_single[key] == pytest.approx(m1[key], abs=1e-5), (
+                f"{key}: single={r_single[key]}, multi={m1[key]}"
+            )
+
+    def test_multi_temp_ensemble_with_permutations(self) -> None:
+        """Multi-temp + ensemble + permutations."""
+        model, tokenizer = _make_mock_model_and_tokenizer(vocab_size=100)
+        result = compute_icl_diversity_metrics(
+            [model, model], tokenizer, "test",
+            ["hello", "world", "foo"],
+            n_permutations=3, seed=42, temperature=[1.0, 2.0],
+        )
+        assert "temperatures" in result
+        for temp, metrics in result["temperatures"].items():
+            assert metrics["per_permutation_a_k_curves"] is not None
+            assert len(metrics["per_permutation_a_k_curves"]) == 3
