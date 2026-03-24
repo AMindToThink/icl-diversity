@@ -1,0 +1,106 @@
+================================================================================
+DISAGREEMENT ANALYSIS — McDiv_nuggets
+================================================================================
+
+Samples where Tevet labels and E_fit disagree most strongly.
+Sorted by |label - normalized_E_fit| (highest disagreement first).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK: prompt_gen
+  Total samples: 200
+  Spearman ρ(label, E_fit): -0.114 (p=0.1075)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  --- #1 | test.enc.prompt.txt::01240 | Label: HIGH | E_disc=8.25 | E_fit=0.38 | disagreement=1.000 ---
+  Context: Not if it
+  a_k curve: ['37.0', '21.0', '22.0', '18.5', '22.6']
+    resp_0: it's the wrong way to do it.
+    resp_1: hurts someone.
+    resp_2: cannot be explained logically.
+    resp_3: doesn't work.
+    resp_4: cannot be completed on time.
+
+  --- #2 | test.enc.prompt.txt::00661 | Label: HIGH | E_disc=0.79 | E_fit=2.10 | disagreement=0.999 ---
+  Context: Girls dig Bateman.
+  a_k curve: ['24.9', '18.7', '18.7', '16.9', '19.6']
+    resp_0: He looks like hollywood
+    resp_1: he is dreamy
+    resp_2: what is his deal?
+    resp_3: It's not even fair.
+    resp_4: I am super jealous.
+
+  --- #3 | test.enc.prompt.txt::01621 | Label: HIGH | E_disc=2.51 | E_fit=3.86 | disagreement=0.999 ---
+  Context: Do I have
+  a_k curve: ['24.4', '24.7', '18.3', '22.7', '21.9']
+    resp_0: to repeat myself?
+    resp_1: to tell you every thing to do?
+    resp_2: to do my homework.
+    resp_3: something between my teeth?
+    resp_4: something wrong with me?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK: resp_gen
+  Total samples: 200
+  Spearman ρ(label, E_fit): -0.246 (p=0.0004)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  --- #1 | test.ca-cb.ca::00607 | Label: HIGH | E_disc=11.66 | E_fit=0.45 | disagreement=1.000 ---
+  Context: I'm a girl so if anything my girlfriend would be a vibrator
+  a_k curve: ['56.2', '45.6', '49.3', '43.0', '45.6']
+    resp_0: well, you could also be a lesbian
+    resp_1: that is nice
+    resp_2: that kind of girlfriend never fights with you
+    resp_3: I want to watch
+    resp_4: can I join? you can have both a girlfriend vibrator and a guy
+
+  --- #2 | test.ca-cb.ca::00275 | Label: HIGH | E_disc=59.41 | E_fit=0.64 | disagreement=0.999 ---
+  Context: People get stretch marks from perfectly natural things like pregnancy
+  a_k curve: ['69.3', '44.8', '49.8', '44.3', '46.6']
+    resp_0: Not only from pregnancy, but when you gain or lose weight.
+    resp_1: No, if u take care of your body during pregnancy you won't get any stretch marks!
+    resp_2: We all should love your body's. with our without stretch marks.
+    resp_3: Is nothing perfect when you eat like crazy and your skin pops of to much fat!
+    resp_4: I don't care, I am a man.
+
+  --- #3 | test.ca-cb.ca::00318 | Label: HIGH | E_disc=-17.12 | E_fit=5.17 | disagreement=0.968 ---
+  Context: But in his boxers is his cum already
+  a_k curve: ['65.4', '52.3', '49.7', '46.0', '57.6']
+    resp_0: he is too old for nocturnal emmissions
+    resp_1: was there a lot of porn?
+    resp_2: he must masturbate a lot
+    resp_3: he is saving it for later
+    resp_4: well, if the doctor needs a stool, urine, and semen sample, he can just send his boxers.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK: story_gen
+  Total samples: 200
+  Spearman ρ(label, E_fit): -0.126 (p=0.0743)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  --- #1 | test.sa-sb.sa::00844 | Label: HIGH | E_disc=-11.33 | E_fit=0.00 | disagreement=1.000 ---
+  Context: Tim was walking into the office. He noticed someone was behind him. He decided to hold the door open for them. They were too far away, though.
+  a_k curve: ['27.9', '28.8', '29.2', '29.0', '31.6']
+    resp_0: he decides to let them fend for themselves
+    resp_1: he holds the door for a longtime
+    resp_2: he regrets his decision
+    resp_3: he waited
+    resp_4: he strike up the conversation with this girl
+
+  --- #2 | test.sa-sb.sa::00691 | Label: HIGH | E_disc=-1.17 | E_fit=0.00 | disagreement=1.000 ---
+  Context: Jane noticed her internet was slow. The cable company was no help. Eventually someone recommended getting a better router. Jane tried it out.
+  a_k curve: ['19.7', '20.5', '22.5', '21.2', '21.2']
+    resp_0: she was happy with her new interernet
+    resp_1: she like its
+    resp_2: she did not like it
+    resp_3: she was glad she did
+    resp_4: she is happy she got a new router
+
+  --- #3 | test.sa-sb.sa-b::00739 | Label: HIGH | E_disc=8.88 | E_fit=0.00 | disagreement=1.000 ---
+  Context: Sam went out drinking. He tried to drive home. He couldn't find his keys. He had to call a taxi.
+  a_k curve: ['17.3', '20.9', '22.8', '22.2', '18.6']
+    resp_0: it was expensive
+    resp_1: he left his car at the bar
+    resp_2: no taxi was available so he ended up with an uber
+    resp_3: he got home safely
+    resp_4: he was hungry when he got home

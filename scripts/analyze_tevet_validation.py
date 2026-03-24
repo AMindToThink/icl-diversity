@@ -477,18 +477,28 @@ def _plot_efit_vs_ediscrete(
     if len(e_disc_all) < 10:
         return
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(e_disc_all, e_exp_all, alpha=0.1, s=3)
+    x = np.array(e_disc_all)
+    y = np.array(e_exp_all)
 
-    # Identity line
-    lim = max(max(e_disc_all), max(e_exp_all)) * 1.1
-    ax.plot([0, lim], [0, lim], "--", color="gray", alpha=0.5, label="identity")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(x, y, alpha=0.1, s=3)
+
+    # Best-fit line
+    coeffs = np.polyfit(x, y, 1)
+    x_range = np.linspace(x.min(), x.max(), 100)
+    ax.plot(x_range, np.polyval(coeffs, x_range), "--", color="tab:red",
+            linewidth=2, label=f"y = {coeffs[0]:.2f}x + {coeffs[1]:.1f}")
+
+    # Pearson R
+    r = float(np.corrcoef(x, y)[0, 1])
+    ax.annotate(f"R = {r:.3f}, R² = {r**2:.3f}", xy=(0.05, 0.95),
+                xycoords="axes fraction", fontsize=11, verticalalignment="top",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.8))
 
     ax.set_xlabel("E_discrete (truncated)")
     ax.set_ylabel("E_fit_exp (exponential)")
     ax.set_title(f"E_fit vs E_discrete [{tag}] (n={len(e_disc_all)})")
     ax.legend()
-    ax.set_aspect("equal")
 
     plt.tight_layout()
     out_path = output_dir / f"efit_vs_ediscrete_{tag}.png"

@@ -520,6 +520,17 @@ def format_conditioning_context(
         return prefix, current_response
 
     # Completion mode: "1. {prompt}{resp}\n\n2. {prompt}{resp}..."
+    all_responses = list(previous_responses) + [current_response]
+    for i, resp in enumerate(all_responses):
+        if resp and resp[0].isspace():
+            import warnings
+
+            warnings.warn(
+                f"Completion response {i} starts with whitespace: {resp[:40]!r}. "
+                "The completion format adds its own separator between prompt and "
+                "response, so a leading space may cause double-spacing.",
+                stacklevel=2,
+            )
     parts: list[str] = []
     for i, resp in enumerate(previous_responses):
         parts.append(f"{i + 1}. {prompt}{resp}\n\n")

@@ -81,15 +81,19 @@ def plot_individual_ak_curves(
                 low_curves.append(a_k)
 
         # Plot a subset
+        n_k = 0
         for i, c in enumerate(high_curves[:n_examples]):
             k = np.arange(1, len(c) + 1)
-            ax.plot(k, c, color="tab:red", alpha=0.3,
+            n_k = max(n_k, len(c))
+            ax.plot(k, c, "o-", color="tab:red", alpha=0.3, markersize=3,
                     label="High diversity" if i == 0 else None)
         for i, c in enumerate(low_curves[:n_examples]):
             k = np.arange(1, len(c) + 1)
-            ax.plot(k, c, color="tab:blue", alpha=0.3,
+            n_k = max(n_k, len(c))
+            ax.plot(k, c, "o-", color="tab:blue", alpha=0.3, markersize=3,
                     label="Low diversity" if i == 0 else None)
 
+        ax.set_xticks(range(1, n_k + 1))
         ax.set_title(f"{task} (n={len(high_curves)}h/{len(low_curves)}l)")
         ax.set_xlabel("k (response index)")
         ax.set_ylabel("a_k (total bits)")
@@ -163,7 +167,8 @@ def plot_mean_ak_with_fit(
                 k = np.arange(1, n + 1, dtype=float)
 
                 # Plot mean ± SEM
-                ax.plot(k, mean_curve, "o-", color=color, markersize=4, linewidth=2)
+                ax.plot(k, mean_curve, "o-", color=color, markersize=4, linewidth=2,
+                        label=group_label)
                 ax.fill_between(k, mean_curve - sem_curve, mean_curve + sem_curve,
                                 alpha=0.2, color=color)
 
@@ -177,20 +182,18 @@ def plot_mean_ak_with_fit(
                     k_fine = np.linspace(0.5, n + 3, 100)
                     fitted = exponential_ak(k_fine, fit_params["a_inf"],
                                             fit_params["alpha"], fit_params["beta"])
-                    ax.plot(k_fine, fitted, "--", color=color, linewidth=1.5)
-
-                    E_fit = fit_params["E_fit"]
-                    ax.plot([], [], " ",  # invisible point for legend
-                            label=f"{group_label}: E_disc={E_disc:.1f}, E_fit={E_fit:.1f}")
+                    ax.plot(k_fine, fitted, "--", color=color, linewidth=1.5,
+                            label=f"  fit: E_disc={E_disc:.1f}, E_fit={fit_params['E_fit']:.1f}")
                 else:
                     ax.plot([], [], " ",
-                            label=f"{group_label}: E_disc={E_disc:.1f}, fit FAILED")
+                            label=f"  E_disc={E_disc:.1f}, fit FAILED")
 
+            ax.set_xticks(range(1, n + 1))
             ax.set_title(task, fontweight="bold")
             ax.set_xlabel("k (response index)")
             ax.set_ylabel("a_k (total bits)")
             ax.legend(fontsize=8, loc="best")
-            ax.axvline(n, color="gray", linestyle=":", alpha=0.3, label="k=n")
+            ax.axvline(n, color="gray", linestyle=":", alpha=0.3)
 
         plt.tight_layout()
         suffix = "with_hds" if "with_hds" in variant_glob else "no_hds"
@@ -342,15 +345,16 @@ def print_sample_text(
 def plot_dectest_efit_vs_temperature(
     data_dir: Path, tag: str, output_dir: Path,
 ) -> None:
-    """Plot 7: E_fit vs temperature for DecTest."""
+    """Plot 7: E and D (discrete + fit) vs temperature for DecTest."""
     dectest_dir = data_dir / "decTest"
     if not dectest_dir.exists():
         return
 
     e_col = f"metric_icl_E_{tag}"
+    c_col = f"metric_icl_C_{tag}"
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-    fig.suptitle(f"DecTest: E_discrete vs E_fit vs Temperature [{tag}]", fontsize=14)
+    fig, axes = plt.subplots(4, 3, figsize=(18, 20))
+    fig.suptitle(f"DecTest: E & D vs Temperature [{tag}]", fontsize=14)
 
     for ax_idx, csv_path in enumerate(sorted(dectest_dir.glob("*1000*.csv"))[:3]):
         curves_path = csv_path.with_suffix(f".icl_mean_curves.{tag}.json")
@@ -364,6 +368,8 @@ def plot_dectest_efit_vs_temperature(
         temps: list[float] = []
         e_discs: list[float] = []
         e_fits: list[float] = []
+        d_discs: list[float] = []
+        d_fits: list[float] = []
 
         for row in rows:
             sid = row["sample_id"]
@@ -374,7 +380,8 @@ def plot_dectest_efit_vs_temperature(
                 continue
 
             e_disc = float(row.get(e_col, "nan"))
-            if np.isnan(e_disc):
+            c_val = float(row.get(c_col, "nan"))
+            if np.isnan(e_disc) or np.isnan(c_val):
                 continue
 
             k = np.arange(1, len(a_k) + 1, dtype=float)
@@ -384,28 +391,29 @@ def plot_dectest_efit_vs_temperature(
             temps.append(float(row["label_value"]))
             e_discs.append(e_disc)
             e_fits.append(e_fit)
+            d_discs.append(c_val * e_disc)
+            d_fits.append(c_val * e_fit)
 
         if not temps:
             continue
 
-        # E_discrete vs temp
-        ax = axes[0][ax_idx]
-        ax.scatter(temps, e_discs, alpha=0.3, s=10, color="tab:blue")
-        rho, _ = spearmanr(temps, e_discs)
-        ax.set_title(f"E_discrete — {task}\nρ = {rho:.3f}")
-        ax.set_xlabel("Temperature")
-        ax.set_ylabel("E_discrete (bits)")
+        row_configs = [
+            (0, e_discs, "E_discrete", "E_discrete (bits)", "tab:blue"),
+            (1, e_fits, "E_fit_exp", "E_fit_exp (bits)", "tab:red"),
+            (2, d_discs, "D_discrete", "D_discrete = C × E_disc", "tab:blue"),
+            (3, d_fits, "D_fit_exp", "D_fit = C × E_fit", "tab:red"),
+        ]
 
-        # E_fit vs temp
-        ax = axes[1][ax_idx]
-        ax.scatter(temps, e_fits, alpha=0.3, s=10, color="tab:red")
-        rho, _ = spearmanr(temps, e_fits)
-        ax.set_title(f"E_fit_exp — {task}\nρ = {rho:.3f}")
-        ax.set_xlabel("Temperature")
-        ax.set_ylabel("E_fit_exp (bits)")
+        for row_idx, values, metric_name, ylabel, color in row_configs:
+            ax = axes[row_idx][ax_idx]
+            ax.scatter(temps, values, alpha=0.3, s=10, color=color)
+            rho, _ = spearmanr(temps, values)
+            ax.set_title(f"{metric_name} — {task}\nρ = {rho:.3f}")
+            ax.set_xlabel("Temperature")
+            ax.set_ylabel(ylabel)
 
     plt.tight_layout()
-    path = output_dir / "dectest_efit_vs_temperature.png"
+    path = output_dir / "dectest_metrics_vs_temperature.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved: {path}")

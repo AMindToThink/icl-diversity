@@ -1,0 +1,15 @@
+The mask for the Instruct is off by one. The first token of the response is cut off, since the red mask starts at the second token. The last token is correct, though, and for completion it is entirely correct.
+
+I'm especially interested in which sets of responses Tevet marks as "high diversity" but which our metric marks as "low diversity" (or vice versa).
+
+Some of the plots, like figures/tevet_validation/inspection/individual_ak_curves.png, have lines at half-integer k values, which we didn't measure. Those lines clutter the image and mislead the viewer.
+
+/tevet_validation/inspection/mean_ak_with_fit_no_hds.png's legend doesn't actually say which color is high and which is low diversity.
+
+There's a curious uptick in a_k at k=5 on figures/tevet_validation/inspection/mean_ak_with_fit_no_hds.png. This is unexplained and contrary to what I have any reason to expect. I'm concerned this indicates a bug in the permutations or similar.
+
+The plots comparing the fit vs discrete lines like efit_vs_ediscrete are not very useful because it is so far from the identity that all the points end up compressed into the y axis. Please plot those as regular scatter plots with a line of best fit and R values.
+
+On figures/tevet_validation/inspection/sample_text_inspection.txt, we can see that what the model sees does not properly include a space between the prompt and response. "...The man used primer the next time.The paint still peeled off." (the first of those sentences is part of context (prompt) and the second is part of response).
+
+I *am* still interested in how our metrics interact with temperature, so I do want D vs temperature plots, even though the McDiv is more interesting.
