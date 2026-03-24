@@ -135,12 +135,15 @@ def plot_masking(
         fontsize=11,
     )
 
-    # Token labels on x-axis
+    # Token labels on x-axis — ▁ prefix marks tokens with a leading space
     display_tokens = []
     for tok in token_strings:
-        t = tok.replace("\n", "\\n").replace("\t", "\\t")
-        if not t.strip():
-            t = repr(tok).strip("'")
+        if tok.startswith(" "):
+            t = "▁" + tok[1:].replace("\n", "↵").replace("\t", "→")
+        else:
+            t = tok.replace("\n", "↵").replace("\t", "→")
+            if not t.strip():
+                t = repr(tok).strip("'").replace("\\n", "↵").replace("\\t", "→")
         display_tokens.append(t)
 
     ax.set_xticks(x)

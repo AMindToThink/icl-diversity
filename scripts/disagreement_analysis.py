@@ -47,6 +47,21 @@ RESULTS_BASE = PROJECT_ROOT / "results" / "tevet"
 OUTPUT_DIR = PROJECT_ROOT / "figures" / "tevet_validation" / "inspection"
 
 
+def _format_token_label(tok: str) -> str:
+    """Format a token string for display on plot axes.
+
+    Uses ▁ prefix for tokens with a leading space (SentencePiece convention),
+    and explicit escape sequences for whitespace characters.
+    """
+    if tok.startswith(" "):
+        return "▁" + tok[1:].replace("\n", "↵").replace("\t", "→")
+    t = tok.replace("\n", "↵").replace("\t", "→")
+    if not t.strip():
+        # Pure whitespace — show repr
+        return repr(tok).strip("'").replace("\\n", "↵").replace("\\t", "→")
+    return t
+
+
 def load_csv_rows(csv_path: Path) -> list[dict]:
     with open(csv_path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
@@ -207,9 +222,7 @@ def plot_per_token_logprobs(
         # Token labels
         display_tokens = []
         for tok in token_strings:
-            t = tok.replace("\n", "\\n").replace("\t", "\\t")
-            if not t.strip():
-                t = repr(tok).strip("'")
+            t = _format_token_label(tok)
             display_tokens.append(t)
 
         ax.set_xticks(x)
