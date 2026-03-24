@@ -323,10 +323,10 @@ def _find_response_boundaries(
             cursor += len(responses[k])
             char_spans.append((char_start, cursor))
     else:
-        # Completion mode: "1. {prompt}{resp}\n\n2. {prompt}{resp}..."
+        # Completion mode: "1. {prompt} {resp}\n\n2. {prompt} {resp}..."
         parts_list: list[str] = []
         for i, resp in enumerate(responses):
-            parts_list.append(f"{i + 1}. {prompt}{resp}")
+            parts_list.append(f"{i + 1}. {prompt} {resp}")
             if i < n - 1:
                 parts_list.append("\n\n")
         full_text = "".join(parts_list)
@@ -339,8 +339,8 @@ def _find_response_boundaries(
         char_spans = []
         cursor = 0
         for k in range(n):
-            # Skip the "k. {prompt}" prefix
-            entry_prefix = f"{k + 1}. {prompt}"
+            # Skip the "k. {prompt} " prefix (note trailing space separator)
+            entry_prefix = f"{k + 1}. {prompt} "
             cursor += len(entry_prefix)
             char_start = cursor
             cursor += len(responses[k])
@@ -354,13 +354,15 @@ def _find_response_boundaries(
     )
 
     # Map character spans to token index ranges. A token belongs to response k
-    # if its start character falls within the response's character span.
+    # if its character span overlaps with the response's character span.
+    # Using overlap (not just start-in-range) ensures we include the first
+    # token even when BPE merges a leading space from the separator into it.
     boundaries: list[tuple[int, int]] = []
     for char_start, char_end in char_spans:
         tok_start = None
         tok_end = None
         for t, (c_start, c_end) in enumerate(offset_mapping):
-            if c_start >= char_start and c_start < char_end:
+            if c_end > char_start and c_start < char_end:
                 if tok_start is None:
                     tok_start = t
                 tok_end = t + 1
@@ -533,10 +535,10 @@ def format_conditioning_context(
             )
     parts: list[str] = []
     for i, resp in enumerate(previous_responses):
-        parts.append(f"{i + 1}. {prompt}{resp}\n\n")
+        parts.append(f"{i + 1}. {prompt} {resp}\n\n")
 
     current_idx = len(previous_responses) + 1
-    parts.append(f"{current_idx}. {prompt}")
+    parts.append(f"{current_idx}. {prompt} ")
 
     prefix = "".join(parts)
     return prefix, current_response
@@ -578,14 +580,36 @@ def compute_cross_entropy(
     if byte_count == 0:
         return 0.0, 0
 
-    # Tokenize prefix and full sequence separately to find where text tokens start
-    prefix_ids = tokenizer.encode(prefix, add_special_tokens=False)
-    full_ids = tokenizer.encode(prefix + text, add_special_tokens=False)
+    full_string = prefix + text
+    char_boundary = len(prefix)
 
-    n_prefix_tokens = len(prefix_ids)
-    n_full_tokens = len(full_ids)
+    # Use offset-mapping approach when available (handles BPE merges at boundary).
+    # Fall back to prefix-length approach for tokenizers that don't support it.
+    use_offset_mapping = getattr(tokenizer, "is_fast", False) is True
 
-    if n_full_tokens <= n_prefix_tokens:
+    if use_offset_mapping:
+        encoding = tokenizer(
+            full_string, return_offsets_mapping=True, add_special_tokens=False,
+        )
+        full_ids = encoding["input_ids"]
+        offset_mapping: list[tuple[int, int]] = encoding["offset_mapping"]
+
+        n_full_tokens = len(full_ids)
+
+        # Find the first token whose character span overlaps with the text
+        text_start_tok = n_full_tokens  # default: no text tokens
+        for t, (c_start, c_end) in enumerate(offset_mapping):
+            if c_end > char_boundary and c_start < len(full_string):
+                text_start_tok = t
+                break
+    else:
+        # Tokenizer doesn't support offset mapping — use prefix length
+        prefix_ids = tokenizer.encode(prefix, add_special_tokens=False)
+        full_ids = tokenizer.encode(full_string, add_special_tokens=False)
+        n_full_tokens = len(full_ids)
+        text_start_tok = len(prefix_ids)
+
+    if text_start_tok >= n_full_tokens:
         return 0.0, byte_count
 
     input_ids = torch.tensor([full_ids])
@@ -593,7 +617,7 @@ def compute_cross_entropy(
 
     # log_probs[t-1] = log2 P(token[t] | token[0..t-1])
     # Sum over text token positions (already in bits)
-    total_bits = -log_probs[n_prefix_tokens - 1 : n_full_tokens - 1].sum().item()
+    total_bits = -log_probs[text_start_tok - 1 : n_full_tokens - 1].sum().item()
 
     return total_bits, byte_count
 
@@ -752,16 +776,33 @@ def compute_unconditional_surprises(
 
     # Prepare all sequences
     all_full_ids: list[list[int]] = []
-    all_prefix_lens: list[int] = []
+    all_text_start_toks: list[int] = []
     all_byte_counts: list[int] = []
+    use_offset_mapping = getattr(tokenizer, "is_fast", False) is True
     for resp in responses:
         prefix, target = format_conditioning_context(
             prompt, [], resp, format_mode=format_mode,
         )
-        full_ids = tokenizer.encode(prefix + target, add_special_tokens=False)
-        prefix_len = len(tokenizer.encode(prefix, add_special_tokens=False))
+        full_string = prefix + target
+        char_boundary = len(prefix)
+
+        if use_offset_mapping:
+            encoding = tokenizer(
+                full_string, return_offsets_mapping=True, add_special_tokens=False,
+            )
+            full_ids = encoding["input_ids"]
+            offset_map: list[tuple[int, int]] = encoding["offset_mapping"]
+            text_start = len(full_ids)
+            for t, (cs, ce) in enumerate(offset_map):
+                if ce > char_boundary and cs < len(full_string):
+                    text_start = t
+                    break
+        else:
+            full_ids = tokenizer.encode(full_string, add_special_tokens=False)
+            text_start = len(tokenizer.encode(prefix, add_special_tokens=False))
+
         all_full_ids.append(full_ids)
-        all_prefix_lens.append(prefix_len)
+        all_text_start_toks.append(text_start)
         all_byte_counts.append(len(target.encode("utf-8")))
 
     per_byte_surprises = [0.0] * len(responses)
@@ -771,7 +812,7 @@ def compute_unconditional_surprises(
     for batch_start in range(0, len(responses), batch_size):
         batch_end = min(batch_start + batch_size, len(responses))
         batch_ids = all_full_ids[batch_start:batch_end]
-        batch_prefix_lens = all_prefix_lens[batch_start:batch_end]
+        batch_text_starts = all_text_start_toks[batch_start:batch_end]
 
         # Right-pad and batch
         input_ids, attention_mask = _right_pad_and_batch(batch_ids, pad_token_id)
@@ -782,13 +823,13 @@ def compute_unconditional_surprises(
         for i in range(batch_end - batch_start):
             seq_idx = batch_start + i
             ids = batch_ids[i]
-            prefix_len = batch_prefix_lens[i]
+            text_start = batch_text_starts[i]
             bc = all_byte_counts[seq_idx]
 
-            if bc == 0 or len(ids) <= prefix_len:
+            if bc == 0 or len(ids) <= text_start:
                 continue
 
-            start = prefix_len
+            start = text_start
             end = len(ids)
 
             # log_probs[i, t-1] = log2 P(token[t] | token[0..t-1]), already in bits

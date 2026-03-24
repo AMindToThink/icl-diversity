@@ -87,7 +87,7 @@ class TestCompletionFormat:
         prefix, target = format_conditioning_context(
             "The cat sat on", [], "the mat.", format_mode="completion"
         )
-        assert prefix == "1. The cat sat on"
+        assert prefix == "1. The cat sat on "
         assert target == "the mat."
 
     def test_with_previous_responses_completion(self) -> None:
@@ -98,9 +98,9 @@ class TestCompletionFormat:
             format_mode="completion",
         )
         expected_prefix = (
-            "1. The cat sat onthe mat.\n\n"
-            "2. The cat sat onthe roof.\n\n"
-            "3. The cat sat on"
+            "1. The cat sat on the mat.\n\n"
+            "2. The cat sat on the roof.\n\n"
+            "3. The cat sat on "
         )
         assert prefix == expected_prefix
         assert target == "the fence."
