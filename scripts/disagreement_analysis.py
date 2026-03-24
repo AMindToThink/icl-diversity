@@ -153,7 +153,7 @@ def plot_per_token_logprobs(
 
     fig, axes = plt.subplots(
         len(k_positions), 1,
-        figsize=(max(20, 60), 5 * len(k_positions)),
+        figsize=(max(20, 60), 7 * len(k_positions)),
         squeeze=False,
     )
 
@@ -213,7 +213,7 @@ def plot_per_token_logprobs(
             display_tokens.append(t)
 
         ax.set_xticks(x)
-        ax.set_xticklabels(display_tokens, rotation=90, fontsize=4,
+        ax.set_xticklabels(display_tokens, rotation=90, fontsize=9,
                            fontfamily="monospace", ha="center")
         ax.set_xlim(-0.5, n_tokens - 0.5)
         ax.set_ylabel("Surprise (bits)")
@@ -246,7 +246,7 @@ def plot_per_token_logprobs(
     fig.legend(handles=legend_elements, loc="upper right", fontsize=9)
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved: {output_path}")
 
