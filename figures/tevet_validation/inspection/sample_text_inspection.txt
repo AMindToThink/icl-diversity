@@ -1,0 +1,45 @@
+================================================================================
+SAMPLE TEXT INSPECTION — McDiv_nuggets story_gen (with HDS)
+================================================================================
+
+────────────────────────────────────────────────────────────
+  HIGH DIVERSITY — sample_id: test.sa-sb.sa-b::00807
+────────────────────────────────────────────────────────────
+  Context: The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.
+  resp_0: The paint still peeled off.
+  resp_1: The paint stayed on this time.
+  resp_2: The primer improved the next paint job.
+  resp_3: The man decided to hire another painter to help him.
+  resp_4: The friend offered his help on the next job.
+
+  --- Completion format (what the model sees) ---
+  1. The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.The paint still peeled off.
+
+  2. The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.The paint stayed on this time.
+
+  3. The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.The primer improved the next paint job.
+
+  4. The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.The man decided to hire another painter to help him.
+
+  5. The man painted a truck. The paint peeled. A friend suggested primer. The man used primer the next time.The friend offered his help on the next job.
+
+────────────────────────────────────────────────────────────
+  LOW DIVERSITY — sample_id: test.sa-sb.sa-b::00803
+────────────────────────────────────────────────────────────
+  Context: Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.
+  resp_0: she is happy with the saving
+  resp_1: she is happy she can save money
+  resp_2: the discount made her happy
+  resp_3: saving money here gives her joy
+  resp_4: she was ecstatic she could spend less
+
+  --- Completion format (what the model sees) ---
+  1. Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.she is happy with the saving
+
+  2. Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.she is happy she can save money
+
+  3. Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.the discount made her happy
+
+  4. Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.saving money here gives her joy
+
+  5. Kara went to the mall to find a bikini. She went to three different stores to try on suits. Kara found a bikini she liked at the fourth store. She found out the bikini was on sale when she got to the register.she was ecstatic she could spend less
