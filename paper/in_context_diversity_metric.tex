@@ -916,6 +916,82 @@ where $1/\sum_i w_i^2$ is the inverse Simpson index (a standard measure of effec
     \item For non-uniform weights, the inverse Simpson index approximation is heuristic. Modes with very small weight $w_i \lesssim 1/n$ may never appear in the sample and do not contribute to $k^*$ or $k_0$.
 \end{enumerate}
 
+\section{Dataset Construction Confounds in McDiv}\label{app:confound}
+
+When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}, we observed that the mean $\bar{a}_1$ curve (per-byte) for the ``low diversity'' group starts \emph{above} the ``high diversity'' group in the story\_gen task (Figure~\ref{fig:confound-a1-dist}). Since $a_1$ measures the surprise of the first response conditioned only on the prompt---before any other responses appear in context---this gap cannot reflect diversity. It is a confound in the dataset construction.
+
+\subsection{Mechanism}
+
+McDiv\_nuggets creates low-diversity response sets by giving crowd-workers a specific ending and asking them to paraphrase it five times. The chosen endings tend to be specific or dramatic (e.g., ``He scored winner,'' ``they quit''). High-diversity sets, by contrast, ask workers to write five \emph{different} continuations, which naturally produce more generic, predictable completions (e.g., ``Joel fired the cook when things went too far downhill'').
+
+This asymmetry means that individual low-diversity responses are intrinsically more surprising to the base model---not because of diversity, but because of the specificity of the content chosen for paraphrasing.
+
+\subsection{Evidence}
+
+Table~\ref{tab:confound-stats} summarizes the gap. The per-byte $a_1$ difference (+0.13 bits/byte) is substantial, while the total-bits difference is negligible (+0.1 bits), because high-diversity responses are on average 6.3 bytes longer.
+
+\begin{table}[h]
+\centering
+\caption{Unconditional surprise ($a_1$) by diversity label, McDiv\_nuggets story\_gen.}\label{tab:confound-stats}
+\begin{tabular}{lccc}
+\toprule
+ & High diversity & Low diversity & Gap \\
+\midrule
+$a_1$ (bits/byte) & 0.831 & 0.965 & +0.134 \\
+$a_1$ (total bits) & 43.9 & 44.0 & +0.1 \\
+Mean response bytes & 52.7 & 46.5 & $-6.3$ \\
+$n$ & 103 & 97 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The gap persists even after controlling for response length (Table~\ref{tab:confound-length}), confirming that it is primarily a content effect, not a length artifact.
+
+\begin{table}[h]
+\centering
+\caption{Unconditional per-byte surprise by response length bin, story\_gen. The gap narrows for longer responses but remains significant at all lengths.}\label{tab:confound-length}
+\begin{tabular}{lccl}
+\toprule
+Byte range & High div.\ mean & Low div.\ mean & Gap \\
+\midrule
+$[20, 40)$ & 0.788 & 0.987 & +0.199 \\
+$[40, 60)$ & 0.698 & 0.860 & +0.163 \\
+$[60, 80)$ & 0.749 & 0.851 & +0.103 \\
+$[80, 120)$ & 0.734 & 0.818 & +0.085 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Illustrative Examples}
+
+Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surprise (in bits) for the first response of a high-diversity and low-diversity sample, respectively. Red bars are measured response tokens; grey bars are masked context tokens.
+
+\paragraph{High diversity} (Figure~\ref{fig:confound-high}). Context: \emph{``Joel owned a restaurant. He hired a cook that didn't care about his work. The cook didn't clean after himself. The kitchen was a mess.''} Response: \emph{``Joel fired the cook when things went too far downhill.''} This is a natural, predictable continuation ($a_1 = 0.783$ bits/byte).
+
+\paragraph{Low diversity} (Figure~\ref{fig:confound-low}). Context: \emph{``Harry and his basketball team was losing the game. The coach called for a timeout. Harry boosted morale by talking to his team. The team caught up and the game was tied.''} Response: \emph{``He scored winner.''} This is a specific, somewhat ungrammatical ending ($a_1 = 1.777$ bits/byte). All five responses in this set are paraphrases of the same idea (``Harry scored the winning point'').
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../figures/dataset_confound/a1_distributions.png}
+\caption{Distribution of $a_1$ (unconditional surprise of the first response) for high- vs.\ low-diversity story\_gen samples. Left: per-byte. Right: total bits. The per-byte gap (+0.13 bits/byte) is a dataset construction artifact.}\label{fig:confound-a1-dist}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png}
+\caption{Per-token surprise for a high-diversity sample's first response. The continuation (``Joel fired the cook...'') is predictable, yielding low per-token surprise across response tokens.}\label{fig:confound-high}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png}
+\caption{Per-token surprise for a low-diversity sample's first response. The specific ending (``He scored winner'') is inherently more surprising to the base model, despite being labeled ``low diversity.''}\label{fig:confound-low}
+\end{figure}
+
+\subsection{Implications}
+
+This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$---it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
+
 \bibliographystyle{plainnat}
 
 \begin{thebibliography}{10}

@@ -1,0 +1,65 @@
+================================================================================
+DATASET CONFOUND ANALYSIS — McDiv_nuggets story_gen
+================================================================================
+
+Low-diversity response sets have systematically higher per-byte
+surprise (a_1) than high-diversity sets. This is because low-diversity
+sets are paraphrases of specific/dramatic endings, while high-diversity
+sets contain multiple generic/predictable completions.
+
+SUMMARY STATISTICS
+                                  HIGH diversity   LOW diversity        Gap
+                                 ─────────────── ─────────────── ──────────
+  a_1 (bits/byte)                         0.8310          0.9645    +0.1335
+  a_1 (total bits)                          43.9            44.0       +0.1
+  Mean response bytes                       52.7            46.5       -6.3
+  n samples                                  103              97
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  HIGH DIVERSITY (low a_1) — illustrative examples
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Sample: test.sa-sb.sa::00698
+  a_1: 0.736 bits/byte (48.6 total bits)
+  Mean response length: 75 bytes
+  Context: Joel owned a restaurant. He hired a cook that didn't care about his work. The cook didn't clean after himself. The kitchen was a mess.
+    r0: Joel fired the cook when things went too far downhill.
+    r1: One day Joel called a meeting and set up new rules for the cook and other staff to follow.
+    r2: This went on for a couple months before Joel had enough.
+    r3: Joel did not care much about the restaurant either and he went out of business.
+    r4: When making future hiring decisions Joel held up the cook as an example of what he doesn't want.
+
+  Sample: test.sa-sb.sa::00703
+  a_1: 0.739 bits/byte (54.7 total bits)
+  Mean response length: 75 bytes
+  Context: Jake was changing clothes in his room. He didn't realize his overhead fan was on. When he reached up to take off his shirt his arm hit the fan blades. Jake wound up fracturing his wrist.
+    r0: His mom ran upstairs when she heard the commotion, and immediately drove him to the emergency room.
+    r1: He had to wear a cast and was unable to play his favorite sport, baseball, for an entire month.
+    r2: He thought it was cool so he showed it to the neighborhood kids.
+    r3: He was in agonizing pain so he raced to the phone to call an ambulance.
+    r4: He then woke up and realized it was all a dream.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LOW DIVERSITY (high a_1) — illustrative examples
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Sample: test.sa-sb.sa-b::00279
+  a_1: 1.060 bits/byte (25.4 total bits)
+  Mean response length: 25 bytes
+  Context: Harry and his basketball team was losing the game. The coach called for a timeout. Harry boosted morale by talking to his team. The team caught up and the game was tied.
+    r0: He scored winner
+    r1: Harry scored a winning point
+    r2: Harry scored a point that won them a game
+    r3: He scores final point
+    r4: He scored last point
+
+  Sample: test.sa-sb.sa-b::00240
+  a_1: 1.050 bits/byte (16.8 total bits)
+  Mean response length: 17 bytes
+  Context: There once was a person born without a brain. They tried and tried and tried to think. They read books and stared at screens until their eyes bled. Then one day they threw out all of their learning material.
+    r0: they quit
+    r1: they did not care
+    r2: IT WAS TO HARD SO THEY WERE DONE
+    r3: he gave up
+    r4: he was done trying
