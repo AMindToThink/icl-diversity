@@ -107,7 +107,12 @@ def run_experiment(
             shuffle_rng = random.Random(draw_seed ^ 0x5A5A5A5A)
             shuffle_rng.shuffle(responses)
 
-            # Single forward pass — no correlated inner permutations
+            # n_permutations=1: each draw is already a fresh random ordering
+            # (shuffled above). Permutation averaging is unnecessary because
+            # statistical power comes from the outer loop (n_draws independent
+            # draws per m), not from inner permutation averaging. Each run's
+            # a_k_curve is therefore a single-ordering curve (noisy per-run,
+            # but the mean across 1000 draws is smooth).
             metrics = compute_icl_diversity_metrics(
                 model,
                 tokenizer,

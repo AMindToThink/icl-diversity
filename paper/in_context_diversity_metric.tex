@@ -1,3 +1,30 @@
+% ==========================================================================
+% NOTATION AND FRAMING (March 2026)
+%
+% Primary diversity score:  D = C × a_∞  (estimated as C × a_n)
+%   - a_∞ estimated by a_n (last observed point) or exponential fit
+%   - Per-byte variant: C × a_n where a_n is bits/byte
+%   - Measures: "residual surprise after full conditioning, weighted by
+%     plausibility." High = diverse and coherent.
+%   - Works in both Regime 1 (many draws, repeated modes) and Regime 2
+%     (few draws, unique responses).
+%
+% Secondary diagnostic:  (E, C, sigma_l) triple
+%   - E = excess entropy = area above floor. Informative when n is large
+%     enough for repeated modes. Near-zero when n is small or modes don't
+%     repeat. Provides structural info D alone cannot (e.g., mode count).
+%   - C = coherence = 1/PPL per byte. Permutation-invariant.
+%   - sigma_l = coherence spread. Diagnostic for mixed-quality modes.
+%
+% The old D = C × E is now referred to explicitly as "C × E" with no
+% special symbol. It is retained as a supplementary score useful when E
+% converges (large n with repeated modes).
+%
+% TODO: The abstract and some early sections still use the old D = C × E
+% definition. These need updating once the mode count experiment with
+% n_permutations=50 confirms D = C × a_∞ in Regime 1.
+% ==========================================================================
+
 \documentclass[11pt]{article}
 
 \usepackage[margin=1in]{geometry}
@@ -352,6 +379,26 @@ The \textbf{per-byte diversity score}:
 Units: bits/byte. This is coherence-weighted structural information per byte: ``how much learnable structure is there per byte, discounted by how plausible the outputs are?'' Because both $C$ and $E_{\mathrm{rate}}$ are length-normalized, $D_{\mathrm{rate}}$ treats long and short responses on equal footing.
 
 The two scores are complementary. $D$ is the right choice when the total amount of diverse information matters regardless of response length. $D_{\mathrm{rate}}$ is the right choice when comparing policies that may produce responses of different lengths on the same prompt and length variation should be normalized away.
+
+\paragraph{Alternative scalar: the asymptotic surprise floor.}\label{sec:c-ainf}
+The diversity scores $D$ and $D_{\mathrm{rate}}$ rely on the excess entropy $E$, which measures the total learnable structure above the asymptotic floor. This works well when the response set contains \emph{repeated modes} (many draws, modes sampled multiple times): $\theta$ discovers recurring patterns, driving the $a_k$ curve down and producing large $E$. However, when each response is unique (few draws, no repeated modes), the curve stays approximately flat---$\theta$ finds no recurring structure---so $E \approx 0$ regardless of whether the responses are diverse or not.
+
+The distinguishing signal in this regime is the \emph{level of the floor itself}. Diverse responses remain surprising even after full conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low). This motivates an alternative scalar:
+\begin{equation}\label{eq:D-ainf}
+    D_{a_\infty} = C \times a_\infty
+\end{equation}
+measuring ``how many bits of surprise remain per byte after $\theta$ has learned everything it can from the other responses, weighted by output plausibility.'' The information-theoretic decomposition $a_1 = a_\infty + (a_1 - a_\infty)$ (Section~\ref{sec:excess-entropy}) shows that the complementary quantity $C \times (a_1 - a_\infty)$ measures coherence-weighted redundancy---high when responses share learnable structure, low when they are mutually unpredictable.
+
+In practice, $a_\infty$ can be estimated either by the fitted floor from Eq.~\ref{eq:sigmoid-fit} or simply by the last observed point $a_n$. On short curves (5--10 responses), $a_n$ is more stable than the extrapolated fit (Section~\ref{sec:tevet}). Section~\ref{sec:tevet} provides empirical evidence that $D_{a_\infty}$ substantially outperforms $D$ on external benchmarks, achieving ROC AUC of 0.89 where $D$ achieves 0.64 on the same data. See Table~\ref{tab:tevet-full} in Appendix~\ref{sec:appendix-tevet-full} for the complete comparison.
+
+The edge cases behave correctly for $D_{a_\infty}$:
+\begin{enumerate}[nosep]
+    \item \textbf{Pure noise}: $C \approx 0$ (incoherent), so $D_{a_\infty} \approx 0$.
+    \item \textbf{Multiple incoherent patterns}: $C$ low, $a_\infty$ high, but $D_{a_\infty}$ is suppressed by $C$.
+    \item \textbf{Rich coherent diversity}: $C$ high, $a_\infty$ high, so $D_{a_\infty}$ is high.
+    \item \textbf{One coherent pattern}: $C$ high, $a_\infty$ low ($\theta$ learns the mode), so $D_{a_\infty} \approx 0$.
+    \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{a_\infty}$ is low.
+\end{enumerate}
 
 \paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. This is considerably less compressed than the per-token range, because bytes are a finer-grained unit than tokens. Consequently, $D = C \times E$ is not dominated by $C$ in the way a total-probability coherence term would be. Nonetheless, two mitigation strategies remain available for cases where coherence variation dominates diversity variation:
 
@@ -755,51 +802,61 @@ Figure~\ref{fig:row-vs-col} compares the two models. Qwen shows a tighter row--c
 
 \paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent. For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes. The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals. If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves---but confirming this requires testing additional base models of varying sizes.
 
-\subsection{Preliminary External Validation}\label{sec:tevet}
+\subsection{External Validation}\label{sec:tevet}
 
-We conduct a preliminary evaluation against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which contains 13,679 response sets from three evaluation frameworks (ConTest, DecTest, McDiv\_nuggets) with human diversity annotations. We compute the metric using GPT-2 with 50 permutations.
+We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which contains 13,679 response sets from three evaluation frameworks with human diversity annotations:
+\begin{itemize}[nosep]
+    \item \textbf{McDiv\_nuggets}: 5 responses per set, binary labels (high/low content diversity).
+    \item \textbf{ConTest}: 5 responses per set, binary labels.
+    \item \textbf{DecTest}: 10 responses generated at varying temperatures, labeled by temperature.
+\end{itemize}
+We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format. For binary datasets we report ROC AUC (the natural evaluation for binary classification); for DecTest we report Spearman $\rho$ with temperature. See Appendix~\ref{sec:appendix-tevet-full} for the complete comparison across all metric variants.
 
-\paragraph{Strong caveats.} These results are preliminary for several reasons: (i) only GPT-2 was tested (124M parameters, weak ICL capability); (ii) only 5 responses per set---well below the 10--20+ the metric is designed for, so the $\hat{E}_n$ estimator is unreliable; (iii) we have not carefully audited the experimental logs to confirm we are measuring what we intend; and (iv) the benchmark's diversity labels (surface variation, $n$-gram overlap) may not align with what $E$ captures (distributional structure as perceived by $\theta$).
+\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest)---well below the 20+ responses needed for $E$ to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{sec:mcdiv-confounds}).
 
 \begin{table}[t]
 \centering
-\caption{Spearman rank correlation $\rho$ between metrics and ground-truth diversity labels on Tevet's diversity-eval (GPT-2, 50 permutations). $E$ shows negative correlations with diversity labels, while distinct-$n$ shows positive correlations. These results are preliminary---see caveats in text.}
+\caption{Diversity metric comparison on Tevet's diversity-eval (Qwen2.5-3B, 50 permutations, completion format, per-byte normalization). For binary datasets (McDiv\_nuggets, ConTest): ROC AUC (higher is better, 0.5 = chance). For DecTest: Spearman $\rho$ with temperature. $D_{a_\infty} = C \times a_n$ substantially outperforms $D = C \times E$ across all datasets. Best result per row in bold.}
 \label{tab:tevet}
 \small
-\begin{tabular}{@{}llrr@{}}
+\begin{tabular}{@{}llrrrrr@{}}
 \toprule
-Dataset & Task & $\rho(E, \text{label})$ & $\rho(\text{distinct-}n, \text{label})$ \\
+& & \multicolumn{3}{c}{$a_\infty$-based} & \multicolumn{2}{c}{$E$-based} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-7}
+Dataset & Task & $C \!\times\! a_n$ & $a_n$ & $a_1$ & $D_{\mathrm{fit}}$ & $D_{\mathrm{disc}}$ \\
 \midrule
-DecTest (1000) & prompt\_gen & $-0.493$ & $0.912$ \\
-DecTest (1000) & story\_gen & $-0.272$ & $0.758$ \\
-DecTest (1000) & resp\_gen  & $-0.057$ & $0.894$ \\
-McDiv\_nuggets & story\_gen & $-0.396$ & $0.039$ \\
-McDiv\_nuggets & resp\_gen  & $-0.242$ & $-0.014$ \\
-McDiv\_nuggets & prompt\_gen & $-0.361$ & $0.120$ \\
+\multicolumn{7}{@{}l}{\textit{ROC AUC (binary datasets)}} \\[2pt]
+McDiv\_nug. & prompt\_gen & \textbf{0.894} & 0.856 & 0.463 & 0.642 & 0.244 \\
+McDiv\_nug. & resp\_gen  & \textbf{0.759} & 0.719 & 0.438 & 0.430 & 0.294 \\
+McDiv\_nug. & story\_gen & \textbf{0.733} & 0.670 & 0.277 & 0.320 & 0.226 \\
+ConTest & resp\_gen  & \textbf{0.707} & 0.632 & 0.503 & 0.469 & 0.339 \\
+ConTest & story\_gen & \textbf{0.937} & 0.714 & 0.353 & 0.288 & 0.110 \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{Spearman $\rho$ (temperature label)}} \\[2pt]
+DecTest & prompt\_gen & $+0.85$ & $\mathbf{+0.92}$ & $+0.72$ & $-0.41$ & $-0.56$ \\
+DecTest & resp\_gen  & $+0.81$ & $\mathbf{+0.92}$ & $+0.81$ & $-0.56$ & $-0.51$ \\
+DecTest & story\_gen & $\mathbf{+0.77}$ & $+0.77$ & $+0.55$ & $-0.34$ & $-0.33$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Results.} Table~\ref{tab:tevet} summarizes the correlations. $E$ shows negative correlation with diversity labels ($\rho = -0.49$ on DecTest prompt\_gen): higher temperature $\to$ lower $E$ (Figure~\ref{fig:e-vs-temp}). On McDiv\_nuggets, $|E|$ outperforms distinct-$n$ in magnitude, but with opposite sign.
+\paragraph{Results.} Table~\ref{tab:tevet} shows that $D_{a_\infty} = C \times a_n$ (per-byte) dramatically outperforms all $E$-based metrics. On McDiv\_nuggets prompt\_gen, $D_{a_\infty}$ achieves ROC AUC = 0.894 compared to 0.642 for $D_{\mathrm{fit}}$ and 0.244 for $D_{\mathrm{disc}}$ (below chance). On ConTest story\_gen, $D_{a_\infty}$ achieves AUC = 0.937. On DecTest, $a_n$ correlates with temperature at $\rho = +0.92$, while all $E$-based variants are \emph{negatively} correlated.
+
+The $C$ weighting helps: raw $a_n$ achieves AUC 0.856 on prompt\_gen, while $C \times a_n$ achieves 0.894. However, unconditional surprise $a_1$ alone performs poorly (AUC 0.463), confirming that conditioning on other responses is essential---the diversity signal is in the \emph{residual} surprise after conditioning, not in the initial surprise.
 
 \begin{figure}[t]
 \centering
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{tevet_validation/dectest_E_vs_temperature_gpt2.png}
-    \caption{$E$ decreases with temperature on DecTest.}
-    \label{fig:e-vs-temp}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{tevet_validation/metric_correlations_gpt2.png}
-    \caption{$E$ is orthogonal to surface metrics.}
-    \label{fig:metric-corr}
-\end{subfigure}
-\caption{External validation on Tevet's diversity-eval with GPT-2. Left: $E$ decreases as sampling temperature increases---opposite to the expected direction for a diversity metric. Right: Pearson correlation between $E$ and distinct-$n$ is $-0.375$, confirming orthogonality.}
-\label{fig:tevet}
+\includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png}
+\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (red solid) dominates $D_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all three tasks.}
+\label{fig:roc-curves}
 \end{figure}
 
-The key positive finding is \textbf{orthogonality}: the overall Pearson $r(E, \text{distinct-}n) = -0.375$ (Figure~\ref{fig:metric-corr}), confirming that $E$ captures genuinely different information from surface-level metrics. What exactly this signal means in the diversity-eval context remains an open question. The negative correlation could reflect a real property of $E$ (measuring inter-response redundancy rather than diversity) or experimental limitations (too few responses, weak base model). Further investigation with stronger models and more responses per set is needed before drawing conclusions.
+\paragraph{Why $E$ fails here.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity---the $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets. The $E$-based scores thus carry almost no signal (see the discussion in Section~\ref{sec:c-ainf}). The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
+
+\paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = 0.98$) and Qwen2.5-3B ($r = 0.99$). $D_{\mathrm{fit}}$ also performs well on Qwen ($r = 0.92$, monotonic) but shows non-monotonicity on GPT-2. However, the existing mode count data uses single-ordering curves (no permutation averaging), so this comparison is preliminary. A controlled experiment with permutation-averaged curves is needed to fairly compare $D_{a_\infty}$ and $D$ in the many-mode regime.
+
+% TODO: Run mode count experiment with n_permutations=50 to get permutation-
+% averaged curves, then compare D_{a_inf} vs D_fit fairly in Regime 1.
 
 \subsection{Practical Findings}\label{sec:practical-findings}
 
