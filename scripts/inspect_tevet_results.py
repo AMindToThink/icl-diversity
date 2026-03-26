@@ -23,6 +23,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import spearmanr
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+from icl_diversity.core import format_conditioning_context
+
 matplotlib.use("Agg")
 
 # Import fitting functions
@@ -325,10 +328,11 @@ def print_sample_text(
                 context = row["context"]
                 responses = [row[col] for col in resp_cols]
                 output_lines.append(f"\n  --- Completion format (what the model sees) ---")
-                for i, resp in enumerate(responses):
-                    output_lines.append(f"  {i+1}. {context}{resp}")
-                    if i < len(responses) - 1:
-                        output_lines.append("")
+                prefix, target = format_conditioning_context(
+                    context, responses[:-1], responses[-1],
+                    format_mode="completion",
+                )
+                output_lines.append(f"  {prefix}{target}")
 
                 break
 

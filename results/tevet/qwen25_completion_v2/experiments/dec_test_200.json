@@ -1,0 +1,10 @@
+{
+  "global_config": {
+    "class_name": "DecTest"
+  },
+  "experiments": {
+    "story_gen": "../results/tevet/qwen25_completion_v2/decTest/dec_test_200_with_hds_story_gen.csv",
+    "resp_gen": "../results/tevet/qwen25_completion_v2/decTest/dec_test_200_with_hds_resp_gen.csv",
+    "prompt_gen": "../results/tevet/qwen25_completion_v2/decTest/dec_test_200_with_hds_prompt_gen.csv"
+  }
+}
