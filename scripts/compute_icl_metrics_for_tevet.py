@@ -53,6 +53,33 @@ from icl_diversity.core import format_conditioning_context  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
+
+def dedup_rows(rows: list[dict]) -> list[dict]:
+    """Remove rows whose sample_id appears with conflicting label_value.
+
+    Some McDiv_nuggets CSVs contain the same sample_id with both label=0
+    and label=1. This removes ALL rows for such conflicting IDs (keeping
+    neither), since the correct label is ambiguous.
+
+    Returns the filtered list (may be shorter than input).
+    """
+    if not rows or "sample_id" not in rows[0] or "label_value" not in rows[0]:
+        return rows
+
+    # Collect labels per sample_id
+    labels_per_id: dict[str, set[str]] = {}
+    for row in rows:
+        sid = row["sample_id"]
+        labels_per_id.setdefault(sid, set()).add(row["label_value"])
+
+    conflicting = {sid for sid, labels in labels_per_id.items() if len(labels) > 1}
+    if not conflicting:
+        return rows
+
+    logger.info(f"  Dedup: removing {len(conflicting)} sample_ids with conflicting labels")
+    return [row for row in rows if row["sample_id"] not in conflicting]
+
+
 # Base ICL metric names (before tag suffix)
 ICL_METRIC_BASES = ["metric_icl_E", "metric_icl_E_rate", "metric_icl_C", "metric_icl_D", "metric_icl_D_rate"]
 
@@ -306,6 +333,7 @@ def process_csv(
     force: bool = False,
     max_skip_fraction: float = 0.1,
     format_mode: FormatMode = "instruct",
+    dedup: bool = False,
 ) -> ProcessingStats:
     """Process a single CSV file: compute ICL metrics and write to output location.
 
@@ -327,6 +355,9 @@ def process_csv(
         reader = csv.DictReader(f)
         fieldnames = list(reader.fieldnames)
         rows = list(reader)
+
+    if dedup:
+        rows = dedup_rows(rows)
 
     resp_cols = get_response_columns(fieldnames)
     n_responses = len(resp_cols)
@@ -696,6 +727,12 @@ def main() -> None:
              "'completion' (1. {prompt}{completion}..., for story completions)",
     )
     parser.add_argument(
+        "--dedup",
+        action="store_true",
+        help="Remove samples with conflicting labels (same sample_id, different label_value). "
+             "Appends '-dedup' to the run tag.",
+    )
+    parser.add_argument(
         "--migrate-from-sidecars",
         action="store_true",
         help="Migrate existing untagged sidecar data to new tagged format (no GPU needed)",
@@ -710,6 +747,8 @@ def main() -> None:
 
     # Derive run tag
     tag = args.run_tag or derive_run_tag(args.base_model)
+    if args.dedup and not tag.endswith("-dedup"):
+        tag += "-dedup"
     logger.info(f"Run tag: {tag}")
 
     # Output directory
@@ -728,6 +767,7 @@ def main() -> None:
         "torch_dtype": args.torch_dtype,
         "batch_size": args.batch_size,
         "format_mode": args.format_mode,
+        "dedup": args.dedup,
     }
 
     model = None
@@ -796,6 +836,7 @@ def main() -> None:
             force=args.force,
             max_skip_fraction=args.max_skip_fraction,
             format_mode=args.format_mode,
+            dedup=args.dedup,
         )
         all_stats[csv_path.name] = stats
 
