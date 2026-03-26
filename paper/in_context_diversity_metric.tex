@@ -829,6 +829,14 @@ The key positive finding is \textbf{orthogonality}: the overall Pearson $r(E, \t
 
 \paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{zhang2024writingprompts} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
 
+\paragraph{Diversity evaluation benchmarks.}
+\citet{tevet2020evaluating} introduced the first systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels. We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.
+More recent work has revisited the meta-evaluation problem.
+NoveltyBench \citep{lam2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples)---conceptually close to our mode count.
+However, their ground truth is itself a trained classifier (79\% accuracy), making it unclear whether correlation with their labels validates a metric or merely measures agreement between two model-based scores.
+\citet{he2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
+\citet{chen2025linguistic} benchmark linguistic diversity of LLMs, extending Tevet and Berant's framework to a broader set of generation tasks.
+
 \appendix
 
 \section{Relating the Sigmoid Inflection Point to Mode Count}\label{app:k0-derivation}
@@ -1046,6 +1054,21 @@ An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li
 Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.
 \newblock Trading off diversity and quality in natural language generation.
 \newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Chen et al.(2025)]{chen2025linguistic}
+Yanzhu Chen, Jiaheng Wei, and Xuezhi Wang.
+\newblock Benchmarking linguistic diversity of large language models.
+\newblock \emph{Transactions of the Association for Computational Linguistics}, 2025.
+
+\bibitem[He et al.(2025)]{he2025commonsense}
+Yun He, Pengfei Liu, and others.
+\newblock Evaluating the evaluation of diversity in commonsense generation.
+\newblock \emph{arXiv preprint arXiv:2506.00514}, 2025.
+
+\bibitem[Lam et al.(2025)]{lam2025noveltybench}
+Xuan Phi Lam, Gia-Huy Do, and others.
+\newblock {NoveltyBench}: Evaluating creativity and diversity in language models.
+\newblock \emph{arXiv preprint arXiv:2504.05228}, 2025.
 
 % TODO: relevant work from Shi Feng
 % https://arxiv.org/abs/2601.13566
