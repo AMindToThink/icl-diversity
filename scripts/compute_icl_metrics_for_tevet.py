@@ -385,11 +385,38 @@ def process_csv(
     old_icl_cols = [f for f in fieldnames if f.startswith("metric_icl_") and f not in all_new_cols]
     clean_fieldnames = [f for f in fieldnames if f not in old_icl_cols]
 
-    # Build output fieldnames: existing non-ICL + new tagged columns
+    # Build output fieldnames: existing non-ICL + sidecar_key + new tagged columns
     new_fieldnames = list(clean_fieldnames)
+    if "sidecar_key" not in new_fieldnames:
+        # Insert sidecar_key right after sample_id
+        sid_idx = new_fieldnames.index("sample_id") if "sample_id" in new_fieldnames else 0
+        new_fieldnames.insert(sid_idx + 1, "sidecar_key")
     for col in all_new_cols:
         if col not in new_fieldnames:
             new_fieldnames.append(col)
+
+    # Build unique sidecar keys: use sample_id when unique, append __rowN
+    # when the same sample_id appears multiple times (e.g., ConTest has the
+    # same prompt with both a diverse and non-diverse response set).
+    id_counts: dict[str, int] = {}
+    for row in rows:
+        sid = row["sample_id"]
+        id_counts[sid] = id_counts.get(sid, 0) + 1
+    has_dups = any(v > 1 for v in id_counts.values())
+    if has_dups:
+        dup_ids = {k for k, v in id_counts.items() if v > 1}
+        logger.info(
+            f"  {len(dup_ids)} sample_ids appear multiple times; "
+            f"using row index in sidecar keys to disambiguate"
+        )
+
+    sidecar_keys: list[str] = []
+    for row_idx, row in enumerate(rows):
+        sid = row["sample_id"]
+        if id_counts[sid] > 1:
+            sidecar_keys.append(f"{sid}__row{row_idx}")
+        else:
+            sidecar_keys.append(sid)
 
     # Pre-scan token lengths if we have a tokenizer
     row_token_counts: list[tuple[str, int]] = []
@@ -415,18 +442,19 @@ def process_csv(
         row_token_counts = [(row["sample_id"], 0) for row in rows]
 
     # --- Main processing loop ---
-    for row, (sample_id, token_count) in tqdm(
-        zip(rows, row_token_counts),
+    for row, sidecar_key, (sample_id, token_count) in tqdm(
+        zip(rows, sidecar_keys, row_token_counts),
         desc=csv_path.name,
         unit="set",
         total=len(rows),
     ):
         stats.token_counts.append(token_count)
+        row["sidecar_key"] = sidecar_key
 
         # Check tagged sidecar cache first
-        cached_entry = sidecar_data.get(sample_id)
+        cached_entry = sidecar_data.get(sidecar_key)
         if cached_entry is None:
-            # Fall back to legacy sidecar
+            # Fall back to legacy sidecar (legacy uses bare sample_id)
             cached_entry = legacy_sidecar.get(sample_id)
 
         if not force and cached_entry is not None and not cached_entry.get("skipped", False):
@@ -446,8 +474,8 @@ def process_csv(
                 row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
 
             # Copy to tagged sidecar if from legacy
-            if sample_id not in sidecar_data:
-                sidecar_data[sample_id] = cached_entry
+            if sidecar_key not in sidecar_data:
+                sidecar_data[sidecar_key] = cached_entry
             stats.cached += 1
             continue
 
@@ -460,7 +488,7 @@ def process_csv(
             else:
                 stats.skipped_error += 1
             if sample_id not in sidecar_data:
-                sidecar_data[sample_id] = cached_entry
+                sidecar_data[sidecar_key] = cached_entry
             stats.cached += 1
             continue
 
@@ -482,7 +510,7 @@ def process_csv(
                 row[col] = ""
             stats.skipped_token_limit += 1
             stats.token_limit_sample_ids.append(sample_id)
-            sidecar_data[sample_id] = {
+            sidecar_data[sidecar_key] = {
                 "skipped": True,
                 "reason": "token_limit",
                 "token_count": token_count,
@@ -509,7 +537,7 @@ def process_csv(
                 row[col] = ""
             stats.skipped_error += 1
             stats.error_sample_ids.append(sample_id)
-            sidecar_data[sample_id] = {
+            sidecar_data[sidecar_key] = {
                 "skipped": True,
                 "reason": "error",
                 "error": traceback.format_exc(),
@@ -532,7 +560,7 @@ def process_csv(
             row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
 
         # Save to sidecar cache
-        sidecar_data[sample_id] = {
+        sidecar_data[sidecar_key] = {
             "metrics": {
                 key: metrics[key]
                 for key in [

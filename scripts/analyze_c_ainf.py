@@ -48,8 +48,12 @@ def load_sidecar(sidecar_path: Path) -> dict[str, dict]:
 
 
 def load_csv_rows(csv_path: Path) -> dict[str, dict]:
+    """Load CSV rows keyed by sidecar_key (falls back to sample_id for old CSVs)."""
     with open(csv_path, newline="", encoding="utf-8") as f:
-        return {row["sample_id"]: row for row in csv.DictReader(f)}
+        rows = list(csv.DictReader(f))
+    # Use sidecar_key if present (handles duplicate sample_ids), else sample_id
+    key_col = "sidecar_key" if rows and "sidecar_key" in rows[0] else "sample_id"
+    return {row[key_col]: row for row in rows}
 
 
 def compute_per_byte_curve(entry: dict) -> list[float] | None:
@@ -300,7 +304,7 @@ def print_summary_table(
             continue
 
         binary = is_binary_dataset(samples)
-        task = dataset_name.split("/")[-1]
+        task = _pretty_title(dataset_name)
 
         for i, (display_name, key, higher_diverse) in enumerate(METRICS_TO_EVAL):
             scores = [s[key] for s in samples]
@@ -340,6 +344,22 @@ def print_summary_table(
 # Plots
 # ---------------------------------------------------------------------------
 
+
+def _pretty_title(dataset_name: str) -> str:
+    """Turn 'McDiv_nuggets/mcdiv_nuggets_200_with_hds_prompt_gen' into 'prompt_gen (with_hds)'."""
+    stem = dataset_name.split("/")[-1]
+    for marker in ("_with_hds_", "_no_hds_"):
+        if marker in stem:
+            task = stem.split(marker, 1)[1]
+            subset = marker.strip("_")
+            return f"{task} ({subset})"
+    # DecTest / McDiv: try extracting task from end
+    for suffix in ("_prompt_gen", "_resp_gen", "_story_gen"):
+        if stem.endswith(suffix):
+            return stem
+    return stem
+
+
 def plot_roc_curves(
     all_results: dict[str, list[dict]],
     dataset_filter: str,
@@ -369,7 +389,7 @@ def plot_roc_curves(
     fig.suptitle(f"ROC Curves: {group_name}", fontsize=14)
 
     for ax, (dataset_name, samples) in zip(axes, datasets.items()):
-        task = dataset_name.split("/")[-1]
+        task = _pretty_title(dataset_name)
         ax.plot([0, 1], [0, 1], "k--", alpha=0.3, linewidth=1)
 
         for display_name, key, color, ls in roc_metrics:
@@ -425,7 +445,7 @@ def plot_distributions(
     fig.suptitle(f"Score Distributions: {group_name}", fontsize=14, y=1.01)
 
     for col, (dataset_name, samples) in enumerate(sorted(datasets.items())):
-        task = dataset_name.split("/")[-1]
+        task = _pretty_title(dataset_name)
         for row, (display_name, key) in enumerate(metrics_to_plot):
             ax = axes[row, col]
             high = [s[key] for s in samples if s["label"] == 1.0 and not np.isnan(s[key])]
@@ -474,7 +494,7 @@ def plot_mean_ak_with_ainf(
     fig.suptitle(f"Mean a_k (bits/byte) with a_∞: {group_name}", fontsize=14)
 
     for ax, (dataset_name, samples) in zip(axes, sorted(datasets.items())):
-        task = dataset_name.split("/")[-1]
+        task = _pretty_title(dataset_name)
 
         for target_label, group_label, color in [
             (1.0, "High diversity", "tab:red"),

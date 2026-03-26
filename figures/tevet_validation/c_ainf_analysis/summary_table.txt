@@ -4,7 +4,7 @@
 ====================================================================================================
   Dataset                                  Metric                   Spearman ρ    ROC AUC
   ---------------------------------------- ---------------------- ------------ ----------
-  mcdiv_nuggets_200_with_hds_prompt_gen    C×a_inf_fit (pb)             +0.050      0.529
+  prompt_gen (with_hds)                    C×a_inf_fit (pb)             +0.050      0.529
                                            C×a_inf_fit (bits)           -0.145      0.416
                                            C×a_n (pb)                   +0.680      0.894
                                            C×a_n (bits)                 +0.092      0.553
@@ -22,7 +22,7 @@
                                            E_disc (bits)                -0.504      0.208
                                            redundancy (pb)              -0.048      0.528
 
-  mcdiv_nuggets_200_with_hds_resp_gen      C×a_inf_fit (pb)             +0.343      0.699
+  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.343      0.699
                                            C×a_inf_fit (bits)           +0.114      0.566
                                            C×a_n (pb)                   +0.446      0.759
                                            C×a_n (bits)                 +0.106      0.562
@@ -40,7 +40,7 @@
                                            E_disc (bits)                -0.425      0.253
                                            redundancy (pb)              -0.348      0.702
 
-  mcdiv_nuggets_200_with_hds_story_gen     C×a_inf_fit (pb)             +0.319      0.684
+  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.319      0.684
                                            C×a_inf_fit (bits)           +0.220      0.627
                                            C×a_n (pb)                   +0.403      0.733
                                            C×a_n (bits)                 +0.281      0.662
@@ -58,7 +58,7 @@
                                            E_disc (bits)                -0.486      0.219
                                            redundancy (pb)              -0.395      0.728
 
-  mcdiv_nuggets_no_hds_prompt_gen          C×a_inf_fit (pb)             +0.012      0.508
+  prompt_gen (no_hds)                      C×a_inf_fit (pb)             +0.012      0.508
                                            C×a_inf_fit (bits)           -0.201      0.378
                                            C×a_n (pb)                   +0.601      0.866
                                            C×a_n (bits)                 +0.059      0.536
@@ -76,7 +76,7 @@
                                            E_disc (bits)                -0.386      0.265
                                            redundancy (pb)              -0.015      0.509
 
-  mcdiv_nuggets_no_hds_resp_gen            C×a_inf_fit (pb)             +0.142      0.587
+  resp_gen (no_hds)                        C×a_inf_fit (pb)             +0.142      0.587
                                            C×a_inf_fit (bits)           -0.085      0.448
                                            C×a_n (pb)                   +0.298      0.682
                                            C×a_n (bits)                 -0.047      0.471
@@ -94,7 +94,7 @@
                                            E_disc (bits)                -0.351      0.285
                                            redundancy (pb)              -0.150      0.592
 
-  mcdiv_nuggets_no_hds_story_gen           C×a_inf_fit (pb)             +0.174      0.606
+  story_gen (no_hds)                       C×a_inf_fit (pb)             +0.174      0.606
                                            C×a_inf_fit (bits)           +0.027      0.516
                                            C×a_n (pb)                   +0.271      0.664
                                            C×a_n (bits)                 +0.092      0.556
@@ -118,7 +118,7 @@
 ====================================================================================================
   Dataset                                  Metric                   Spearman ρ    ROC AUC
   ---------------------------------------- ---------------------- ------------ ----------
-  con_test_200_with_hds_prompt_gen         C×a_inf_fit (pb)                nan          —
+  prompt_gen (with_hds)                    C×a_inf_fit (pb)                nan          —
                                            C×a_inf_fit (bits)              nan          —
                                            C×a_n (pb)                      nan          —
                                            C×a_n (bits)                    nan          —
@@ -136,7 +136,7 @@
                                            E_disc (bits)                   nan          —
                                            redundancy (pb)                 nan          —
 
-  con_test_200_with_hds_resp_gen           C×a_inf_fit (pb)             +0.225      0.667
+  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.225      0.667
                                            C×a_inf_fit (bits)           +0.025      0.519
                                            C×a_n (pb)                   +0.280      0.707
                                            C×a_n (bits)                 +0.003      0.502
@@ -154,7 +154,7 @@
                                            E_disc (bits)                -0.268      0.301
                                            redundancy (pb)              -0.211      0.656
 
-  con_test_200_with_hds_story_gen          C×a_inf_fit (pb)             +0.546      0.886
+  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.546      0.886
                                            C×a_inf_fit (bits)           -0.077      0.446
                                            C×a_n (pb)                   +0.620      0.937
                                            C×a_n (bits)                 +0.009      0.507
@@ -178,7 +178,7 @@
 ====================================================================================================
   Dataset                                  Metric                   Spearman ρ    ROC AUC
   ---------------------------------------- ---------------------- ------------ ----------
-  dec_test_1000_no_hds_prompt_gen          C×a_inf_fit (pb)             +0.854          —
+  prompt_gen (no_hds)                      C×a_inf_fit (pb)             +0.854          —
                                            C×a_inf_fit (bits)           +0.762          —
                                            C×a_n (pb)                   +0.842          —
                                            C×a_n (bits)                 +0.761          —
@@ -196,7 +196,7 @@
                                            E_disc (bits)                -0.304          —
                                            redundancy (pb)              -0.892          —
 
-  dec_test_1000_no_hds_resp_gen            C×a_inf_fit (pb)             +0.805          —
+  resp_gen (no_hds)                        C×a_inf_fit (pb)             +0.805          —
                                            C×a_inf_fit (bits)           +0.688          —
                                            C×a_n (pb)                   +0.771          —
                                            C×a_n (bits)                 +0.831          —
@@ -214,7 +214,7 @@
                                            E_disc (bits)                -0.025          —
                                            redundancy (pb)              -0.860          —
 
-  dec_test_1000_no_hds_story_gen           C×a_inf_fit (pb)             +0.774          —
+  story_gen (no_hds)                       C×a_inf_fit (pb)             +0.774          —
                                            C×a_inf_fit (bits)           +0.684          —
                                            C×a_n (pb)                   +0.763          —
                                            C×a_n (bits)                 +0.688          —
@@ -232,7 +232,7 @@
                                            E_disc (bits)                -0.156          —
                                            redundancy (pb)              -0.798          —
 
-  dec_test_200_with_hds_prompt_gen         C×a_inf_fit (pb)             +0.825          —
+  prompt_gen (with_hds)                    C×a_inf_fit (pb)             +0.825          —
                                            C×a_inf_fit (bits)           +0.767          —
                                            C×a_n (pb)                   +0.845          —
                                            C×a_n (bits)                 +0.761          —
@@ -250,7 +250,7 @@
                                            E_disc (bits)                -0.277          —
                                            redundancy (pb)              -0.872          —
 
-  dec_test_200_with_hds_resp_gen           C×a_inf_fit (pb)             +0.802          —
+  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.802          —
                                            C×a_inf_fit (bits)           +0.650          —
                                            C×a_n (pb)                   +0.760          —
                                            C×a_n (bits)                 +0.822          —
@@ -268,7 +268,7 @@
                                            E_disc (bits)                -0.054          —
                                            redundancy (pb)              -0.872          —
 
-  dec_test_200_with_hds_story_gen          C×a_inf_fit (pb)             +0.809          —
+  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.809          —
                                            C×a_inf_fit (bits)           +0.669          —
                                            C×a_n (pb)                   +0.785          —
                                            C×a_n (bits)                 +0.681          —
@@ -292,7 +292,7 @@
 ====================================================================================================
   Dataset                                  Metric                   Spearman ρ    ROC AUC
   ---------------------------------------- ---------------------- ------------ ----------
-  mcdiv_all_no_hds_prompt_gen              C×a_inf_fit (pb)                nan          —
+  prompt_gen (no_hds)                      C×a_inf_fit (pb)                nan          —
                                            C×a_inf_fit (bits)              nan          —
                                            C×a_n (pb)                      nan          —
                                            C×a_n (bits)                    nan          —
@@ -310,7 +310,7 @@
                                            E_disc (bits)                   nan          —
                                            redundancy (pb)                 nan          —
 
-  mcdiv_all_no_hds_resp_gen                C×a_inf_fit (pb)                nan          —
+  resp_gen (no_hds)                        C×a_inf_fit (pb)                nan          —
                                            C×a_inf_fit (bits)              nan          —
                                            C×a_n (pb)                      nan          —
                                            C×a_n (bits)                    nan          —
@@ -328,7 +328,7 @@
                                            E_disc (bits)                   nan          —
                                            redundancy (pb)                 nan          —
 
-  mcdiv_all_no_hds_story_gen               C×a_inf_fit (pb)                nan          —
+  story_gen (no_hds)                       C×a_inf_fit (pb)                nan          —
                                            C×a_inf_fit (bits)              nan          —
                                            C×a_n (pb)                      nan          —
                                            C×a_n (bits)                    nan          —
