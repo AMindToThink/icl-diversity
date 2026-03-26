@@ -26,7 +26,7 @@ from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import mannwhitneyu, spearmanr
+from scipy.stats import mannwhitneyu, pearsonr, spearmanr
 
 matplotlib.use("Agg")
 
@@ -541,6 +541,133 @@ def plot_mean_ak_with_ainf(
     print(f"Saved: {output_path}")
 
 
+def plot_scatter_vs_label(
+    all_results: dict[str, list[dict]],
+    output_dir: Path,
+) -> None:
+    """Scatterplots of diversity label vs metric scores.
+
+    Binary datasets: strip plot (jittered) with box overlay.
+    Continuous datasets (DecTest): scatterplot.
+    Both annotate Pearson r and Spearman ρ.
+    """
+    metrics_to_scatter = [
+        ("C×a_n (pb)", "C_a_n_pb"),
+        ("a_n (pb)", "a_n_pb"),
+        ("D_fit (pb)", "D_fit_pb"),
+    ]
+
+    # --- Binary datasets ---
+    binary_datasets = {k: v for k, v in sorted(all_results.items())
+                       if is_binary_dataset(v) and len(v) >= 10
+                       and ("with_hds" in k)}
+    if binary_datasets:
+        n_cols = len(binary_datasets)
+        n_rows = len(metrics_to_scatter)
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(4.5 * n_cols, 4 * n_rows))
+        if n_cols == 1:
+            axes = axes[:, np.newaxis]
+        fig.suptitle("Score vs Diversity Label (binary datasets)", fontsize=14, y=1.01)
+
+        for col, (ds_name, samples) in enumerate(binary_datasets.items()):
+            title = _pretty_title(ds_name)
+            for row, (metric_name, metric_key) in enumerate(metrics_to_scatter):
+                ax = axes[row, col]
+                high = [s[metric_key] for s in samples
+                        if s["label"] == 1.0 and not np.isnan(s[metric_key])]
+                low = [s[metric_key] for s in samples
+                       if s["label"] == 0.0 and not np.isnan(s[metric_key])]
+
+                if not high or not low:
+                    ax.text(0.5, 0.5, "insufficient data", transform=ax.transAxes,
+                            ha="center")
+                    continue
+
+                # Jittered strip plot
+                rng = np.random.default_rng(42)
+                jitter_low = rng.uniform(-0.15, 0.15, len(low))
+                jitter_high = rng.uniform(-0.15, 0.15, len(high))
+                ax.scatter(0 + jitter_low, low, alpha=0.3, s=12, color="tab:blue")
+                ax.scatter(1 + jitter_high, high, alpha=0.3, s=12, color="tab:red")
+
+                # Box overlay
+                bp = ax.boxplot([low, high], positions=[0, 1], widths=0.4,
+                                patch_artist=True, showfliers=False,
+                                medianprops=dict(color="black", linewidth=2))
+                bp["boxes"][0].set_facecolor((*plt.cm.tab10(0)[:3], 0.2))
+                bp["boxes"][1].set_facecolor((*plt.cm.tab10(3)[:3], 0.2))
+
+                ax.set_xticks([0, 1])
+                ax.set_xticklabels(["Low div", "High div"])
+
+                # Annotate correlations
+                all_scores = low + high
+                all_labels = [0.0] * len(low) + [1.0] * len(high)
+                rho = safe_rho(all_scores, all_labels)
+                r, _ = pearsonr(all_scores, all_labels)
+                ax.text(0.03, 0.97, f"ρ={rho:+.3f}\nr={r:+.3f}",
+                        transform=ax.transAxes, fontsize=8, va="top",
+                        fontfamily="monospace",
+                        bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
+
+                ax.set_ylabel(metric_name)
+                if row == 0:
+                    ax.set_title(title, fontweight="bold")
+
+        plt.tight_layout()
+        path = output_dir / "scatter_binary.png"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Saved: {path}")
+
+    # --- Continuous datasets (DecTest) ---
+    cont_datasets = {k: v for k, v in sorted(all_results.items())
+                     if not is_binary_dataset(v) and len(v) >= 10
+                     and "dec_test" in k.lower() and "1000" in k}
+    if cont_datasets:
+        n_cols = len(cont_datasets)
+        n_rows = len(metrics_to_scatter)
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows))
+        if n_cols == 1:
+            axes = axes[:, np.newaxis]
+        fig.suptitle("Score vs Temperature (DecTest)", fontsize=14, y=1.01)
+
+        for col, (ds_name, samples) in enumerate(cont_datasets.items()):
+            title = _pretty_title(ds_name)
+            for row, (metric_name, metric_key) in enumerate(metrics_to_scatter):
+                ax = axes[row, col]
+                pairs = [(s["label"], s[metric_key]) for s in samples
+                         if not np.isnan(s[metric_key]) and not np.isnan(s["label"])]
+                if len(pairs) < 10:
+                    continue
+                labels, scores = zip(*pairs)
+
+                ax.scatter(labels, scores, alpha=0.15, s=8, color="tab:blue")
+
+                # Best-fit line
+                z = np.polyfit(labels, scores, 1)
+                x_fit = np.linspace(min(labels), max(labels), 100)
+                ax.plot(x_fit, np.polyval(z, x_fit), "r-", linewidth=2, alpha=0.8)
+
+                rho = safe_rho(list(scores), list(labels))
+                r, _ = pearsonr(scores, labels)
+                ax.text(0.03, 0.97, f"ρ={rho:+.3f}\nr={r:+.3f}",
+                        transform=ax.transAxes, fontsize=8, va="top",
+                        fontfamily="monospace",
+                        bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
+
+                ax.set_ylabel(metric_name)
+                ax.set_xlabel("Temperature")
+                if row == 0:
+                    ax.set_title(title, fontweight="bold")
+
+        plt.tight_layout()
+        path = output_dir / "scatter_dectest.png"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Saved: {path}")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -600,6 +727,9 @@ def main() -> None:
     # Mean a_k with a_∞ annotation
     plot_mean_ak_with_ainf(all_results, "mcdiv_nuggets", "McDiv_nuggets",
                            output_dir / "mean_ak_with_ainf.png")
+
+    # Scatterplots: label vs score
+    plot_scatter_vs_label(all_results, output_dir)
 
     print(f"\nAll outputs in {output_dir}")
 
