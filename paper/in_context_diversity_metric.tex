@@ -988,6 +988,26 @@ Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surpri
 \caption{Per-token surprise for a low-diversity sample's first response. The specific ending (``He scored winner'') is inherently more surprising to the base model, despite being labeled ``low diversity.''}\label{fig:confound-low}
 \end{figure}
 
+\subsection{Label Contamination}
+
+In addition to the construction confound, we found that the McDiv\_nuggets CSVs contain duplicate sample IDs with \emph{conflicting labels}: the same response set appears once labeled as high diversity and once as low diversity. Table~\ref{tab:contamination} shows the extent of this contamination across the three generation tasks.
+
+\begin{table}[h]
+\centering
+\caption{Number of sample IDs appearing with both high- and low-diversity labels in the McDiv\_nuggets (with HDS) CSVs.}\label{tab:contamination}
+\begin{tabular}{lcc}
+\toprule
+Task & Conflicting IDs & Total rows \\
+\midrule
+prompt\_gen & 9 & 200 \\
+resp\_gen & 11 & 200 \\
+story\_gen & 7 & 200 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These duplicates introduce noise into any correlation analysis: the same $\bar{a}_k$ curve is counted as evidence for \emph{both} labels, diluting the signal. We did not remove these duplicates from our analysis, so the correlations reported here are conservative.
+
 \subsection{Implications}
 
 This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$---it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
