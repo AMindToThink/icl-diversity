@@ -1,0 +1,10 @@
+{
+  "base_model": "Qwen/Qwen2.5-3B",
+  "run_tag": "qwen25_completion_v3",
+  "n_permutations": 50,
+  "torch_dtype": "float16",
+  "batch_size": 16,
+  "format_mode": "completion",
+  "dedup": false,
+  "max_tokens": 32768
+}
