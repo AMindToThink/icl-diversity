@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.9)  17 MAR 2026 14:32
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.9)  27 MAR 2026 11:12
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -540,24 +540,24 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (./in_context_diversity_metric.aux)
 \openout1 = `in_context_diversity_metric.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 25.
-LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -593,7 +593,7 @@ LaTeX Font Info:    ... okay on input line 25.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 25.
+Package hyperref Info: Link coloring OFF on input line 52.
 (./in_context_diversity_metric.out) (./in_context_diversity_metric.out)
 \@outlinefile=\write4
 \openout4 = `in_context_diversity_metric.out'.
@@ -622,22 +622,22 @@ Package caption Info: End \AtBeginDocument code.
 
 Package pgfplots notification 'compat/show suggested version=true': document has been generated with the most recent feature set (\pgfplotsset{compat=1.18}).
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 27.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 54.
 (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 27.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 54.
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
 {/Users/matthew.khoriaty/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Overfull \hbox (1.43013pt too wide) in paragraph at lines 49--50
+Overfull \hbox (1.43013pt too wide) in paragraph at lines 76--77
 []$\OML/cmm/m/it/10.95 ^^R$ \OT1/cmr/m/n/10.95 be a trusted base model with white-box ac-cess (we can com-pute token-level log-probabilities), 
  []
 
 [2{/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [3] [4] [5]
-Package pgfplots info on input line 242: fill between: activating layered graphics
+Package pgfplots info on input line 269: fill between: activating layered graphics
 \pgf@layerbox@axis background=\box69
 \pgf@layerboxsaved@axis background=\box70
 \pgf@layerbox@axis grid=\box71
@@ -654,114 +654,164 @@ Package pgfplots info on input line 242: fill between: activating layered graphi
 \pgf@layerboxsaved@axis descriptions=\box82
 \pgf@layerbox@axis foreground=\box83
 \pgf@layerboxsaved@axis foreground=\box84
-Package pgfplots info on input line 242: Setting layers 'axis background,axis grid,axis ticks,axis lines,axis tick labels,pre main,main,axis descriptions,axis foreground'...
+Package pgfplots info on input line 269: Setting layers 'axis background,axis grid,axis ticks,axis lines,axis tick labels,pre main,main,axis descriptions,axis foreground'...
 
-Overfull \hbox (10.22061pt too wide) in paragraph at lines 252--253
+Overfull \hbox (10.22061pt too wide) in paragraph at lines 279--280
 []\OT1/cmr/m/n/10.95 For a sin-gle per-mu-ta-tion $\OML/cmm/m/it/10.95 ^^[$\OT1/cmr/m/n/10.95 , the per-byte con-di-tional sur-prise at po-si-tion $\OML/cmm/m/it/10.95 k$ \OT1/cmr/m/n/10.95 is $\OML/cmm/m/it/10.95 a[]=\OMS/cmsy/m/n/10.95 k\OML/cmm/m/it/10.95 r[]\OMS/cmsy/m/n/10.95 k$ \OT1/cmr/m/n/10.95 (bits/byte).
  []
 
-[6] [7] [8] [9] [10] [11] [12] [13] [14]
+[6] [7] [8] [9]
+
+LaTeX Warning: Reference `tab:tevet-full' on page 10 undefined on input line 392.
+
+
+LaTeX Warning: Reference `sec:appendix-tevet-full' on page 10 undefined on input line 392.
+
+[10] [11] [12] [13] [14] [15]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 502.
+(hyperref)                removing `math shift' on input line 549.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 502.
+(hyperref)                removing `math shift' on input line 549.
 
-[15] [16]
-<../figures/comparison_v2/comparison_ak_curves_all.png, id=389, 994.4352pt x 1433.8368pt>
+[16]
+<../figures/comparison_v2/comparison_ak_curves_all.png, id=419, 994.4352pt x 1433.8368pt>
 File: ../figures/comparison_v2/comparison_ak_curves_all.png Graphic file (type png)
 <use ../figures/comparison_v2/comparison_ak_curves_all.png>
-Package pdftex.def Info: ../figures/comparison_v2/comparison_ak_curves_all.png  used on input line 574.
+Package pdftex.def Info: ../figures/comparison_v2/comparison_ak_curves_all.png  used on input line 621.
 (pdftex.def)             Requested size: 180.43213pt x 260.15794pt.
-<../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png, id=391, 711.1368pt x 422.5386pt>
+ [17]
+<../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png, id=440, 711.1368pt x 422.5386pt>
 File: ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png Graphic file (type png)
 <use ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png>
-Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png  used on input line 592.
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png  used on input line 639.
 (pdftex.def)             Requested size: 225.4804pt x 133.97076pt.
-<../figures/mode_count/qwen2.5-3b/metrics_vs_m.png, id=392, 1436.2458pt x 711.1368pt>
+<../figures/mode_count/qwen2.5-3b/metrics_vs_m.png, id=441, 1436.2458pt x 711.1368pt>
 File: ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png Graphic file (type png)
 <use ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png>
-Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png  used on input line 598.
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/metrics_vs_m.png  used on input line 645.
 (pdftex.def)             Requested size: 225.4804pt x 111.6357pt.
- [17]
-<../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png, id=409, 863.3856pt x 640.3122pt>
+ [18]
+<../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png, id=452, 863.3856pt x 640.3122pt>
 File: ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png Graphic file (type png)
 <use ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png>
-Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png  used on input line 637.
+Package pdftex.def Info: ../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png  used on input line 684.
 (pdftex.def)             Requested size: 328.82707pt x 243.8683pt.
- [18 <../figures/comparison_v2/comparison_ak_curves_all.png>]
-<../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png, id=423, 1871.3112pt x 569.0058pt>
+ [19 <../figures/comparison_v2/comparison_ak_curves_all.png>]
+<../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png, id=465, 1871.3112pt x 569.0058pt>
 File: ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png Graphic file (type png)
 <use ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png>
-Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png  used on input line 653.
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png  used on input line 700.
 (pdftex.def)             Requested size: 225.4804pt x 68.55557pt.
-<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png, id=424, 1871.3112pt x 569.0058pt>
+<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png, id=466, 1871.3112pt x 569.0058pt>
 File: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png Graphic file (type png)
 <use ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png>
-Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png  used on input line 659.
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png  used on input line 706.
 (pdftex.def)             Requested size: 225.4804pt x 68.55557pt.
- [19 <../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png> <../figures/mode_count/qwen2.5-3b/metrics_vs_m.png>]
-<../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png, id=437, 1291.224pt x 422.0568pt>
+<../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png, id=469, 1291.224pt x 422.0568pt>
 File: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png Graphic file (type png)
 <use ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png>
-Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png  used on input line 683.
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png  used on input line 730.
 (pdftex.def)             Requested size: 281.85587pt x 92.12505pt.
- [20 <../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png>]
-<../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png, id=447, 438.9198pt x 569.0058pt>
+ [20 <../figures/mode_count/qwen2.5-3b/ak_curves_overlay.png> <../figures/mode_count/qwen2.5-3b/metrics_vs_m.png>]
+<../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_all_m.png, id=483, 1581.2676pt x 569.0058pt>
+File: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_all_m.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_all_m.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_all_m.png  used on input line 748.
+(pdftex.def)             Requested size: 225.4804pt x 81.13626pt.
+<../investigations/cross_mode_surprise_drop/figures/multiplicative_total_drop.png, id=484, 713.064pt x 566.5968pt>
+File: ../investigations/cross_mode_surprise_drop/figures/multiplicative_total_drop.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/multiplicative_total_drop.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/multiplicative_total_drop.png  used on input line 754.
+(pdftex.def)             Requested size: 225.4804pt x 179.16193pt.
+<../investigations/cross_mode_surprise_drop/figures/pairwise_symmetry.png, id=486, 714.5094pt x 690.9012pt>
+File: ../investigations/cross_mode_surprise_drop/figures/pairwise_symmetry.png Graphic file (type png)
+<use ../investigations/cross_mode_surprise_drop/figures/pairwise_symmetry.png>
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_symmetry.png  used on input line 766.
+(pdftex.def)             Requested size: 234.8775pt x 227.11255pt.
+ [21 <../figures/mode_count/qwen2.5-3b/fit_params_vs_m.png>]
+<../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png, id=497, 438.9198pt x 569.0058pt>
 File: ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png Graphic file (type png)
 <use ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png>
-Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png  used on input line 700.
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png  used on input line 781.
 (pdftex.def)             Requested size: 225.4804pt x 292.3076pt.
-<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png, id=448, 566.5968pt x 561.7788pt>
+<../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png, id=498, 566.5968pt x 561.7788pt>
 File: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png Graphic file (type png)
 <use ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png>
-Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png  used on input line 706.
+Package pdftex.def Info: ../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png  used on input line 787.
 (pdftex.def)             Requested size: 225.4804pt x 223.55888pt.
- [21 <../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png>] [22 <../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png>]
-<../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png, id=476, 1293.1512pt x 356.532pt>
-File: ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png Graphic file (type png)
-<use ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png>
-Package pdftex.def Info: ../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png  used on input line 754.
-(pdftex.def)             Requested size: 225.4804pt x 62.16554pt.
-<../figures/tevet_validation/metric_correlations_gpt2.png, id=477, 859.5312pt x 356.532pt>
-File: ../figures/tevet_validation/metric_correlations_gpt2.png Graphic file (type png)
-<use ../figures/tevet_validation/metric_correlations_gpt2.png>
-Package pdftex.def Info: ../figures/tevet_validation/metric_correlations_gpt2.png  used on input line 760.
-(pdftex.def)             Requested size: 225.4804pt x 93.52847pt.
-LaTeX Font Info:    Trying to load font information for OMS+cmr on input line 774.
+ [22 <../investigations/cross_mode_surprise_drop/figures/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_matrix_heatmap.png> <../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_m10.png>]
+
+LaTeX Warning: Reference `sec:appendix-tevet-full' on page 23 undefined on input line 813.
+
+
+LaTeX Warning: Reference `sec:mcdiv-confounds' on page 23 undefined on input line 815.
+
+[23 <../investigations/cross_mode_surprise_drop/figures/predicted_vs_observed_all_m.png> <../investigations/cross_mode_surprise_drop/figures/multiplicative_total_drop.png>]
+<../figures/tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png, id=524, 2590.6386pt x 392.1852pt>
+File: ../figures/tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png Graphic file (type png)
+<use ../figures/tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png>
+Package pdftex.def Info: ../figures/tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png  used on input line 849.
+(pdftex.def)             Requested size: 469.75502pt x 71.11092pt.
+ [24 <../investigations/cross_mode_surprise_drop/figures/pairwise_symmetry.png>]
+LaTeX Font Info:    Trying to load font information for OMS+cmr on input line 865.
  (/Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2024/11/19 v2.5n Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 774.
- [23 <../figures/tevet_validation/dectest_E_vs_temperature_gpt2.png> <../figures/tevet_validation/metric_correlations_gpt2.png>] [24]
-Overfull \hbox (16.32857pt too wide) in paragraph at lines 794--795
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 865.
+ [25 <../investigations/cross_mode_surprise_drop/figures/pairwise_row_vs_col.png> <../investigations/cross_mode_surprise_drop/figures/gpt2/pairwise_row_vs_col.png>] [26 <../figures/tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png>]
+Overfull \hbox (16.32857pt too wide) in paragraph at lines 885--886
  []\OT1/cmr/bx/n/10.95 Embedding-based di-ver-sity.[] \OT1/cmr/m/n/10.95 Prior work uses em-bed-ding dis-tances or clus-ter-ing (e.g., $\OML/cmm/m/it/10.95 k$\OT1/cmr/m/n/10.95 -LLMmeans
  []
 
-[25] [26] [27] (./in_context_diversity_metric.aux)
+[27] [28] [29] [30]
+<../figures/dataset_confound/a1_distributions.png, id=625, 860.013pt x 357.7365pt>
+File: ../figures/dataset_confound/a1_distributions.png Graphic file (type png)
+<use ../figures/dataset_confound/a1_distributions.png>
+Package pdftex.def Info: ../figures/dataset_confound/a1_distributions.png  used on input line 1040.
+(pdftex.def)             Requested size: 469.75502pt x 195.40193pt.
+<../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png, id=626, 1423.719pt x 317.2653pt>
+File: ../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png Graphic file (type png)
+<use ../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png>
+Package pdftex.def Info: ../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png  used on input line 1046.
+(pdftex.def)             Requested size: 469.75502pt x 104.68335pt.
+<../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png, id=627, 1326.1545pt x 317.2653pt>
+File: ../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png Graphic file (type png)
+<use ../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png>
+Package pdftex.def Info: ../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png  used on input line 1052.
+(pdftex.def)             Requested size: 469.75502pt x 112.38065pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[31 <../figures/dataset_confound/a1_distributions.png> <../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png>] [32 <../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png>] [33] (./in_context_diversity_metric.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
+
+
+LaTeX Warning: There were undefined references.
+
 Package rerunfilecheck Info: File `in_context_diversity_metric.out' has not changed.
-(rerunfilecheck)             Checksum: BFB9B9EF56DFC4F392517F2B084ECDFF;8131.
+(rerunfilecheck)             Checksum: 458D05F269A10278C521C9AECB02BD66;8966.
  ) 
 Here is how much of TeX's memory you used:
- 34242 strings out of 469472
- 806800 string characters out of 5466767
+ 34355 strings out of 469472
+ 810948 string characters out of 5466767
  1317536 words of memory out of 5000000
- 62193 multiletter control sequences out of 15000+600000
- 640698 words of font info for 90 fonts, out of 8000000 for 9000
+ 62265 multiletter control sequences out of 15000+600000
+ 641938 words of font info for 94 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
  99i,16n,118p,1868b,2185s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/matthew.khoriaty/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on in_context_diversity_metric.pdf (27 pages, 6366873 bytes).
+Output written on in_context_diversity_metric.pdf (33 pages, 6951046 bytes).
 PDF statistics:
- 709 PDF objects out of 1000 (max. 8388607)
- 591 compressed objects within 6 object streams
- 195 named destinations out of 1000 (max. 500000)
- 420 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 828 PDF objects out of 1000 (max. 8388607)
+ 693 compressed objects within 7 object streams
+ 232 named destinations out of 1000 (max. 500000)
+ 493 words of extra memory for PDF output out of 10000 (max. 10000000)
 
