@@ -349,7 +349,14 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
             html.H3("Per-Token Logprobs"),
             html.Div(
                 children=[
-                    html.Label("Response position k:"),
+                    html.Label("Response ordering (comma-separated indices, e.g. 0,1,2,3,4):"),
+                    dcc.Input(
+                        id="response-ordering",
+                        type="text",
+                        value="0,1,2,3,4",
+                        style={"width": "200px", "marginRight": "10px", "fontFamily": "monospace"},
+                    ),
+                    html.Label("Show k position:", style={"marginLeft": "10px"}),
                     dcc.Dropdown(
                         id="k-position-dropdown",
                         options=[{"label": f"k={i+1}", "value": i} for i in range(10)],
@@ -570,6 +577,7 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
         State("scatter-plot", "clickData"),
         State("samples-store", "data"),
         State("k-position-dropdown", "value"),
+        State("response-ordering", "value"),
         prevent_initial_call=True,
     )
     def compute_logprobs(
@@ -577,6 +585,7 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
         click_data: dict | None,
         samples_data: list[dict] | None,
         k_pos: int,
+        ordering_str: str,
     ) -> go.Figure:
         if not n_clicks or click_data is None or not samples_data:
             return no_update
@@ -587,17 +596,43 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
             return no_update
 
         s = samples_data[idx]
-        n_responses = len(s["responses"])
+        responses = s["responses"]
+        n_responses = len(responses)
+
+        # Parse ordering
+        try:
+            ordering = [int(x.strip()) for x in ordering_str.split(",")]
+            if len(ordering) != n_responses:
+                raise ValueError(f"Expected {n_responses} indices, got {len(ordering)}")
+            if sorted(ordering) != list(range(n_responses)):
+                raise ValueError(f"Must be a permutation of 0..{n_responses-1}")
+        except (ValueError, AttributeError) as e:
+            return go.Figure().add_annotation(
+                text=f"Invalid ordering: {e}",
+                xref="paper", yref="paper", x=0.5, y=0.5,
+                showarrow=False, font=dict(size=14, color="red"),
+            )
+
+        # Reorder responses
+        reordered = [responses[i] for i in ordering]
+
         if k_pos >= n_responses:
             k_pos = n_responses - 1
 
-        fig = compute_per_token_logprobs(s["context"], s["responses"], k_pos)
+        fig = compute_per_token_logprobs(s["context"], reordered, k_pos)
         if fig is None:
             return go.Figure().add_annotation(
                 text="No model loaded. Restart with --device cuda:0",
                 xref="paper", yref="paper", x=0.5, y=0.5,
                 showarrow=False, font=dict(size=16),
             )
+
+        # Add ordering info to the title
+        order_label = ",".join(str(i) for i in ordering)
+        fig.update_layout(
+            title=fig.layout.title.text + f"<br>Ordering: [{order_label}]"
+            if fig.layout.title and fig.layout.title.text else f"Ordering: [{order_label}]",
+        )
         return fig
 
     return app
