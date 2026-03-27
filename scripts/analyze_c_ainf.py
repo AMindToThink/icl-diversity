@@ -390,9 +390,8 @@ def plot_roc_curves(
 
     # Metrics to overlay on ROC
     roc_metrics = [
-        ("C×a_inf_fit (pb)", "C_a_inf_fit_pb", "tab:red", "-"),
-        ("C×a_n (pb)", "C_a_n_pb", "tab:orange", "--"),
-        ("a_inf_fit (pb)", "a_inf_fit_pb", "tab:purple", ":"),
+        ("C×a_n (pb)", "C_a_n_pb", "tab:red", "-"),
+        ("a_n (pb)", "a_n_pb", "tab:orange", "--"),
         ("D_fit (pb)", "D_fit_pb", "tab:blue", "-"),
         ("D_disc (pb)", "D_disc_pb", "tab:cyan", "--"),
         ("a_1 (pb)", "a_1_pb", "tab:gray", ":"),
@@ -447,9 +446,9 @@ def plot_distributions(
         return
 
     metrics_to_plot = [
-        ("C×a_inf_fit (pb)", "C_a_inf_fit_pb"),
+        ("C×a_n (pb)", "C_a_n_pb"),
+        ("a_n (pb)", "a_n_pb"),
         ("D_fit (pb)", "D_fit_pb"),
-        ("a_inf_fit (pb)", "a_inf_fit_pb"),
         ("D_disc (pb)", "D_disc_pb"),
     ]
 
