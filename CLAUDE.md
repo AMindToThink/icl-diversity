@@ -50,6 +50,14 @@ uv run python scripts/run_temperature_experiments.py --device cpu --temperatures
 # Analyze temperature experiment results → figures/temperature/
 uv run python scripts/analyze_temperature.py
 
+# Interactive audit tool (click points to inspect samples)
+# Requires SSH port forwarding: ssh -L 8050:localhost:8050 user@server
+uv run scripts/interactive_scatter.py --run-tag qwen25_completion_v3
+# Then open http://localhost:8050 in your laptop browser
+
+# Analyze C × a_∞ metrics on Tevet evaluation data
+uv run python scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
+
 # Lint and format
 uv run ruff check .
 uv run ruff format .
