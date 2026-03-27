@@ -1,29 +1,4 @@
-% ==========================================================================
-% NOTATION AND FRAMING (March 2026)
-%
-% Primary diversity score:  D = C × a_∞  (estimated as C × a_n)
-%   - a_∞ estimated by a_n (last observed point) or exponential fit
-%   - Per-byte variant: C × a_n where a_n is bits/byte
-%   - Measures: "residual surprise after full conditioning, weighted by
-%     plausibility." High = diverse and coherent.
-%   - Works in both Regime 1 (many draws, repeated modes) and Regime 2
-%     (few draws, unique responses).
-%
-% Secondary diagnostic:  (E, C, sigma_l) triple
-%   - E = excess entropy = area above floor. Informative when n is large
-%     enough for repeated modes. Near-zero when n is small or modes don't
-%     repeat. Provides structural info D alone cannot (e.g., mode count).
-%   - C = coherence = 1/PPL per byte. Permutation-invariant.
-%   - sigma_l = coherence spread. Diagnostic for mixed-quality modes.
-%
-% The old D = C × E is now referred to explicitly as "C × E" with no
-% special symbol. It is retained as a supplementary score useful when E
-% converges (large n with repeated modes).
-%
-% TODO: The abstract and some early sections still use the old D = C × E
-% definition. These need updating once the mode count experiment with
-% n_permutations=50 confirms D = C × a_∞ in Regime 1.
-% ==========================================================================
+
 
 \documentclass[11pt]{article}
 
@@ -51,6 +26,35 @@
 
 \begin{document}
 \maketitle
+
+\begin{center}
+\fbox{\parbox{0.95\textwidth}{
+\textbf{NOTATION AND FRAMING (March 2026)}
+
+\medskip
+\textbf{Primary diversity score:} $D = C \times a_\infty$ \quad (estimated as $C \times a_n$)
+\begin{itemize}[nosep,leftmargin=1.5em]
+  \item $a_\infty$ estimated by $a_n$ (last observed point) or exponential fit
+  \item Per-byte variant: $C \times a_n$ where $a_n$ is bits/byte
+  \item Measures: ``residual surprise after full conditioning, weighted by plausibility.'' High = diverse and coherent.
+  \item Works in both Regime 1 (many draws, repeated modes) and Regime 2 (few draws, unique responses).
+\end{itemize}
+
+\medskip
+\textbf{Secondary diagnostic:} $(E, C, \sigma_\ell)$ triple
+\begin{itemize}[nosep,leftmargin=1.5em]
+  \item $E$ = excess entropy = area above floor. Informative when $n$ is large enough for repeated modes. Near-zero when $n$ is small or modes don't repeat. Provides structural info $D$ alone cannot (e.g., mode count).
+  \item $C$ = coherence = $1/\mathrm{PPL}$ per byte. Permutation-invariant.
+  \item $\sigma_\ell$ = coherence spread. Diagnostic for mixed-quality modes.
+\end{itemize}
+
+\medskip
+The old $D = C \times E$ is now referred to explicitly as ``$C \times E$'' with no special symbol. It is retained as a supplementary score useful when $E$ converges (large $n$ with repeated modes).
+
+\medskip
+\textbf{TODO:} The abstract and some early sections still use the old $D = C \times E$ definition. These need updating once the mode count experiment with \texttt{n\_permutations=50} confirms $D = C \times a_\infty$ in Regime 1.
+}}
+\end{center}
 
 \begin{abstract}
 We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} whose shape characterizes the learnable structure among the policy's outputs --- including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via excess entropy (how many bits of structure the base model can extract from the responses) and pair it with a separate coherence term (how plausible the outputs are). All quantities are computed in total bits, making the metric tokenizer-agnostic; a length-normalized variant in bits/byte is also provided for use cases where responses of different lengths should be compared on equal footing. These two quantities answer orthogonal questions and are best reported jointly; their product yields a single scalar --- plausibility-weighted structural diversity --- that is dimensionally consistent and does not reward noise. We validate the metric empirically on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-32B), demonstrating that coherence and spread correctly separate scenarios with known diversity structure, and that parametric sigmoid extrapolation recovers the expected monotonic relationship between mode count and excess entropy where the raw estimator does not.
