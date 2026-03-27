@@ -21,6 +21,10 @@ test = [
     "pytest>=7.0",
     "scipy>=1.10",
 ]
+dev = [
+    "dash>=4.1.0",
+    "plotly>=6.6.0",
+]
 
 [project.scripts]
 calculate-icl-diversity = "icl_diversity.cli:main"
