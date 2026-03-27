@@ -30,11 +30,15 @@ from scipy.stats import mannwhitneyu, pearsonr, spearmanr
 
 matplotlib.use("Agg")
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RESULTS_BASE = PROJECT_ROOT / "results" / "tevet"
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fit_ak_curves import exponential_ak, fit_exponential
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RESULTS_BASE = PROJECT_ROOT / "results" / "tevet"
+# Import OCA from Tevet's diversity-eval codebase
+sys.path.insert(0, str(PROJECT_ROOT / "diversity-eval"))
+from utils import optimal_classification_accuracy
 
 
 # ---------------------------------------------------------------------------
@@ -292,9 +296,9 @@ def print_summary_table(
     lines.append(f"  {group_name}")
     lines.append(f"{'=' * 100}")
 
-    header = f"  {'Dataset':<40s} {'Metric':<22s} {'Spearman ρ':>12s} {'ROC AUC':>10s}"
+    header = f"  {'Dataset':<40s} {'Metric':<22s} {'Spearman ρ':>12s} {'ROC AUC':>10s} {'OCA':>8s}"
     lines.append(header)
-    lines.append(f"  {'-'*40} {'-'*22} {'-'*12} {'-'*10}")
+    lines.append(f"  {'-'*40} {'-'*22} {'-'*12} {'-'*10} {'-'*8}")
 
     for dataset_name in sorted(all_results):
         if dataset_filter.lower() not in dataset_name.lower():
@@ -316,6 +320,7 @@ def print_summary_table(
             if len(valid) < 10:
                 rho_str = "nan"
                 auc_str = "nan"
+                oca_str = "nan"
             else:
                 v_scores, v_labels = zip(*valid)
                 rho = safe_rho(list(v_scores), list(v_labels))
@@ -324,14 +329,20 @@ def print_summary_table(
                 if binary:
                     auc = compute_auc(list(v_scores), list(v_labels))
                     if not higher_diverse:
-                        # For redundancy, lower = more diverse, so flip
                         auc = 1.0 - auc if not np.isnan(auc) else auc
                     auc_str = f"{auc:.3f}" if not np.isnan(auc) else "nan"
+
+                    # OCA via Tevet's utils.optimal_classification_accuracy
+                    high = [sc for sc, lab in zip(v_scores, v_labels) if lab == 1.0]
+                    low = [sc for sc, lab in zip(v_scores, v_labels) if lab == 0.0]
+                    oca, _ = optimal_classification_accuracy(high, low)
+                    oca_str = f"{oca:.3f}"
                 else:
                     auc_str = "—"
+                    oca_str = "—"
 
             ds_col = task if i == 0 else ""
-            lines.append(f"  {ds_col:<40s} {display_name:<22s} {rho_str:>12s} {auc_str:>10s}")
+            lines.append(f"  {ds_col:<40s} {display_name:<22s} {rho_str:>12s} {auc_str:>10s} {oca_str:>8s}")
 
         lines.append("")
 
