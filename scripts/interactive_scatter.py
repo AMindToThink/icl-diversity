@@ -344,6 +344,18 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
                 ]),
             ]),
 
+            # Permutation curves section
+            html.Hr(),
+            html.H3("Per-Permutation a_k Curves"),
+            html.P("Each gray line is one of 50 random orderings. "
+                   "Red line is the mean. Click a gray line to see which "
+                   "ordering produced it.", style={"fontSize": "12px", "color": "gray"}),
+            dcc.Graph(id="perm-curves-plot", style={"height": "400px"}),
+            html.Pre(id="perm-detail-text",
+                     style={"fontSize": "12px", "whiteSpace": "pre-wrap",
+                            "backgroundColor": "#f5f5f5", "padding": "10px",
+                            "maxHeight": "150px", "overflowY": "auto"}),
+
             # Per-token logprobs section (only if model loaded)
             html.Hr(),
             html.H3("Per-Token Logprobs"),
@@ -415,6 +427,8 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
                 "a_k_bits": s["a_k_bits"],
                 "uncond_pb": s["uncond_pb"],
                 "uncond_bits": s["uncond_bits"],
+                "per_perm_curves": s["per_perm_curves"],
+                "per_perm_bytes": s["per_perm_bytes"],
             }
             for i, s in enumerate(samples)
         ]
@@ -570,6 +584,156 @@ def build_app(all_samples: list[dict], run_tag: str) -> Dash:
         )
 
         return title, metrics_text, responses_text, fig
+
+    @app.callback(
+        Output("perm-curves-plot", "figure"),
+        Input("scatter-plot", "clickData"),
+        Input("samples-store", "data"),
+    )
+    def update_perm_curves(
+        click_data: dict | None,
+        samples_data: list[dict] | None,
+    ) -> go.Figure:
+        if click_data is None or not samples_data:
+            return go.Figure()
+
+        pt = click_data["points"][0]
+        idx = pt.get("customdata")
+        if idx is None:
+            return go.Figure()
+
+        s = samples_data[idx]
+        perm_curves = s.get("per_perm_curves")
+        perm_bytes = s.get("per_perm_bytes")
+        if not perm_curves:
+            return go.Figure().add_annotation(
+                text="No per-permutation data available",
+                xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False,
+            )
+
+        n_perms = len(perm_curves)
+        n_k = len(perm_curves[0])
+        k = list(range(1, n_k + 1))
+
+        fig = make_subplots(rows=1, cols=2,
+                            subplot_titles=["a_k (total bits)", "a_k (bits/byte)"])
+
+        # Per-permutation curves (total bits)
+        for p_idx in range(n_perms):
+            curve = perm_curves[p_idx]
+            fig.add_trace(
+                go.Scatter(
+                    x=k, y=curve, mode="lines",
+                    line=dict(width=0.8, color="rgba(150,150,150,0.3)"),
+                    showlegend=False,
+                    customdata=[p_idx] * n_k,
+                    hovertext=[f"perm {p_idx}: k={ki}, {v:.2f} bits" for ki, v in zip(k, curve)],
+                    hoverinfo="text",
+                ),
+                row=1, col=1,
+            )
+
+        # Mean curve (total bits)
+        mean_bits = [float(np.mean([perm_curves[p][ki] for p in range(n_perms)]))
+                     for ki in range(n_k)]
+        fig.add_trace(
+            go.Scatter(x=k, y=mean_bits, mode="lines+markers", name="mean (bits)",
+                       line=dict(width=3, color="red"), marker=dict(size=6)),
+            row=1, col=1,
+        )
+
+        # Per-permutation curves (bits/byte)
+        if perm_bytes:
+            for p_idx in range(n_perms):
+                pb_curve = []
+                for ki in range(n_k):
+                    bits = perm_curves[p_idx][ki]
+                    bc = perm_bytes[p_idx][ki]
+                    pb_curve.append(bits / bc if bc > 0 else 0.0)
+                fig.add_trace(
+                    go.Scatter(
+                        x=k, y=pb_curve, mode="lines",
+                        line=dict(width=0.8, color="rgba(150,150,150,0.3)"),
+                        showlegend=False,
+                        customdata=[p_idx] * n_k,
+                        hovertext=[f"perm {p_idx}: k={ki}, {v:.3f} b/B"
+                                   for ki, v in zip(k, pb_curve)],
+                        hoverinfo="text",
+                    ),
+                    row=1, col=2,
+                )
+
+            # Mean curve (bits/byte)
+            mean_pb = s["a_k_pb"]
+            fig.add_trace(
+                go.Scatter(x=k, y=mean_pb, mode="lines+markers", name="mean (pb)",
+                           line=dict(width=3, color="red"), marker=dict(size=6)),
+                row=1, col=2,
+            )
+
+        fig.update_xaxes(title_text="k", dtick=1)
+        fig.update_yaxes(title_text="bits", row=1, col=1)
+        fig.update_yaxes(title_text="bits/byte", row=1, col=2)
+        fig.update_layout(
+            margin=dict(l=50, r=20, t=40, b=40),
+            title=f"{n_perms} permutations — click a gray line to see the ordering",
+        )
+        return fig
+
+    @app.callback(
+        Output("perm-detail-text", "children"),
+        Input("perm-curves-plot", "clickData"),
+        State("samples-store", "data"),
+        State("scatter-plot", "clickData"),
+    )
+    def show_perm_detail(
+        perm_click: dict | None,
+        samples_data: list[dict] | None,
+        scatter_click: dict | None,
+    ) -> str:
+        if perm_click is None or not samples_data or scatter_click is None:
+            return "Click a gray permutation line to see details."
+
+        perm_pt = perm_click["points"][0]
+        p_idx = perm_pt.get("customdata")
+        if p_idx is None:
+            return "No permutation data for this point."
+
+        # Get the sample
+        scatter_pt = scatter_click["points"][0]
+        s_idx = scatter_pt.get("customdata")
+        if s_idx is None:
+            return ""
+        s = samples_data[s_idx]
+
+        perm_curves = s.get("per_perm_curves", [])
+        perm_bytes = s.get("per_perm_bytes", [])
+        if p_idx >= len(perm_curves):
+            return f"Permutation {p_idx} out of range."
+
+        curve = perm_curves[p_idx]
+        n_k = len(curve)
+
+        lines = [f"Permutation {p_idx}:"]
+        lines.append(f"  a_k (bits):     {['%.1f' % v for v in curve]}")
+        if perm_bytes and p_idx < len(perm_bytes):
+            bc = perm_bytes[p_idx]
+            pb = [curve[i] / bc[i] if bc[i] > 0 else 0 for i in range(n_k)]
+            lines.append(f"  a_k (bits/byte): {['%.3f' % v for v in pb]}")
+            lines.append(f"  byte counts:     {bc}")
+        lines.append(f"  a_n (bits):     {curve[-1]:.2f}")
+        if perm_bytes and p_idx < len(perm_bytes):
+            bc_last = perm_bytes[p_idx][-1]
+            lines.append(f"  a_n (bits/byte): {curve[-1] / bc_last:.4f}" if bc_last > 0 else "  a_n (bits/byte): N/A")
+
+        # Note: we don't store the actual permutation ordering in the sidecar,
+        # only the curves. The ordering information would need to be added to
+        # the compute pipeline to show which response was in which position.
+        lines.append("")
+        lines.append("(Note: permutation ordering not stored in sidecar — "
+                     "only the resulting curve is available.)")
+
+        return "\n".join(lines)
 
     @app.callback(
         Output("logprobs-plot", "figure"),
