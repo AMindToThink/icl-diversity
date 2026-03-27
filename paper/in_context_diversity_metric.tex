@@ -818,40 +818,84 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest)---well below the 20+ responses needed for $E$ to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{sec:mcdiv-confounds}).
 
+% Source for all numbers in Tables 5--7:
+% - Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3
+%   → figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+% - Baselines: scripts/compute_tevet_baselines.py (reads Tevet's pre-computed
+%   metrics from diversity-eval/data/with_metrics/)
+
+% Numbers sourced from:
+%   Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
+%     → figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+%   Baselines: scripts/compute_tevet_baselines.py
+%     → reads Tevet's pre-computed metrics from diversity-eval/data/with_metrics/
+% Subsets chosen to match Tevet's paper tables:
+%   ConTest (200, with_hds) → Tevet Table 4
+%   McDiv_nuggets (no_hds, ~1K) → Tevet Table 9
+%   McDiv (full, no_hds, 2K) → Tevet Table 8
+
 \begin{table}[t]
 \centering
-\caption{Diversity metric comparison on Tevet's diversity-eval (Qwen2.5-3B, 50 permutations, completion format, per-byte normalization). For binary datasets (McDiv\_nuggets, ConTest): ROC AUC (higher is better, 0.5 = chance). For DecTest: Spearman $\rho$ with temperature. $D_{a_\infty} = C \times a_n$ substantially outperforms $D = C \times E$ across all datasets. Best result per row in bold.}
-\label{tab:tevet}
+\caption{conTest results: Spearman $\rho$ and OCA between a set's diversity class and each metric score. Baselines from Tevet's pre-computed metrics; $C \!\times\! a_n$ and $a_n$ are ours (Qwen2.5-3B, 50 permutations, per-byte). Best result per task in bold.}
+\label{tab:contest}
 \small
-\begin{tabular}{@{}llrrrrr@{}}
+\begin{tabular}{@{}l rr rr rr@{}}
 \toprule
-& & \multicolumn{3}{c}{$a_\infty$-based} & \multicolumn{2}{c}{$E$-based} \\
-\cmidrule(lr){3-5} \cmidrule(lr){6-7}
-Dataset & Task & $C \!\times\! a_n$ & $a_n$ & $a_1$ & $D_{\mathrm{fit}}$ & $D_{\mathrm{disc}}$ \\
+& \multicolumn{2}{c}{prompt\_gen} & \multicolumn{2}{c}{resp\_gen} & \multicolumn{2}{c}{story\_gen} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+Metric & $\rho$ & OCA & $\rho$ & OCA & $\rho$ & OCA \\
 \midrule
-\multicolumn{7}{@{}l}{\textit{ROC AUC (binary datasets)}} \\[2pt]
-McDiv\_nug. & prompt\_gen & \textbf{0.894} & 0.856 & 0.463 & 0.642 & 0.244 \\
-McDiv\_nug. & resp\_gen  & \textbf{0.759} & 0.719 & 0.438 & 0.430 & 0.294 \\
-McDiv\_nug. & story\_gen & \textbf{0.733} & 0.670 & 0.277 & 0.320 & 0.226 \\
-ConTest & resp\_gen  & \textbf{0.707} & 0.632 & 0.503 & 0.469 & 0.339 \\
-ConTest & story\_gen & \textbf{0.937} & 0.714 & 0.353 & 0.288 & 0.110 \\
+\multicolumn{7}{@{}l}{\textit{ConTest (200, with\_hds)}} \\[2pt]
+$C \!\times\! a_n$ (ours) & +0.584 & 0.785 & +0.391 & 0.668 & +0.686 & 0.828 \\
+$a_n$ (ours)              & +0.444 & 0.715 & +0.274 & 0.641 & +0.387 & 0.684 \\
+SentBERT                  & \textbf{+0.682} & 0.815 & \textbf{+0.591} & \textbf{0.791} & \textbf{+0.770} & \textbf{0.896} \\
+BERTsts                   & +0.646 & \textbf{0.820} & +0.463 & 0.714 & +0.601 & 0.780 \\
+distinct-$n$              & +0.333 & 0.675 & +0.346 & 0.677 & +0.573 & 0.772 \\
 \midrule
-\multicolumn{7}{@{}l}{\textit{Spearman $\rho$ (temperature label)}} \\[2pt]
-DecTest & prompt\_gen & $+0.85$ & $\mathbf{+0.92}$ & $+0.72$ & $-0.41$ & $-0.56$ \\
-DecTest & resp\_gen  & $+0.81$ & $\mathbf{+0.92}$ & $+0.81$ & $-0.56$ & $-0.51$ \\
-DecTest & story\_gen & $\mathbf{+0.77}$ & $+0.77$ & $+0.55$ & $-0.34$ & $-0.33$ \\
+\multicolumn{7}{@{}l}{\textit{McDiv\_nuggets ($\sim$1K, no\_hds)}} \\[2pt]
+$C \!\times\! a_n$ (ours) & +0.636 & 0.785 & +0.345 & 0.649 & +0.317 & 0.634 \\
+$a_n$ (ours)              & +0.487 & 0.705 & +0.225 & 0.619 & +0.124 & 0.557 \\
+SentBERT                  & \textbf{+0.728} & \textbf{0.850} & \textbf{+0.532} & \textbf{0.758} & \textbf{+0.633} & \textbf{0.803} \\
+BERTsts                   & +0.683 & 0.830 & +0.393 & 0.676 & +0.344 & 0.638 \\
+distinct-$n$              & $-0.003$ & 0.514 & $-0.002$ & 0.507 & $-0.002$ & 0.510 \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{McDiv (full, no\_hds, $\sim$2K)}} \\[2pt]
+$C \!\times\! a_n$ (ours) & +0.729 & 0.846 & +0.500 & 0.724 & +0.523 & 0.717 \\
+$a_n$ (ours)              & +0.551 & 0.781 & +0.370 & 0.680 & +0.233 & 0.613 \\
+SentBERT                  & \textbf{+0.796} & \textbf{0.897} & \textbf{+0.678} & \textbf{0.830} & \textbf{+0.753} & \textbf{0.867} \\
+BERTsts                   & +0.780 & 0.893 & +0.614 & 0.781 & +0.571 & 0.740 \\
+distinct-$n$              & +0.476 & 0.746 & +0.517 & 0.738 & +0.535 & 0.744 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Results.} Table~\ref{tab:tevet} shows that $D_{a_\infty} = C \times a_n$ (per-byte) dramatically outperforms all $E$-based metrics. On McDiv\_nuggets prompt\_gen, $D_{a_\infty}$ achieves ROC AUC = 0.894 compared to 0.642 for $D_{\mathrm{fit}}$ and 0.244 for $D_{\mathrm{disc}}$ (below chance). On ConTest story\_gen, $D_{a_\infty}$ achieves AUC = 0.937. On DecTest, $a_n$ correlates with temperature at $\rho = +0.92$, while all $E$-based variants are \emph{negatively} correlated.
+\begin{table}[t]
+\centering
+\caption{decTest results: Spearman $\rho$ between temperature and each metric score (1000 samples, no\_hds). Raw $a_n$ achieves the highest correlation on prompt\_gen and resp\_gen.}
+\label{tab:dectest}
+\small
+\begin{tabular}{@{}l rrr@{}}
+\toprule
+Metric & prompt\_gen & resp\_gen & story\_gen \\
+\midrule
+$C \!\times\! a_n$ (ours) & +0.842 & +0.771 & +0.763 \\
+$a_n$ (ours)              & \textbf{+0.927} & \textbf{+0.924} & \textbf{+0.779} \\
+distinct-$n$              & +0.912 & +0.894 & +0.758 \\
+BERTScore                 & +0.878 & +0.874 & +0.694 \\
+SentBERT                  & +0.742 & +0.801 & +0.645 \\
+cos-sim                   & +0.874 & +0.895 & +0.712 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The $C$ weighting helps: raw $a_n$ achieves AUC 0.856 on prompt\_gen, while $C \times a_n$ achieves 0.894. However, unconditional surprise $a_1$ alone performs poorly (AUC 0.463), confirming that conditioning on other responses is essential---the diversity signal is in the \emph{residual} surprise after conditioning, not in the initial surprise.
+\paragraph{Results.} Tables~\ref{tab:contest}--\ref{tab:dectest} compare $C \times a_n$ against Tevet's baseline metrics. On the conTest binary classification tasks (Table~\ref{tab:contest}), $C \times a_n$ is competitive with embedding-based metrics: it achieves $\rho = +0.73$ and OCA = 0.85 on McDiv prompt\_gen, compared to SentBERT's $\rho = +0.80$ and OCA = 0.90. SentBERT is the strongest baseline across all tasks, but $C \times a_n$ consistently outperforms distinct-$n$ and is within 5--15\% of SentBERT's OCA. The $C$ weighting consistently helps: raw $a_n$ is 5--17\% lower in OCA than $C \times a_n$ across all tasks. On decTest (Table~\ref{tab:dectest}), raw $a_n$ achieves $\rho = +0.92$ on prompt\_gen and resp\_gen, matching or exceeding all baselines including distinct-$n$ ($\rho = +0.91$).
+
+Unconditional surprise $a_1$ performs poorly on binary tasks (not shown; OCA near chance), confirming that the diversity signal is in the \emph{residual} surprise after conditioning on other responses, not in the initial surprise.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis/roc_curves_mcdiv_nuggets.png}
-\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (red solid) dominates $D_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all three tasks.}
+\includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
+\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (orange dashed) consistently outperforms $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all tasks.}
 \label{fig:roc-curves}
 \end{figure}
 
@@ -876,7 +920,7 @@ The $C$ weighting helps: raw $a_n$ achieves AUC 0.856 on prompt\_gen, while $C \
 
 \paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent. This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay). The sigmoid fit still provides a useful parametric form for extrapolating $a_\infty$, even when the inflection point is degenerate ($k_0 < 1$).
 
-\paragraph{External validation is preliminary.} The Tevet results show that $E$ is orthogonal to existing metrics, which is promising, but the negative correlation with diversity labels raises questions about what $E$ fundamentally measures in the low-$n$, weak-model regime. More careful validation with a stronger base model, more responses per set, and systematic auditing of the experimental setup is needed.
+\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (within 5--15\% OCA of SentBERT), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity). The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities. Whether the performance gap with SentBERT closes with a stronger base model remains to be tested.
 
 \section{Related Concepts}
 

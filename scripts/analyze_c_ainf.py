@@ -135,6 +135,7 @@ def compute_sample_metrics(
     label: float,
     tag: str,
     csv_row: dict,
+    skip_fit: bool = False,
 ) -> dict[str, float] | None:
     """Compute all metric variants for one sample from sidecar + CSV data."""
     a_k_bits = entry.get("a_k_curve")
@@ -168,16 +169,18 @@ def compute_sample_metrics(
     E_disc_bits = sum(v - a_n_bits for v in a_k_bits)
     E_disc_pb = sum(v - a_n_pb for v in a_k_pb)
 
-    # Exponential fits
-    k = np.arange(1, len(a_k_bits) + 1, dtype=float)
-
-    fit_bits, ok_bits = fit_exponential(k, np.array(a_k_bits))
-    fit_pb, ok_pb = fit_exponential(k, np.array(a_k_pb))
-
-    a_inf_fit_bits = fit_bits["a_inf"] if ok_bits else float("nan")
-    a_inf_fit_pb = fit_pb["a_inf"] if ok_pb else float("nan")
-    E_fit_bits = fit_bits["E_fit"] if ok_bits else float("nan")
-    E_fit_pb = fit_pb["E_fit"] if ok_pb else float("nan")
+    # Exponential fits (optional — slow on large datasets)
+    nan = float("nan")
+    if skip_fit:
+        a_inf_fit_bits = a_inf_fit_pb = E_fit_bits = E_fit_pb = nan
+    else:
+        k = np.arange(1, len(a_k_bits) + 1, dtype=float)
+        fit_bits, ok_bits = fit_exponential(k, np.array(a_k_bits))
+        fit_pb, ok_pb = fit_exponential(k, np.array(a_k_pb))
+        a_inf_fit_bits = fit_bits["a_inf"] if ok_bits else nan
+        a_inf_fit_pb = fit_pb["a_inf"] if ok_pb else nan
+        E_fit_bits = fit_bits["E_fit"] if ok_bits else nan
+        E_fit_pb = fit_pb["E_fit"] if ok_pb else nan
 
     return {
         "label": label,
@@ -219,7 +222,7 @@ def compute_sample_metrics(
 # ---------------------------------------------------------------------------
 
 def load_all_datasets(
-    data_dir: Path, tag: str,
+    data_dir: Path, tag: str, skip_fit: bool = False,
 ) -> dict[str, list[dict[str, float]]]:
     """Load all datasets, compute metrics, return {dataset_key: [sample_metrics]}."""
     all_results: dict[str, list[dict[str, float]]] = {}
@@ -243,7 +246,7 @@ def load_all_datasets(
             label = float(row.get("label_value", "nan"))
             if np.isnan(label):
                 continue
-            m = compute_sample_metrics(entry, label, tag, row)
+            m = compute_sample_metrics(entry, label, tag, row, skip_fit=skip_fit)
             if m is not None:
                 samples.append(m)
 
@@ -264,6 +267,8 @@ METRICS_TO_EVAL = [
     ("C×a_inf_fit (bits)", "C_a_inf_fit_bits", True),
     ("C×a_n (pb)", "C_a_n_pb", True),
     ("C×a_n (bits)", "C_a_n_bits", True),
+    ("a_n (pb)", "a_n_pb", True),
+    ("a_n (bits)", "a_n_bits", True),
     ("a_inf_fit (pb)", "a_inf_fit_pb", True),
     ("a_inf_fit (bits)", "a_inf_fit_bits", True),
     ("a_1 (pb)", "a_1_pb", True),
@@ -687,6 +692,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Test C × a_∞ as diversity score")
     parser.add_argument("--run-tag", type=str, default="qwen25_completion_v2")
     parser.add_argument("--output-dir", type=str, default=None)
+    parser.add_argument("--skip-fit", action="store_true",
+                        help="Skip exponential curve fitting (faster, fit-based metrics will be NaN)")
     args = parser.parse_args()
 
     data_dir = RESULTS_BASE / args.run_tag
@@ -700,7 +707,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading datasets and computing metrics...")
-    all_results = load_all_datasets(data_dir, args.run_tag)
+    all_results = load_all_datasets(data_dir, args.run_tag, skip_fit=args.skip_fit)
 
     # Summary tables
     all_lines: list[str] = []
