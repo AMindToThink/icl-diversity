@@ -448,7 +448,6 @@ def plot_distributions(
     metrics_to_plot = [
         ("C×a_n (pb)", "C_a_n_pb"),
         ("a_n (pb)", "a_n_pb"),
-        ("D_fit (pb)", "D_fit_pb"),
         ("D_disc (pb)", "D_disc_pb"),
     ]
 
