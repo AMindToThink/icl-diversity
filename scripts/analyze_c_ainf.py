@@ -165,6 +165,10 @@ def compute_sample_metrics(
     a_n_bits = a_k_bits[-1]
     a_n_pb = a_k_pb[-1]
 
+    # a_{n-1}: second-to-last point (avoids k=5 uptick if present)
+    a_n1_bits = a_k_bits[-2] if len(a_k_bits) >= 2 else a_n_bits
+    a_n1_pb = a_k_pb[-2] if len(a_k_pb) >= 2 else a_n_pb
+
     # E_discrete
     E_disc_bits = sum(v - a_n_bits for v in a_k_bits)
     E_disc_pb = sum(v - a_n_pb for v in a_k_pb)
@@ -190,6 +194,8 @@ def compute_sample_metrics(
         "a_inf_fit_pb": a_inf_fit_pb,
         "a_n_bits": a_n_bits,
         "a_n_pb": a_n_pb,
+        "a_n1_bits": a_n1_bits,
+        "a_n1_pb": a_n1_pb,
         # a_1
         "a_1_bits": a_1_bits,
         "a_1_pb": a_1_pb,
@@ -203,6 +209,8 @@ def compute_sample_metrics(
         "C_a_inf_fit_pb": C * a_inf_fit_pb,
         "C_a_n_bits": C * a_n_bits,
         "C_a_n_pb": C * a_n_pb,
+        "C_a_n1_bits": C * a_n1_bits,
+        "C_a_n1_pb": C * a_n1_pb,
         # Composite: D = C × E
         "D_fit_bits": C * E_fit_bits,
         "D_fit_pb": C * E_fit_pb,
@@ -267,8 +275,12 @@ METRICS_TO_EVAL = [
     ("C×a_inf_fit (bits)", "C_a_inf_fit_bits", True),
     ("C×a_n (pb)", "C_a_n_pb", True),
     ("C×a_n (bits)", "C_a_n_bits", True),
+    ("C×a_{n-1} (pb)", "C_a_n1_pb", True),
+    ("C×a_{n-1} (bits)", "C_a_n1_bits", True),
     ("a_n (pb)", "a_n_pb", True),
     ("a_n (bits)", "a_n_bits", True),
+    ("a_{n-1} (pb)", "a_n1_pb", True),
+    ("a_{n-1} (bits)", "a_n1_bits", True),
     ("a_inf_fit (pb)", "a_inf_fit_pb", True),
     ("a_inf_fit (bits)", "a_inf_fit_bits", True),
     ("a_1 (pb)", "a_1_pb", True),
