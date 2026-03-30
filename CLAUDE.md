@@ -102,6 +102,18 @@ Shared synthetic response sets for the 5 validation scenarios (pure noise, multi
 
 Reads `responses.jsonl` grouped by (scale, prompt_idx), runs `compute_icl_diversity_metrics` per group, writes JSON output. The `**metrics` dict is spread directly into each result entry, so new keys added to `compute_icl_diversity_metrics` flow through automatically.
 
+## Paper Tables and Figures
+
+Paper tables are **machine-generated** by `scripts/analyze_c_ainf.py` and `\input{}`'d by the paper — no hand-transcribed numbers.
+
+- **Paper table bodies:** `results/tables/contest_rho_oca.tex`, `results/tables/dectest_rho.tex`
+- **Full metric summary (19 variants):** `figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt`
+- **Regenerate all:** `uv run python scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --output-dir figures/tevet_validation/c_ainf_analysis_v3 --skip-fit`
+
+When reading, citing, or discussing table numbers, always read the `.tex` or `.txt` files directly. Cross-check any hand-written inline numbers in the paper prose against the generated tables.
+
+All figures referenced by the paper are also script-generated (in `figures/`). The paper compiles from the `paper/` directory (`cd paper && latexmk -pdf`).
+
 ## Key Design Decisions
 
 - **Base model requirement**: θ must be a base model (not instruction-tuned) to avoid confounding coherence-as-fluency with coherence-as-alignment.
