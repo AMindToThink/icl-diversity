@@ -839,34 +839,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 \caption{conTest results: Spearman $\rho$ and OCA between a set's diversity class and each metric score. Baselines from Tevet's pre-computed metrics; $C \!\times\! a_n$ and $a_n$ are ours (Qwen2.5-3B, 50 permutations, per-byte). Best result per task in bold.}
 \label{tab:contest}
 \small
-\begin{tabular}{@{}l rr rr rr@{}}
-\toprule
-& \multicolumn{2}{c}{prompt\_gen} & \multicolumn{2}{c}{resp\_gen} & \multicolumn{2}{c}{story\_gen} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-Metric & $\rho$ & OCA & $\rho$ & OCA & $\rho$ & OCA \\
-\midrule
-\multicolumn{7}{@{}l}{\textit{ConTest (200, with\_hds)}} \\[2pt]
-$C \!\times\! a_n$ (ours) & +0.584 & 0.785 & +0.391 & 0.668 & +0.686 & 0.828 \\
-$a_n$ (ours)              & +0.444 & 0.715 & +0.274 & 0.641 & +0.387 & 0.684 \\
-SentBERT                  & \textbf{+0.682} & 0.815 & \textbf{+0.591} & \textbf{0.791} & \textbf{+0.770} & \textbf{0.896} \\
-BERTsts                   & +0.646 & \textbf{0.820} & +0.463 & 0.714 & +0.601 & 0.780 \\
-distinct-$n$              & +0.333 & 0.675 & +0.346 & 0.677 & +0.573 & 0.772 \\
-\midrule
-\multicolumn{7}{@{}l}{\textit{McDiv\_nuggets ($\sim$1K, no\_hds)}} \\[2pt]
-$C \!\times\! a_n$ (ours) & +0.636 & 0.785 & +0.345 & 0.649 & +0.317 & 0.634 \\
-$a_n$ (ours)              & +0.487 & 0.705 & +0.225 & 0.619 & +0.124 & 0.557 \\
-SentBERT                  & \textbf{+0.728} & \textbf{0.850} & \textbf{+0.532} & \textbf{0.758} & \textbf{+0.633} & \textbf{0.803} \\
-BERTsts                   & +0.683 & 0.830 & +0.393 & 0.676 & +0.344 & 0.638 \\
-distinct-$n$              & $-0.003$ & 0.514 & $-0.002$ & 0.507 & $-0.002$ & 0.510 \\
-\midrule
-\multicolumn{7}{@{}l}{\textit{McDiv (full, no\_hds, $\sim$2K)}} \\[2pt]
-$C \!\times\! a_n$ (ours) & +0.729 & 0.846 & +0.500 & 0.724 & +0.523 & 0.717 \\
-$a_n$ (ours)              & +0.551 & 0.781 & +0.370 & 0.680 & +0.233 & 0.613 \\
-SentBERT                  & \textbf{+0.796} & \textbf{0.897} & \textbf{+0.678} & \textbf{0.830} & \textbf{+0.753} & \textbf{0.867} \\
-BERTsts                   & +0.780 & 0.893 & +0.614 & 0.781 & +0.571 & 0.740 \\
-distinct-$n$              & +0.476 & 0.746 & +0.517 & 0.738 & +0.535 & 0.744 \\
-\bottomrule
-\end{tabular}
+\input{../results/tables/contest_rho_oca.tex}
 \end{table}
 
 \begin{table}[t]
@@ -874,18 +847,7 @@ distinct-$n$              & +0.476 & 0.746 & +0.517 & 0.738 & +0.535 & 0.744 \\
 \caption{decTest results: Spearman $\rho$ between temperature and each metric score (1000 samples, no\_hds). Raw $a_n$ achieves the highest correlation on prompt\_gen and resp\_gen.}
 \label{tab:dectest}
 \small
-\begin{tabular}{@{}l rrr@{}}
-\toprule
-Metric & prompt\_gen & resp\_gen & story\_gen \\
-\midrule
-$C \!\times\! a_n$ (ours) & +0.842 & +0.771 & +0.763 \\
-$a_n$ (ours)              & \textbf{+0.927} & \textbf{+0.924} & \textbf{+0.779} \\
-distinct-$n$              & +0.912 & +0.894 & +0.758 \\
-BERTScore                 & +0.878 & +0.874 & +0.694 \\
-SentBERT                  & +0.742 & +0.801 & +0.645 \\
-cos-sim                   & +0.874 & +0.895 & +0.712 \\
-\bottomrule
-\end{tabular}
+\input{../results/tables/dectest_rho.tex}
 \end{table}
 
 \paragraph{Results.} Tables~\ref{tab:contest}--\ref{tab:dectest} compare $C \times a_n$ against Tevet's baseline metrics. On the conTest binary classification tasks (Table~\ref{tab:contest}), $C \times a_n$ is competitive with embedding-based metrics: it achieves $\rho = +0.73$ and OCA = 0.85 on McDiv prompt\_gen, compared to SentBERT's $\rho = +0.80$ and OCA = 0.90. SentBERT is the strongest baseline across all tasks, but $C \times a_n$ consistently outperforms distinct-$n$ and is within 5--15\% of SentBERT's OCA. The $C$ weighting consistently helps: raw $a_n$ is 5--17\% lower in OCA than $C \times a_n$ across all tasks. On decTest (Table~\ref{tab:dectest}), raw $a_n$ achieves $\rho = +0.92$ on prompt\_gen and resp\_gen, matching or exceeding all baselines including distinct-$n$ ($\rho = +0.91$).

@@ -231,9 +231,16 @@ def compute_sample_metrics(
 
 def load_all_datasets(
     data_dir: Path, tag: str, skip_fit: bool = False,
-) -> dict[str, list[dict[str, float]]]:
-    """Load all datasets, compute metrics, return {dataset_key: [sample_metrics]}."""
-    all_results: dict[str, list[dict[str, float]]] = {}
+) -> tuple[dict[str, list[dict]], dict[str, dict[str, dict[str, str]]]]:
+    """Load all datasets, compute metrics.
+
+    Returns:
+        (all_results, csv_rows_by_dataset) where:
+        - all_results: {dataset_key: [sample_metrics_dict]}
+        - csv_rows_by_dataset: {dataset_key: {sidecar_key: csv_row_dict}}
+    """
+    all_results: dict[str, list[dict]] = {}
+    csv_rows_by_dataset: dict[str, dict[str, dict[str, str]]] = {}
 
     for sidecar_path in sorted(data_dir.rglob(f"*.icl_curves.{tag}.json")):
         csv_stem = sidecar_path.name.replace(f".icl_curves.{tag}.json", "")
@@ -245,7 +252,8 @@ def load_all_datasets(
         csv_rows = load_csv_rows(csv_path)
 
         dataset_key = f"{sidecar_path.parent.name}/{csv_stem}"
-        samples: list[dict[str, float]] = []
+        csv_rows_by_dataset[dataset_key] = csv_rows
+        samples: list[dict] = []
 
         for sid, entry in sidecar.items():
             row = csv_rows.get(sid)
@@ -256,12 +264,13 @@ def load_all_datasets(
                 continue
             m = compute_sample_metrics(entry, label, tag, row, skip_fit=skip_fit)
             if m is not None:
+                m["_sidecar_key"] = sid
                 samples.append(m)
 
         all_results[dataset_key] = samples
         print(f"  {dataset_key}: {len(samples)} samples")
 
-    return all_results
+    return all_results, csv_rows_by_dataset
 
 
 # ---------------------------------------------------------------------------
@@ -695,6 +704,284 @@ def plot_scatter_vs_label(
 
 
 # ---------------------------------------------------------------------------
+# LaTeX table generation
+# ---------------------------------------------------------------------------
+
+# Table 5: ConTest ρ + OCA (binary datasets)
+# 3 dataset groups, each with 5 metrics × 3 tasks × 2 stats
+_TABLE5_GROUPS: list[tuple[str, str, list[str]]] = [
+    # (LaTeX group header, key_filter, key_must_contain_all)
+    (
+        r"\multicolumn{7}{@{}l}{\textit{ConTest (200, with\_hds)}} \\[2pt]",
+        "conTest",
+        ["with_hds"],
+    ),
+    (
+        r"\multicolumn{7}{@{}l}{\textit{McDiv\_nuggets ($\sim$1K, no\_hds)}} \\[2pt]",
+        "McDiv_nuggets",
+        ["no_hds"],
+    ),
+    (
+        r"\multicolumn{7}{@{}l}{\textit{McDiv (full, no\_hds, $\sim$2K)}} \\[2pt]",
+        "McDiv/",
+        ["no_hds"],
+    ),
+]
+
+_TABLE5_METRICS: list[tuple[str, str | None, bool]] = [
+    # (LaTeX name, our_metric_key or None for baseline, higher_is_more_diverse)
+    # None means read from CSV column instead
+    (r"$C \!\times\! a_n$ (ours)", "C_a_n_pb", True),
+    (r"$a_n$ (ours)", "a_n_pb", True),
+    ("SentBERT", None, False),
+    ("BERTsts", None, False),
+    (r"distinct-$n$", None, True),
+]
+
+_BASELINE_CSV_COLS: dict[str, str] = {
+    "SentBERT": "metric_sent_bert",
+    "BERTsts": "metric_bert_sts",
+    r"distinct-$n$": "metric_averaged_distinct_ngrams",
+    "BERTScore": "metric_bert_score",
+    "cos-sim": "metric_averaged_cosine_similarity",
+}
+
+# Table 6: DecTest ρ (continuous temperature labels)
+_TABLE6_METRICS: list[tuple[str, str | None]] = [
+    (r"$C \!\times\! a_n$ (ours)", "C_a_n_pb"),
+    (r"$a_n$ (ours)", "a_n_pb"),
+    (r"distinct-$n$", None),
+    ("BERTScore", None),
+    ("SentBERT", None),
+    ("cos-sim", None),
+]
+
+TASKS = ["prompt_gen", "resp_gen", "story_gen"]
+
+
+def _find_dataset_key(
+    all_keys: list[str], dir_filter: str, must_contain: list[str], task: str,
+) -> str | None:
+    """Find the dataset key matching a filter + task."""
+    for key in all_keys:
+        if dir_filter not in key:
+            continue
+        if not all(mc in key for mc in must_contain):
+            continue
+        if key.endswith(f"_{task}"):
+            return key
+    return None
+
+
+def _get_baseline_scores(
+    csv_rows: dict[str, dict[str, str]],
+    samples: list[dict],
+    csv_col: str,
+) -> tuple[list[float], list[float]]:
+    """Extract baseline metric scores from CSV rows, aligned with sample labels."""
+    scores: list[float] = []
+    labels: list[float] = []
+    for s in samples:
+        skey = s["_sidecar_key"]
+        row = csv_rows.get(skey)
+        if row is None:
+            raise ValueError(f"Missing CSV row for sidecar_key={skey!r}")
+        val_str = row.get(csv_col, "")
+        try:
+            val = float(val_str)
+        except (ValueError, TypeError):
+            continue
+        if np.isnan(val):
+            continue
+        scores.append(val)
+        labels.append(s["label"])
+    return scores, labels
+
+
+def _compute_rho_oca(
+    scores: list[float], labels: list[float], is_binary: bool,
+) -> tuple[float, float]:
+    """Compute Spearman ρ and OCA (OCA is NaN for non-binary)."""
+    rho = safe_rho(scores, labels)
+    if is_binary:
+        high = [sc for sc, lab in zip(scores, labels) if lab == 1.0]
+        low = [sc for sc, lab in zip(scores, labels) if lab == 0.0]
+        if len(high) < 2 or len(low) < 2:
+            return rho, float("nan")
+        oca, _ = optimal_classification_accuracy(high, low)
+        return rho, oca
+    return rho, float("nan")
+
+
+def _fmt_rho(rho: float) -> str:
+    """Format ρ for LaTeX: +0.584 or $-0.003$."""
+    if np.isnan(rho):
+        return "---"
+    if rho < 0:
+        return f"$-{abs(rho):.3f}$"
+    return f"+{rho:.3f}"
+
+
+def _fmt_oca(oca: float) -> str:
+    if np.isnan(oca):
+        return "---"
+    return f"{oca:.3f}"
+
+
+def write_latex_tables(
+    all_results: dict[str, list[dict]],
+    csv_rows_by_dataset: dict[str, dict[str, dict[str, str]]],
+    tables_dir: Path,
+    run_tag: str,
+) -> None:
+    """Generate LaTeX tabular-body .tex files for paper tables."""
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    all_keys = list(all_results.keys())
+
+    # --- Table 5: ConTest ρ + OCA ---
+    lines: list[str] = []
+    lines.append(f"% Generated by: scripts/analyze_c_ainf.py --run-tag {run_tag}")
+    lines.append("% Baseline source: diversity-eval/data/with_metrics/")
+    lines.append(r"\begin{tabular}{@{}l rr rr rr@{}}")
+    lines.append(r"\toprule")
+    lines.append(
+        r"& \multicolumn{2}{c}{prompt\_gen} & \multicolumn{2}{c}{resp\_gen} "
+        r"& \multicolumn{2}{c}{story\_gen} \\"
+    )
+    lines.append(r"\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}")
+    lines.append(r"Metric & $\rho$ & OCA & $\rho$ & OCA & $\rho$ & OCA \\")
+    lines.append(r"\midrule")
+
+    for group_idx, (group_header, dir_filter, must_contain) in enumerate(_TABLE5_GROUPS):
+        if group_idx > 0:
+            lines.append(r"\midrule")
+        lines.append(group_header)
+
+        # Collect all rho/oca values per task for bolding
+        group_rhos: dict[str, list[tuple[int, float]]] = {t: [] for t in TASKS}
+        group_ocas: dict[str, list[tuple[int, float]]] = {t: [] for t in TASKS}
+        row_data: list[list[tuple[float, float]]] = []  # metric_idx -> [(rho, oca) per task]
+
+        for metric_idx, (latex_name, our_key, _higher) in enumerate(_TABLE5_METRICS):
+            task_vals: list[tuple[float, float]] = []
+            for task in TASKS:
+                ds_key = _find_dataset_key(all_keys, dir_filter, must_contain, task)
+                if ds_key is None:
+                    task_vals.append((float("nan"), float("nan")))
+                    continue
+
+                samples = all_results[ds_key]
+                if our_key is not None:
+                    scores = [s[our_key] for s in samples if not np.isnan(s[our_key])]
+                    labels = [s["label"] for s in samples if not np.isnan(s[our_key])]
+                else:
+                    csv_col = _BASELINE_CSV_COLS[latex_name]
+                    csv_rows = csv_rows_by_dataset[ds_key]
+                    scores, labels = _get_baseline_scores(csv_rows, samples, csv_col)
+
+                rho, oca = _compute_rho_oca(scores, labels, is_binary=True)
+                task_vals.append((rho, oca))
+                if not np.isnan(rho):
+                    group_rhos[task].append((metric_idx, abs(rho)))
+                if not np.isnan(oca):
+                    group_ocas[task].append((metric_idx, oca))
+
+            row_data.append(task_vals)
+
+        # Find best (highest |ρ| and highest OCA) per task
+        best_rho: dict[str, int] = {}
+        best_oca: dict[str, int] = {}
+        for task in TASKS:
+            if group_rhos[task]:
+                best_rho[task] = max(group_rhos[task], key=lambda x: x[1])[0]
+            if group_ocas[task]:
+                best_oca[task] = max(group_ocas[task], key=lambda x: x[1])[0]
+
+        # Emit rows
+        for metric_idx, (latex_name, _our_key, _higher) in enumerate(_TABLE5_METRICS):
+            cells: list[str] = [latex_name]
+            for task_idx, task in enumerate(TASKS):
+                rho, oca = row_data[metric_idx][task_idx]
+                rho_s = _fmt_rho(rho)
+                oca_s = _fmt_oca(oca)
+                if best_rho.get(task) == metric_idx:
+                    rho_s = r"\textbf{" + rho_s + "}"
+                if best_oca.get(task) == metric_idx:
+                    oca_s = r"\textbf{" + oca_s + "}"
+                cells.append(rho_s)
+                cells.append(oca_s)
+            lines.append(" & ".join(cells) + r" \\")
+
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+
+    table5_path = tables_dir / "contest_rho_oca.tex"
+    table5_path.write_text("\n".join(lines) + "\n")
+    print(f"Saved: {table5_path}")
+
+    # --- Table 6: DecTest ρ ---
+    lines = []
+    lines.append(f"% Generated by: scripts/analyze_c_ainf.py --run-tag {run_tag}")
+    lines.append("% Baseline source: diversity-eval/data/with_metrics/")
+    lines.append(r"\begin{tabular}{@{}l rrr@{}}")
+    lines.append(r"\toprule")
+    lines.append(r"Metric & prompt\_gen & resp\_gen & story\_gen \\")
+    lines.append(r"\midrule")
+
+    # Collect values for bolding
+    task_rhos: dict[str, list[tuple[int, float]]] = {t: [] for t in TASKS}
+    row_data_dec: list[list[float]] = []
+
+    for metric_idx, (latex_name, our_key) in enumerate(_TABLE6_METRICS):
+        task_vals: list[float] = []
+        for task in TASKS:
+            ds_key = _find_dataset_key(all_keys, "decTest", ["1000_no_hds"], task)
+            if ds_key is None:
+                task_vals.append(float("nan"))
+                continue
+
+            samples = all_results[ds_key]
+            if our_key is not None:
+                scores = [s[our_key] for s in samples if not np.isnan(s[our_key])]
+                labels = [s["label"] for s in samples if not np.isnan(s[our_key])]
+            else:
+                csv_col = _BASELINE_CSV_COLS[latex_name]
+                csv_rows = csv_rows_by_dataset[ds_key]
+                scores, labels = _get_baseline_scores(csv_rows, samples, csv_col)
+
+            rho = safe_rho(scores, labels)
+            task_vals.append(rho)
+            if not np.isnan(rho):
+                task_rhos[task].append((metric_idx, abs(rho)))
+
+        row_data_dec.append(task_vals)
+
+    # Find best per task
+    best_rho_dec: dict[str, int] = {}
+    for task in TASKS:
+        if task_rhos[task]:
+            best_rho_dec[task] = max(task_rhos[task], key=lambda x: x[1])[0]
+
+    # Emit rows
+    for metric_idx, (latex_name, _our_key) in enumerate(_TABLE6_METRICS):
+        cells: list[str] = [latex_name]
+        for task_idx, task in enumerate(TASKS):
+            rho = row_data_dec[metric_idx][task_idx]
+            rho_s = _fmt_rho(rho)
+            if best_rho_dec.get(task) == metric_idx:
+                rho_s = r"\textbf{" + rho_s + "}"
+            cells.append(rho_s)
+        lines.append(" & ".join(cells) + r" \\")
+
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+
+    table6_path = tables_dir / "dectest_rho.tex"
+    table6_path.write_text("\n".join(lines) + "\n")
+    print(f"Saved: {table6_path}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -717,7 +1004,9 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading datasets and computing metrics...")
-    all_results = load_all_datasets(data_dir, args.run_tag, skip_fit=args.skip_fit)
+    all_results, csv_rows_by_dataset = load_all_datasets(
+        data_dir, args.run_tag, skip_fit=args.skip_fit,
+    )
 
     # Summary tables
     all_lines: list[str] = []
@@ -759,7 +1048,12 @@ def main() -> None:
     # Scatterplots: label vs score
     plot_scatter_vs_label(all_results, output_dir)
 
+    # LaTeX tables for paper
+    tables_dir = PROJECT_ROOT / "results" / "tables"
+    write_latex_tables(all_results, csv_rows_by_dataset, tables_dir, args.run_tag)
+
     print(f"\nAll outputs in {output_dir}")
+    print(f"LaTeX tables in {tables_dir}")
 
 
 if __name__ == "__main__":
