@@ -52,7 +52,7 @@ uv run python scripts/analyze_temperature.py
 
 # Interactive audit tool (click points to inspect samples)
 # Requires SSH port forwarding: ssh -L 8050:localhost:8050 user@server
-uv run scripts/interactive_scatter.py --run-tag qwen25_completion_v3
+uv run scripts/interactive_scatter.py --run-tag qwen25_completion_v3 --device cuda:0
 # Then open http://localhost:8050 in your laptop browser
 
 # Analyze C × a_∞ metrics on Tevet evaluation data
