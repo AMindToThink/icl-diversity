@@ -35,6 +35,7 @@ import logging
 import re
 import sys
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -52,6 +53,20 @@ from icl_diversity.core import compute_icl_diversity_metrics  # noqa: E402
 from icl_diversity.core import format_conditioning_context  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_parallel_samples(value: str, model: object) -> int:
+    """Resolve --parallel-samples value to an int.
+
+    "auto" → 8 for TinkerModel (API-based, benefits from concurrency),
+    1 for local models (GPU is already saturated by one sample).
+    An explicit int is returned as-is.
+    """
+    if value != "auto":
+        return int(value)
+    if type(model).__name__ == "TinkerModel":
+        return 8
+    return 1
 
 
 def dedup_rows(rows: list[dict]) -> list[dict]:
@@ -334,6 +349,7 @@ def process_csv(
     max_skip_fraction: float = 0.1,
     format_mode: FormatMode = "instruct",
     dedup: bool = False,
+    parallel_samples: int = 1,
 ) -> ProcessingStats:
     """Process a single CSV file: compute ICL metrics and write to output location.
 
@@ -442,11 +458,11 @@ def process_csv(
         row_token_counts = [(row["sample_id"], 0) for row in rows]
 
     # --- Main processing loop ---
-    for row, sidecar_key, (sample_id, token_count) in tqdm(
-        zip(rows, sidecar_keys, row_token_counts),
-        desc=csv_path.name,
-        unit="set",
-        total=len(rows),
+    # Pass 1: handle cached/skipped rows and collect work items for computation
+    work_items: list[tuple[int, str, str, list[str], int]] = []  # (row_idx, sidecar_key, context, responses, token_count)
+
+    for row_idx, (row, sidecar_key, (sample_id, token_count)) in enumerate(
+        zip(rows, sidecar_keys, row_token_counts)
     ):
         stats.token_counts.append(token_count)
         row["sidecar_key"] = sidecar_key
@@ -500,10 +516,6 @@ def process_csv(
             stats.skipped_error += 1
             continue
 
-        # Extract context and responses
-        context = row.get("context", "")
-        responses = [row[col] for col in resp_cols]
-
         # Check token length
         if token_count > max_tokens:
             for col in all_new_cols:
@@ -518,73 +530,100 @@ def process_csv(
             }
             continue
 
-        # Compute ICL diversity metrics
-        try:
-            metrics = compute_icl_diversity_metrics(
-                model=model,
-                tokenizer=tokenizer,
-                prompt=context,
-                responses=responses,
-                n_permutations=n_permutations,
-                batch_size=batch_size,
-                format_mode=format_mode,
-            )
-        except Exception:
-            logger.error(
-                f"  Error computing metrics for {sample_id}:\n{traceback.format_exc()}"
-            )
-            for col in all_new_cols:
-                row[col] = ""
-            stats.skipped_error += 1
-            stats.error_sample_ids.append(sample_id)
-            sidecar_data[sidecar_key] = {
-                "skipped": True,
-                "reason": "error",
-                "error": traceback.format_exc(),
-            }
-            continue
+        # Queue for computation
+        context = row.get("context", "")
+        responses = [row[col] for col in resp_cols]
+        work_items.append((row_idx, sidecar_key, context, responses, token_count))
 
-        # Write metric values to row (tagged columns)
-        for base, key in METRIC_KEY_MAP.items():
-            col = f"{base}_{tag}"
-            row[col] = f"{metrics[key]:.6f}"
-
-        # Compute and write std columns
-        std_metrics = compute_per_permutation_metrics(
-            metrics.get("per_permutation_a_k_curves", []),
-            metrics.get("per_permutation_byte_counts"),
-            metrics.get("unconditional_surprises", []),
+    # Pass 2: compute metrics (potentially in parallel)
+    def _compute_one(item: tuple[int, str, str, list[str], int]) -> tuple[int, str, int, dict]:
+        """Compute metrics for one sample. Returns (row_idx, sidecar_key, token_count, metrics)."""
+        row_idx, sidecar_key, context, responses, token_count = item
+        metrics = compute_icl_diversity_metrics(
+            model=model,
+            tokenizer=tokenizer,
+            prompt=context,
+            responses=responses,
+            n_permutations=n_permutations,
+            batch_size=batch_size,
+            format_mode=format_mode,
         )
-        for base, key in METRIC_KEY_MAP.items():
-            std_col = f"{base}_{tag}_std"
-            row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
+        return row_idx, sidecar_key, token_count, metrics
 
-        # Save to sidecar cache
-        sidecar_data[sidecar_key] = {
-            "metrics": {
-                key: metrics[key]
-                for key in [
-                    "excess_entropy_E",
-                    "excess_entropy_E_rate",
-                    "coherence_C",
-                    "diversity_score_D",
-                    "diversity_score_D_rate",
-                    "coherence_spread_sigma",
-                    "mean_byte_length",
-                    "is_monotone",
-                ]
-            },
-            "std_metrics": std_metrics,
-            "token_count": token_count,
-            "a_k_curve": metrics["a_k_curve"],
-            "a_k_curve_per_byte": metrics["a_k_curve_per_byte"],
-            "a_k_byte_counts": metrics["a_k_byte_counts"],
-            "unconditional_surprises": metrics["unconditional_surprises"],
-            "unconditional_total_bits": metrics["unconditional_total_bits"],
-            "per_permutation_a_k_curves": metrics.get("per_permutation_a_k_curves"),
-            "per_permutation_byte_counts": metrics.get("per_permutation_byte_counts"),
-        }
-        stats.computed += 1
+    logger.info(f"  Computing {len(work_items)} samples (parallel_samples={parallel_samples})")
+
+    with ThreadPoolExecutor(max_workers=parallel_samples) as pool:
+        futures = {pool.submit(_compute_one, item): item for item in work_items}
+
+        for future in tqdm(
+            as_completed(futures),
+            desc=csv_path.name,
+            unit="set",
+            total=len(futures),
+        ):
+            item = futures[future]
+            row_idx, sidecar_key, _, _, token_count = item
+            sample_id = rows[row_idx]["sample_id"]
+            row = rows[row_idx]
+
+            try:
+                _, _, _, metrics = future.result()
+            except Exception:
+                logger.error(
+                    f"  Error computing metrics for {sample_id}:\n{traceback.format_exc()}"
+                )
+                for col in all_new_cols:
+                    row[col] = ""
+                stats.skipped_error += 1
+                stats.error_sample_ids.append(sample_id)
+                sidecar_data[sidecar_key] = {
+                    "skipped": True,
+                    "reason": "error",
+                    "error": traceback.format_exc(),
+                }
+                continue
+
+            # Write metric values to row (tagged columns)
+            for base, key in METRIC_KEY_MAP.items():
+                col = f"{base}_{tag}"
+                row[col] = f"{metrics[key]:.6f}"
+
+            # Compute and write std columns
+            std_metrics = compute_per_permutation_metrics(
+                metrics.get("per_permutation_a_k_curves", []),
+                metrics.get("per_permutation_byte_counts"),
+                metrics.get("unconditional_surprises", []),
+            )
+            for base, key in METRIC_KEY_MAP.items():
+                std_col = f"{base}_{tag}_std"
+                row[std_col] = f"{std_metrics.get(key + '_std', 0.0):.6f}"
+
+            # Save to sidecar cache
+            sidecar_data[sidecar_key] = {
+                "metrics": {
+                    key: metrics[key]
+                    for key in [
+                        "excess_entropy_E",
+                        "excess_entropy_E_rate",
+                        "coherence_C",
+                        "diversity_score_D",
+                        "diversity_score_D_rate",
+                        "coherence_spread_sigma",
+                        "mean_byte_length",
+                        "is_monotone",
+                    ]
+                },
+                "std_metrics": std_metrics,
+                "token_count": token_count,
+                "a_k_curve": metrics["a_k_curve"],
+                "a_k_curve_per_byte": metrics["a_k_curve_per_byte"],
+                "a_k_byte_counts": metrics["a_k_byte_counts"],
+                "unconditional_surprises": metrics["unconditional_surprises"],
+                "unconditional_total_bits": metrics["unconditional_total_bits"],
+                "per_permutation_a_k_curves": metrics.get("per_permutation_a_k_curves"),
+                "per_permutation_byte_counts": metrics.get("per_permutation_byte_counts"),
+            }
+            stats.computed += 1
 
     # --- End-of-file summary ---
     logger.info(
@@ -743,6 +782,13 @@ def main() -> None:
         help="Batch size for forward passes (default: 8)",
     )
     parser.add_argument(
+        "--parallel-samples",
+        type=str,
+        default="auto",
+        help="Number of samples to process concurrently. 'auto' (default) uses "
+             "8 for Tinker, 1 for local models. Set to 1 for strictly sequential.",
+    )
+    parser.add_argument(
         "--max-skip-fraction",
         type=float,
         default=0.1,
@@ -867,6 +913,14 @@ def main() -> None:
     else:
         csv_paths = find_all_with_metrics_csvs()
 
+    # Resolve parallel_samples (auto-detect from model type)
+    if model is not None:
+        parallel_samples = resolve_parallel_samples(args.parallel_samples, model)
+    else:
+        parallel_samples = 1
+    if parallel_samples > 1:
+        logger.info(f"Parallel samples: {parallel_samples}")
+
     logger.info(f"Processing {len(csv_paths)} CSV files")
 
     # --- Process all CSVs and collect stats ---
@@ -887,6 +941,7 @@ def main() -> None:
             max_skip_fraction=args.max_skip_fraction,
             format_mode=args.format_mode,
             dedup=args.dedup,
+            parallel_samples=parallel_samples,
         )
         all_stats[csv_path.name] = stats
 
