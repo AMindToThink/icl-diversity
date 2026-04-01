@@ -1,0 +1,23 @@
+Loading tokenizer: Qwen/Qwen3-30B-A3B-Base
+
+================================================================================
+Tinker API Cost Estimate
+  Model: Qwen/Qwen3-30B-A3B-Base
+  Price: $0.12 / million tokens (prefill)
+  Permutations: 50
+  Format mode: completion
+  Max tokens: 32768
+================================================================================
+
+Dataset                        Sub-exp       Samples  Skip  API calls  Tokens (M)     Cost
+------------------------------------------------------------------------------------------
+con_test_200                   story_gen         250     0     13,750        3.46 $ 0.4150
+con_test_200                   resp_gen          220     0     12,100        1.26 $ 0.1516
+con_test_200                   prompt_gen        200     0     11,000        0.75 $ 0.0903
+mcdiv_nuggets                  story_gen        1012     0     55,660       13.11 $ 1.5735
+mcdiv_nuggets                  resp_gen         1049     0     57,695        5.68 $ 0.6813
+mcdiv_nuggets                  prompt_gen       1008     0     55,440        3.40 $ 0.4078
+------------------------------------------------------------------------------------------
+TOTAL                                           3739     0    205,645       27.66 $ 3.3193
+
+Estimated total cost: $3.3193

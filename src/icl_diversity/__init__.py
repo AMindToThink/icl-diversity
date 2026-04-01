@@ -1,4 +1,8 @@
-from icl_diversity.api_model import APIModel
+try:
+    from icl_diversity.tinker_model import TinkerModel
+except ImportError:
+    pass
+
 from icl_diversity.core import (
     FormatMode,
     ModelInput,
