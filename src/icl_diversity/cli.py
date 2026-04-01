@@ -29,7 +29,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from icl_diversity import APIModel, compute_icl_diversity_metrics
+from icl_diversity import compute_icl_diversity_metrics
 
 
 def load_responses_with_prompts(
@@ -104,14 +104,14 @@ def main() -> None:
     parser.add_argument("--seed", default=42, type=int, help="Random seed")
     parser.add_argument(
         "--provider",
-        choices=["local", "together", "fireworks"],
+        choices=["local", "tinker"],
         default="local",
-        help="Model provider: local (HuggingFace), together, or fireworks (default: local)",
+        help="Model provider: local (HuggingFace) or tinker (default: local)",
     )
     parser.add_argument(
         "--api-key",
         default=None,
-        help="API key for provider (default: uses TOGETHER_API_KEY or FIREWORKS_API_KEY env var)",
+        help="API key for provider (default: uses TINKER_API_KEY from .env or env var)",
     )
     parser.add_argument(
         "--max-concurrent",
@@ -140,15 +140,12 @@ def main() -> None:
     # Resolve output path
     output_path = args.output or args.input.parent / "icl_diversity.json"
 
-    if args.provider != "local":
-        # API-based model
-        from dotenv import load_dotenv
+    if args.provider == "tinker":
+        from icl_diversity.tinker_model import TinkerModel
 
-        load_dotenv()
-        print(f"Using API model: {args.base_model} via {args.provider}")
-        model = APIModel(
+        print(f"Using Tinker API model: {args.base_model}")
+        model = TinkerModel(
             model_name=args.base_model,
-            provider=args.provider,
             api_key=args.api_key,
             max_concurrent_requests=args.max_concurrent,
         )

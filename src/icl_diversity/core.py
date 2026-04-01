@@ -50,8 +50,8 @@ from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 # Type alias: single model, list of models (ensemble), or API model.
-# APIModel is referenced by string to avoid circular import.
-ModelInput = Union[PreTrainedModel, list[PreTrainedModel], "APIModel"]
+# TinkerModel is referenced by string to avoid circular import.
+ModelInput = Union[PreTrainedModel, list[PreTrainedModel], "TinkerModel"]
 
 # Format mode for how responses are laid out in the context window.
 # "instruct": Response A: {resp}\n\nResponse B: {resp}\n\n...
@@ -69,12 +69,12 @@ FormatMode = Literal["instruct", "completion"]
 
 
 def _is_api_model(model: ModelInput) -> bool:
-    """Check if model is an APIModel (without importing at module level)."""
-    return type(model).__name__ == "APIModel"
+    """Check if model is a TinkerModel (without importing at module level)."""
+    return type(model).__name__ == "TinkerModel"
 
 
-def _ensure_models(model: ModelInput) -> list[PreTrainedModel] | "APIModel":
-    """Normalize model input to a list of local models, or return APIModel as-is."""
+def _ensure_models(model: ModelInput) -> list[PreTrainedModel] | "TinkerModel":
+    """Normalize model input to a list of local models, or return API model as-is."""
     if _is_api_model(model):
         return model  # type: ignore[return-value]
     if isinstance(model, list):
@@ -148,7 +148,7 @@ def _gather_diagonal_log_probs(
 
 
 def _forward_log_probs(
-    models: list[PreTrainedModel] | "APIModel",
+    models: list[PreTrainedModel] | "TinkerModel",
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None = None,
     temperature: float = 1.0,
@@ -158,11 +158,11 @@ def _forward_log_probs(
     For a single model, computes log_softmax(logits) then extracts the
     diagonal. For multiple models, averages softmax probabilities at each
     token position (Section 7.5, Eq 27), then extracts the diagonal.
-    For an APIModel, delegates to ``APIModel.score_sequences``.
+    For a TinkerModel, delegates to ``TinkerModel.score_sequences``.
 
     Args:
         models: List of models to ensemble, a single-element list, or an
-            APIModel instance.
+            TinkerModel instance.
         input_ids: ``(batch, seq_len)`` token IDs.
         attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
         temperature: Temperature for scaling logits before softmax. Must be
@@ -222,7 +222,7 @@ def _forward_log_probs(
 
 
 def _forward_full_log_probs(
-    models: list[PreTrainedModel] | "APIModel",
+    models: list[PreTrainedModel] | "TinkerModel",
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
@@ -238,7 +238,7 @@ def _forward_full_log_probs(
 
     Args:
         models: List of models to ensemble, a single-element list, or an
-            APIModel instance.
+            TinkerModel instance.
         input_ids: ``(batch, seq_len)`` token IDs.
         attention_mask: ``(batch, seq_len)`` mask (1=real, 0=pad). Optional.
 
@@ -247,7 +247,7 @@ def _forward_full_log_probs(
         On model device for single model, on CPU for ensemble.
 
     Raises:
-        ValueError: If models is an APIModel (no logits available).
+        ValueError: If models is a TinkerModel (no logits available).
     """
     if _is_api_model(models):
         raise ValueError(
@@ -843,7 +843,7 @@ def compute_unconditional_surprises(
 
 
 def _compute_permutation_curves_batched(
-    models: list[PreTrainedModel] | "APIModel",
+    models: list[PreTrainedModel] | "TinkerModel",
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
@@ -1035,7 +1035,7 @@ def _compute_metrics_from_curves(
 
 
 def _metrics_from_single_ordering(
-    models: list[PreTrainedModel] | "APIModel",
+    models: list[PreTrainedModel] | "TinkerModel",
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
@@ -1233,7 +1233,7 @@ def compute_icl_diversity_metrics(
 
 
 def _compute_single_temperature(
-    models: list[PreTrainedModel] | "APIModel",
+    models: list[PreTrainedModel] | "TinkerModel",
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
     responses: list[str],
