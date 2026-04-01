@@ -316,7 +316,7 @@ def output_csv_path(source_csv: Path, output_dir: Path, source_data_dir: Path) -
 
     Preserves the subdirectory structure (e.g. McDiv/foo.csv → output_dir/McDiv/foo.csv).
     """
-    rel = source_csv.relative_to(source_data_dir)
+    rel = source_csv.resolve().relative_to(source_data_dir.resolve())
     return output_dir / rel
 
 
@@ -711,10 +711,17 @@ def main() -> None:
         help="Output directory (default: results/tevet/<run-tag>)",
     )
     parser.add_argument(
+        "--provider",
+        type=str,
+        choices=["local", "tinker"],
+        default="local",
+        help="Model provider: local (HuggingFace) or tinker (default: local)",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default="auto",
-        help="Device: 'cpu', 'cuda', 'cuda:0', or 'auto' (default: auto)",
+        help="Device: 'cpu', 'cuda', 'cuda:0', or 'auto' (default: auto; local provider only)",
     )
     parser.add_argument(
         "--torch-dtype",
@@ -803,35 +810,50 @@ def main() -> None:
     max_tokens = 1024
 
     if not args.migrate_from_sidecars:
-        # Resolve device
-        if args.device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+        if args.provider == "tinker":
+            from icl_diversity.tinker_model import TinkerModel
+
+            logger.info(f"Using Tinker API model: {args.base_model}")
+            model = TinkerModel(
+                model_name=args.base_model,
+                max_concurrent_requests=args.batch_size,
+            )
+            tokenizer = model.tokenizer
+            max_tokens = 32768  # Tinker default context length
+            logger.info(f"Max context length: {max_tokens} tokens")
+            run_config["provider"] = "tinker"
+            run_config["max_tokens"] = max_tokens
         else:
-            device = args.device
-        logger.info(f"Using device: {device}")
+            # Resolve device
+            if args.device == "auto":
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+            else:
+                device = args.device
+            logger.info(f"Using device: {device}")
 
-        # Load model and tokenizer
-        dtype_map = {
-            "float32": torch.float32,
-            "float16": torch.float16,
-            "bfloat16": torch.bfloat16,
-        }
-        torch_dtype = dtype_map[args.torch_dtype]
+            # Load model and tokenizer
+            dtype_map = {
+                "float32": torch.float32,
+                "float16": torch.float16,
+                "bfloat16": torch.bfloat16,
+            }
+            torch_dtype = dtype_map[args.torch_dtype]
 
-        logger.info(f"Loading model: {args.base_model}")
-        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
-        model = AutoModelForCausalLM.from_pretrained(
-            args.base_model,
-            torch_dtype=torch_dtype,
-            device_map=args.device if args.device == "auto" else None,
-        )
-        if args.device != "auto":
-            model = model.to(device)
-        model.eval()
+            logger.info(f"Loading model: {args.base_model}")
+            tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+            model = AutoModelForCausalLM.from_pretrained(
+                args.base_model,
+                torch_dtype=torch_dtype,
+                device_map=args.device if args.device == "auto" else None,
+            )
+            if args.device != "auto":
+                model = model.to(device)
+            model.eval()
 
-        max_tokens = getattr(model.config, "max_position_embeddings", 1024)
-        logger.info(f"Max context length: {max_tokens} tokens")
-        run_config["max_tokens"] = max_tokens
+            max_tokens = getattr(model.config, "max_position_embeddings", 1024)
+            logger.info(f"Max context length: {max_tokens} tokens")
+            run_config["provider"] = "local"
+            run_config["max_tokens"] = max_tokens
     else:
         logger.info("Migration mode: using cached sidecar data only")
 

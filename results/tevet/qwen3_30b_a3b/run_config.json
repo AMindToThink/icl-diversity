@@ -1,0 +1,11 @@
+{
+  "base_model": "Qwen/Qwen3-30B-A3B-Base",
+  "run_tag": "qwen3_30b_a3b",
+  "n_permutations": 50,
+  "torch_dtype": "float32",
+  "batch_size": 50,
+  "format_mode": "completion",
+  "dedup": false,
+  "provider": "tinker",
+  "max_tokens": 32768
+}

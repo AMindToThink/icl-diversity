@@ -2,346 +2,43 @@
 ====================================================================================================
   McDiv_nuggets (content diversity — PRIMARY)
 ====================================================================================================
-  Dataset                                  Metric                   Spearman ρ    ROC AUC
-  ---------------------------------------- ---------------------- ------------ ----------
-  prompt_gen (with_hds)                    C×a_inf_fit (pb)             +0.050      0.529
-                                           C×a_inf_fit (bits)           -0.145      0.416
-                                           C×a_n (pb)                   +0.680      0.894
-                                           C×a_n (bits)                 +0.092      0.553
-                                           a_inf_fit (pb)               -0.014      0.492
-                                           a_inf_fit (bits)             -0.175      0.399
-                                           a_1 (pb)                     -0.064      0.463
-                                           a_1 (bits)                   -0.379      0.281
-                                           D_fit (pb)                   +0.246      0.642
-                                           D_fit (bits)                 +0.106      0.561
-                                           D_disc (pb)                  -0.442      0.244
-                                           D_disc (bits)                -0.498      0.212
-                                           E_fit (pb)                   +0.237      0.637
-                                           E_fit (bits)                 +0.089      0.551
-                                           E_disc (pb)                  -0.416      0.260
-                                           E_disc (bits)                -0.504      0.208
-                                           redundancy (pb)              -0.048      0.528
-
-  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.343      0.699
-                                           C×a_inf_fit (bits)           +0.114      0.566
-                                           C×a_n (pb)                   +0.446      0.759
-                                           C×a_n (bits)                 +0.106      0.562
-                                           a_inf_fit (pb)               +0.215      0.625
-                                           a_inf_fit (bits)             +0.095      0.555
-                                           a_1 (pb)                     -0.106      0.438
-                                           a_1 (bits)                   -0.213      0.376
-                                           D_fit (pb)                   -0.120      0.430
-                                           D_fit (bits)                 -0.160      0.407
-                                           D_disc (pb)                  -0.354      0.294
-                                           D_disc (bits)                -0.341      0.302
-                                           E_fit (pb)                   -0.133      0.423
-                                           E_fit (bits)                 -0.195      0.387
-                                           E_disc (pb)                  -0.361      0.290
-                                           E_disc (bits)                -0.425      0.253
-                                           redundancy (pb)              -0.348      0.702
-
-  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.319      0.684
-                                           C×a_inf_fit (bits)           +0.220      0.627
-                                           C×a_n (pb)                   +0.403      0.733
-                                           C×a_n (bits)                 +0.281      0.662
-                                           a_inf_fit (pb)               +0.039      0.523
-                                           a_inf_fit (bits)             +0.134      0.578
-                                           a_1 (pb)                     -0.387      0.277
-                                           a_1 (bits)                   -0.105      0.439
-                                           D_fit (pb)                   -0.311      0.320
-                                           D_fit (bits)                 -0.203      0.383
-                                           D_disc (pb)                  -0.474      0.226
-                                           D_disc (bits)                -0.405      0.266
-                                           E_fit (pb)                   -0.326      0.312
-                                           E_fit (bits)                 -0.273      0.342
-                                           E_disc (pb)                  -0.455      0.237
-                                           E_disc (bits)                -0.486      0.219
-                                           redundancy (pb)              -0.395      0.728
-
-  prompt_gen (no_hds)                      C×a_inf_fit (pb)             +0.012      0.508
-                                           C×a_inf_fit (bits)           -0.201      0.378
-                                           C×a_n (pb)                   +0.601      0.866
-                                           C×a_n (bits)                 +0.059      0.536
-                                           a_inf_fit (pb)               -0.053      0.468
-                                           a_inf_fit (bits)             -0.225      0.363
-                                           a_1 (pb)                     -0.132      0.420
-                                           a_1 (bits)                   -0.366      0.277
-                                           D_fit (pb)                   +0.266      0.662
-                                           D_fit (bits)                 +0.186      0.613
-                                           D_disc (pb)                  -0.298      0.319
-                                           D_disc (bits)                -0.363      0.279
-                                           E_fit (pb)                   +0.260      0.658
-                                           E_fit (bits)                 +0.169      0.603
-                                           E_disc (pb)                  -0.298      0.318
-                                           E_disc (bits)                -0.386      0.265
-                                           redundancy (pb)              -0.015      0.509
-
-  resp_gen (no_hds)                        C×a_inf_fit (pb)             +0.142      0.587
-                                           C×a_inf_fit (bits)           -0.085      0.448
-                                           C×a_n (pb)                   +0.298      0.682
-                                           C×a_n (bits)                 -0.047      0.471
-                                           a_inf_fit (pb)               +0.073      0.544
-                                           a_inf_fit (bits)             -0.109      0.433
-                                           a_1 (pb)                     -0.087      0.447
-                                           a_1 (bits)                   -0.307      0.312
-                                           D_fit (pb)                   -0.015      0.491
-                                           D_fit (bits)                 -0.056      0.466
-                                           D_disc (pb)                  -0.212      0.370
-                                           D_disc (bits)                -0.297      0.318
-                                           E_fit (pb)                   -0.027      0.483
-                                           E_fit (bits)                 -0.080      0.451
-                                           E_disc (pb)                  -0.215      0.369
-                                           E_disc (bits)                -0.351      0.285
-                                           redundancy (pb)              -0.150      0.592
-
-  story_gen (no_hds)                       C×a_inf_fit (pb)             +0.174      0.606
-                                           C×a_inf_fit (bits)           +0.027      0.516
-                                           C×a_n (pb)                   +0.271      0.664
-                                           C×a_n (bits)                 +0.092      0.556
-                                           a_inf_fit (pb)               +0.027      0.516
-                                           a_inf_fit (bits)             -0.024      0.485
-                                           a_1 (pb)                     -0.227      0.363
-                                           a_1 (bits)                   -0.180      0.391
-                                           D_fit (pb)                   -0.185      0.388
-                                           D_fit (bits)                 -0.198      0.380
-                                           D_disc (pb)                  -0.319      0.306
-                                           D_disc (bits)                -0.366      0.278
-                                           E_fit (pb)                   -0.179      0.391
-                                           E_fit (bits)                 -0.222      0.365
-                                           E_disc (pb)                  -0.297      0.320
-                                           E_disc (bits)                -0.404      0.255
-                                           redundancy (pb)              -0.230      0.640
-
+  Dataset                                  Metric                   Spearman ρ    ROC AUC      OCA
+  ---------------------------------------- ---------------------- ------------ ---------- --------
 
 ====================================================================================================
   ConTest (binary content diversity)
 ====================================================================================================
-  Dataset                                  Metric                   Spearman ρ    ROC AUC
-  ---------------------------------------- ---------------------- ------------ ----------
-  prompt_gen (with_hds)                    C×a_inf_fit (pb)                nan          —
-                                           C×a_inf_fit (bits)              nan          —
-                                           C×a_n (pb)                      nan          —
-                                           C×a_n (bits)                    nan          —
-                                           a_inf_fit (pb)                  nan          —
-                                           a_inf_fit (bits)                nan          —
-                                           a_1 (pb)                        nan          —
-                                           a_1 (bits)                      nan          —
-                                           D_fit (pb)                      nan          —
-                                           D_fit (bits)                    nan          —
-                                           D_disc (pb)                     nan          —
-                                           D_disc (bits)                   nan          —
-                                           E_fit (pb)                      nan          —
-                                           E_fit (bits)                    nan          —
-                                           E_disc (pb)                     nan          —
-                                           E_disc (bits)                   nan          —
-                                           redundancy (pb)                 nan          —
-
-  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.225      0.667
-                                           C×a_inf_fit (bits)           +0.025      0.519
-                                           C×a_n (pb)                   +0.280      0.707
-                                           C×a_n (bits)                 +0.003      0.502
-                                           a_inf_fit (pb)               +0.179      0.632
-                                           a_inf_fit (bits)             +0.021      0.515
-                                           a_1 (pb)                     +0.004      0.503
-                                           a_1 (bits)                   -0.161      0.381
-                                           D_fit (pb)                   -0.042      0.469
-                                           D_fit (bits)                 -0.156      0.384
-                                           D_disc (pb)                  -0.217      0.339
-                                           D_disc (bits)                -0.251      0.314
-                                           E_fit (pb)                   -0.039      0.471
-                                           E_fit (bits)                 -0.179      0.367
-                                           E_disc (pb)                  -0.176      0.370
-                                           E_disc (bits)                -0.268      0.301
-                                           redundancy (pb)              -0.211      0.656
-
-  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.546      0.886
-                                           C×a_inf_fit (bits)           -0.077      0.446
-                                           C×a_n (pb)                   +0.620      0.937
-                                           C×a_n (bits)                 +0.009      0.507
-                                           a_inf_fit (pb)               +0.303      0.714
-                                           a_inf_fit (bits)             -0.119      0.416
-                                           a_1 (pb)                     -0.209      0.353
-                                           a_1 (bits)                   -0.386      0.228
-                                           D_fit (pb)                   -0.301      0.288
-                                           D_fit (bits)                 -0.243      0.328
-                                           D_disc (pb)                  -0.552      0.110
-                                           D_disc (bits)                -0.537      0.121
-                                           E_fit (pb)                   -0.309      0.282
-                                           E_fit (bits)                 -0.250      0.324
-                                           E_disc (pb)                  -0.551      0.111
-                                           E_disc (bits)                -0.545      0.116
-                                           redundancy (pb)              -0.602      0.925
+  Dataset                                  Metric                   Spearman ρ    ROC AUC      OCA
+  ---------------------------------------- ---------------------- ------------ ---------- --------
+  prompt_gen (with_hds)                    C×a_inf_fit (pb)                nan        nan      nan
+                                           C×a_inf_fit (bits)              nan        nan      nan
+                                           C×a_n (pb)                   +0.592      0.842    0.805
+                                           C×a_n (bits)                 +0.098      0.557    0.570
+                                           a_n (pb)                     +0.420      0.743    0.710
+                                           a_n (bits)                   +0.003      0.502    0.530
+                                           a_inf_fit (pb)                  nan        nan      nan
+                                           a_inf_fit (bits)                nan        nan      nan
+                                           a_1 (pb)                     -0.260      0.350    0.630
+                                           a_1 (bits)                   -0.372      0.285    0.675
+                                           D_fit (pb)                      nan        nan      nan
+                                           D_fit (bits)                    nan        nan      nan
+                                           D_disc (pb)                  -0.412      0.262    0.690
+                                           D_disc (bits)                -0.404      0.267    0.700
+                                           E_fit (pb)                      nan        nan      nan
+                                           E_fit (bits)                    nan        nan      nan
+                                           E_disc (pb)                  -0.413      0.262    0.695
+                                           E_disc (bits)                -0.425      0.255    0.720
+                                           redundancy (pb)                 nan        nan      nan
 
 
 ====================================================================================================
   DecTest (temperature correlation)
 ====================================================================================================
-  Dataset                                  Metric                   Spearman ρ    ROC AUC
-  ---------------------------------------- ---------------------- ------------ ----------
-  prompt_gen (no_hds)                      C×a_inf_fit (pb)             +0.854          —
-                                           C×a_inf_fit (bits)           +0.762          —
-                                           C×a_n (pb)                   +0.842          —
-                                           C×a_n (bits)                 +0.761          —
-                                           a_inf_fit (pb)               +0.918          —
-                                           a_inf_fit (bits)             +0.923          —
-                                           a_1 (pb)                     +0.723          —
-                                           a_1 (bits)                   +0.823          —
-                                           D_fit (pb)                   -0.414          —
-                                           D_fit (bits)                 -0.361          —
-                                           D_disc (pb)                  -0.557          —
-                                           D_disc (bits)                -0.531          —
-                                           E_fit (pb)                   -0.146          —
-                                           E_fit (bits)                 -0.079          —
-                                           E_disc (pb)                  -0.320          —
-                                           E_disc (bits)                -0.304          —
-                                           redundancy (pb)              -0.892          —
-
-  resp_gen (no_hds)                        C×a_inf_fit (pb)             +0.805          —
-                                           C×a_inf_fit (bits)           +0.688          —
-                                           C×a_n (pb)                   +0.771          —
-                                           C×a_n (bits)                 +0.831          —
-                                           a_inf_fit (pb)               +0.924          —
-                                           a_inf_fit (bits)             +0.778          —
-                                           a_1 (pb)                     +0.813          —
-                                           a_1 (bits)                   +0.890          —
-                                           D_fit (pb)                   -0.564          —
-                                           D_fit (bits)                 -0.250          —
-                                           D_disc (pb)                  -0.509          —
-                                           D_disc (bits)                -0.215          —
-                                           E_fit (pb)                   -0.289          —
-                                           E_fit (bits)                 -0.027          —
-                                           E_disc (pb)                  -0.284          —
-                                           E_disc (bits)                -0.025          —
-                                           redundancy (pb)              -0.860          —
-
-  story_gen (no_hds)                       C×a_inf_fit (pb)             +0.774          —
-                                           C×a_inf_fit (bits)           +0.684          —
-                                           C×a_n (pb)                   +0.763          —
-                                           C×a_n (bits)                 +0.688          —
-                                           a_inf_fit (pb)               +0.774          —
-                                           a_inf_fit (bits)             +0.731          —
-                                           a_1 (pb)                     +0.547          —
-                                           a_1 (bits)                   +0.473          —
-                                           D_fit (pb)                   -0.341          —
-                                           D_fit (bits)                 -0.267          —
-                                           D_disc (pb)                  -0.326          —
-                                           D_disc (bits)                -0.293          —
-                                           E_fit (pb)                   -0.090          —
-                                           E_fit (bits)                 -0.054          —
-                                           E_disc (pb)                  -0.177          —
-                                           E_disc (bits)                -0.156          —
-                                           redundancy (pb)              -0.798          —
-
-  prompt_gen (with_hds)                    C×a_inf_fit (pb)             +0.825          —
-                                           C×a_inf_fit (bits)           +0.767          —
-                                           C×a_n (pb)                   +0.845          —
-                                           C×a_n (bits)                 +0.761          —
-                                           a_inf_fit (pb)               +0.894          —
-                                           a_inf_fit (bits)             +0.936          —
-                                           a_1 (pb)                     +0.720          —
-                                           a_1 (bits)                   +0.853          —
-                                           D_fit (pb)                   -0.286          —
-                                           D_fit (bits)                 -0.260          —
-                                           D_disc (pb)                  -0.558          —
-                                           D_disc (bits)                -0.506          —
-                                           E_fit (pb)                   -0.008          —
-                                           E_fit (bits)                 +0.052          —
-                                           E_disc (pb)                  -0.283          —
-                                           E_disc (bits)                -0.277          —
-                                           redundancy (pb)              -0.872          —
-
-  resp_gen (with_hds)                      C×a_inf_fit (pb)             +0.802          —
-                                           C×a_inf_fit (bits)           +0.650          —
-                                           C×a_n (pb)                   +0.760          —
-                                           C×a_n (bits)                 +0.822          —
-                                           a_inf_fit (pb)               +0.929          —
-                                           a_inf_fit (bits)             +0.729          —
-                                           a_1 (pb)                     +0.801          —
-                                           a_1 (bits)                   +0.869          —
-                                           D_fit (pb)                   -0.553          —
-                                           D_fit (bits)                 -0.222          —
-                                           D_disc (pb)                  -0.444          —
-                                           D_disc (bits)                -0.224          —
-                                           E_fit (pb)                   -0.221          —
-                                           E_fit (bits)                 -0.031          —
-                                           E_disc (pb)                  -0.202          —
-                                           E_disc (bits)                -0.054          —
-                                           redundancy (pb)              -0.872          —
-
-  story_gen (with_hds)                     C×a_inf_fit (pb)             +0.809          —
-                                           C×a_inf_fit (bits)           +0.669          —
-                                           C×a_n (pb)                   +0.785          —
-                                           C×a_n (bits)                 +0.681          —
-                                           a_inf_fit (pb)               +0.827          —
-                                           a_inf_fit (bits)             +0.754          —
-                                           a_1 (pb)                     +0.592          —
-                                           a_1 (bits)                   +0.559          —
-                                           D_fit (pb)                   -0.383          —
-                                           D_fit (bits)                 -0.294          —
-                                           D_disc (pb)                  -0.417          —
-                                           D_disc (bits)                -0.349          —
-                                           E_fit (pb)                   -0.124          —
-                                           E_fit (bits)                 -0.068          —
-                                           E_disc (pb)                  -0.267          —
-                                           E_disc (bits)                -0.225          —
-                                           redundancy (pb)              -0.831          —
-
+  Dataset                                  Metric                   Spearman ρ    ROC AUC      OCA
+  ---------------------------------------- ---------------------- ------------ ---------- --------
 
 ====================================================================================================
   McDiv (full, continuous labels)
 ====================================================================================================
-  Dataset                                  Metric                   Spearman ρ    ROC AUC
-  ---------------------------------------- ---------------------- ------------ ----------
-  prompt_gen (no_hds)                      C×a_inf_fit (pb)                nan          —
-                                           C×a_inf_fit (bits)              nan          —
-                                           C×a_n (pb)                      nan          —
-                                           C×a_n (bits)                    nan          —
-                                           a_inf_fit (pb)                  nan          —
-                                           a_inf_fit (bits)                nan          —
-                                           a_1 (pb)                        nan          —
-                                           a_1 (bits)                      nan          —
-                                           D_fit (pb)                      nan          —
-                                           D_fit (bits)                    nan          —
-                                           D_disc (pb)                     nan          —
-                                           D_disc (bits)                   nan          —
-                                           E_fit (pb)                      nan          —
-                                           E_fit (bits)                    nan          —
-                                           E_disc (pb)                     nan          —
-                                           E_disc (bits)                   nan          —
-                                           redundancy (pb)                 nan          —
-
-  resp_gen (no_hds)                        C×a_inf_fit (pb)                nan          —
-                                           C×a_inf_fit (bits)              nan          —
-                                           C×a_n (pb)                      nan          —
-                                           C×a_n (bits)                    nan          —
-                                           a_inf_fit (pb)                  nan          —
-                                           a_inf_fit (bits)                nan          —
-                                           a_1 (pb)                        nan          —
-                                           a_1 (bits)                      nan          —
-                                           D_fit (pb)                      nan          —
-                                           D_fit (bits)                    nan          —
-                                           D_disc (pb)                     nan          —
-                                           D_disc (bits)                   nan          —
-                                           E_fit (pb)                      nan          —
-                                           E_fit (bits)                    nan          —
-                                           E_disc (pb)                     nan          —
-                                           E_disc (bits)                   nan          —
-                                           redundancy (pb)                 nan          —
-
-  story_gen (no_hds)                       C×a_inf_fit (pb)                nan          —
-                                           C×a_inf_fit (bits)              nan          —
-                                           C×a_n (pb)                      nan          —
-                                           C×a_n (bits)                    nan          —
-                                           a_inf_fit (pb)                  nan          —
-                                           a_inf_fit (bits)                nan          —
-                                           a_1 (pb)                        nan          —
-                                           a_1 (bits)                      nan          —
-                                           D_fit (pb)                      nan          —
-                                           D_fit (bits)                    nan          —
-                                           D_disc (pb)                     nan          —
-                                           D_disc (bits)                   nan          —
-                                           E_fit (pb)                      nan          —
-                                           E_fit (bits)                    nan          —
-                                           E_disc (pb)                     nan          —
-                                           E_disc (bits)                   nan          —
-                                           redundancy (pb)                 nan          —
+  Dataset                                  Metric                   Spearman ρ    ROC AUC      OCA
+  ---------------------------------------- ---------------------- ------------ ---------- --------
