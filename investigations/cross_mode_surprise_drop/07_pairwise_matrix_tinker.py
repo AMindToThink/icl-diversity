@@ -362,6 +362,48 @@ def main() -> None:
     print(f"Saved symmetry plot to {fig_path}")
     plt.close()
 
+    # -----------------------------------------------------------------------
+    # Plot row means vs column means (mode-level symmetry)
+    # -----------------------------------------------------------------------
+    reduction_sem = reduction_std / np.sqrt(M_SAMPLES)
+    row_means = reduction_mean.mean(axis=1)
+    col_means = reduction_mean.mean(axis=0)
+    row_sems = np.sqrt((reduction_sem**2).sum(axis=1)) / N_MODES
+    col_sems = np.sqrt((reduction_sem**2).sum(axis=0)) / N_MODES
+
+    rc_coeffs = np.polyfit(row_means, col_means, 1)
+    rc_r2 = np.corrcoef(row_means, col_means)[0, 1] ** 2
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.errorbar(
+        row_means, col_means,
+        xerr=row_sems, yerr=col_sems,
+        fmt="o", markersize=6, alpha=0.7, color="steelblue", capsize=3,
+    )
+    for i, name in enumerate(names):
+        ax.annotate(
+            name, (row_means[i], col_means[i]),
+            fontsize=6.5, textcoords="offset points", xytext=(4, 4),
+        )
+
+    fit_x = np.linspace(row_means.min() - 1, row_means.max() + 1, 100)
+    fit_y = np.polyval(rc_coeffs, fit_x)
+    ax.plot(
+        fit_x, fit_y, "r--", linewidth=1.5, alpha=0.7,
+        label=f"y = {rc_coeffs[0]:.2f}x {rc_coeffs[1]:+.1f}  (R\u00b2={rc_r2:.2f})",
+    )
+
+    ax.set_xlabel("Row mean: how informative as context (bits)")
+    ax.set_ylabel("Column mean: how much benefit from context (bits)")
+    ax.set_title(f"{args.base_model}\nMode informativeness vs. context benefit")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    fig_path = output_dir / "pairwise_row_vs_col.png"
+    plt.savefig(fig_path, dpi=150, bbox_inches="tight")
+    print(f"Saved row-vs-col plot to {fig_path}")
+    plt.close()
+
 
 if __name__ == "__main__":
     main()

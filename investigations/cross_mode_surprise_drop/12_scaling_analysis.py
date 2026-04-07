@@ -78,6 +78,19 @@ def load_model_data(label: str, data_dir: Path) -> dict | None:
         boot_r2s.append(br2)
         boot_slopes.append(bc[0])
 
+    # Row and column means (for row-vs-col symmetry plot)
+    reduction_sem = np.array(data["reduction_std"]) / np.sqrt(data["m_samples"])
+    row_means = red.mean(axis=1)
+    col_means = red.mean(axis=0)
+    row_sems = np.sqrt((reduction_sem**2).sum(axis=1)) / n
+    col_sems = np.sqrt((reduction_sem**2).sum(axis=0)) / n
+
+    # Row-col correlation
+    rc_coeffs = np.polyfit(row_means, col_means, 1)
+    rc_r2 = np.corrcoef(row_means, col_means)[0, 1] ** 2
+
+    mode_names = data.get("mode_names", [f"mode_{i}" for i in range(n)])
+
     return {
         "label": label,
         "diagonal_mean": float(np.diag(red).mean()),
@@ -92,9 +105,15 @@ def load_model_data(label: str, data_dir: Path) -> dict | None:
         "ys": ys,
         "off_diag_vals": off_diag_vals,
         "n_off_diag": len(off_diag_vals),
-        # t-test: is off-diagonal mean significantly different from 0?
         "off_diag_tstat": float(scipy_stats.ttest_1samp(off_diag_vals, 0).statistic),
         "off_diag_pval": float(scipy_stats.ttest_1samp(off_diag_vals, 0).pvalue),
+        "row_means": row_means,
+        "col_means": col_means,
+        "row_sems": row_sems,
+        "col_sems": col_sems,
+        "rc_slope": float(rc_coeffs[0]),
+        "rc_r2": float(rc_r2),
+        "mode_names": mode_names,
     }
 
 
@@ -237,6 +256,67 @@ def main() -> None:
     print(f"Saved metrics vs size to {fig_path}")
     plt.close()
 
+    # --- Row vs column grid (mode-level symmetry) ---
+    fig, axes = plt.subplots(rows, cols, figsize=(7 * cols, 7 * rows))
+    if n_models == 1:
+        axes = np.array([axes])
+    axes = axes.flatten()
+
+    for idx, (label, size, d) in enumerate(all_data):
+        ax = axes[idx]
+        ax.errorbar(
+            d["row_means"], d["col_means"],
+            xerr=d["row_sems"], yerr=d["col_sems"],
+            fmt="o", markersize=5, alpha=0.7, color="steelblue", capsize=2,
+        )
+        # Label each point with mode name
+        for i, name in enumerate(d["mode_names"]):
+            ax.annotate(
+                name, (d["row_means"][i], d["col_means"][i]),
+                fontsize=5, textcoords="offset points", xytext=(3, 3),
+            )
+        # Fit line
+        fit_x = np.linspace(d["row_means"].min() - 1, d["row_means"].max() + 1, 100)
+        fit_y = d["rc_slope"] * fit_x + (d["col_means"].mean() - d["rc_slope"] * d["row_means"].mean())
+        ax.plot(fit_x, fit_y, "r--", linewidth=1, alpha=0.7)
+
+        ax.set_title(
+            f"{label}\nrow-col R\u00b2={d['rc_r2']:.2f}, slope={d['rc_slope']:.2f}",
+            fontsize=10,
+        )
+        ax.set_xlabel("Row mean: informativeness as context (bits)")
+        ax.set_ylabel("Col mean: benefit from context (bits)")
+        ax.grid(True, alpha=0.2)
+
+    for idx in range(n_models, len(axes)):
+        axes[idx].set_visible(False)
+
+    plt.tight_layout()
+    fig_path = OUTPUT_DIR / "row_vs_col_grid.png"
+    plt.savefig(fig_path, dpi=150, bbox_inches="tight")
+    print(f"Saved row-vs-col grid to {fig_path}")
+    plt.close()
+
+    # --- Off-diagonal distribution comparison ---
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = plt.cm.viridis(np.linspace(0.15, 0.85, len(all_data)))
+    for idx, (label, size, d) in enumerate(all_data):
+        ax.hist(
+            d["off_diag_vals"], bins=30, alpha=0.4, color=colors[idx],
+            label=f"{label} (mean={d['off_diagonal_mean']:+.1f})",
+            density=True,
+        )
+    ax.axvline(x=0, color="black", linewidth=1, linestyle=":")
+    ax.set_xlabel("Surprise reduction (bits)")
+    ax.set_ylabel("Density")
+    ax.set_title("Distribution of off-diagonal (cross-mode) surprise reduction")
+    ax.legend(fontsize=8)
+
+    fig_path = OUTPUT_DIR / "off_diagonal_distributions.png"
+    plt.savefig(fig_path, dpi=150, bbox_inches="tight")
+    print(f"Saved off-diagonal distributions to {fig_path}")
+    plt.close()
+
     # Save summary as JSON
     summary = {
         "models": [
@@ -252,6 +332,8 @@ def main() -> None:
                 "slope_ci": d["slope_ci"],
                 "off_diag_tstat": d["off_diag_tstat"],
                 "off_diag_pval": d["off_diag_pval"],
+                "rc_slope": d["rc_slope"],
+                "rc_r2": d["rc_r2"],
             }
             for label, size, d in all_data
         ]
