@@ -694,14 +694,16 @@ def generate_experiment_jsons(output_dir: Path, tag: str) -> list[Path]:
     experiments_dir = output_dir / "experiments"
     experiments_dir.mkdir(parents=True, exist_ok=True)
 
-    # Compute relative path from diversity-eval/ to output_dir
-    diversity_eval_dir = PROJECT_ROOT / "diversity-eval"
+    # Compute relative path from diversity-eval/ to output_dir.
+    # Resolve to absolute paths first so relative_to works regardless of cwd.
+    output_dir_abs = output_dir.resolve()
+    diversity_eval_dir = (PROJECT_ROOT / "diversity-eval").resolve()
     try:
-        rel_to_de = output_dir.relative_to(diversity_eval_dir)
+        rel_to_de = output_dir_abs.relative_to(diversity_eval_dir)
         prefix = str(rel_to_de)
     except ValueError:
         # output_dir is outside diversity-eval, use relative path
-        prefix = str(Path("..") / output_dir.relative_to(PROJECT_ROOT))
+        prefix = str(Path("..") / output_dir_abs.relative_to(PROJECT_ROOT.resolve()))
 
     generated: list[Path] = []
     for exp_name, (class_name, sub_exps) in EXPERIMENT_TEMPLATES.items():
