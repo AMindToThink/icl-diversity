@@ -841,7 +841,7 @@ Unconditional surprise $a_1$ performs poorly on binary tasks (not shown; OCA nea
 
 \paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent. This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay). The sigmoid fit still provides a useful parametric form for extrapolating $a_\infty$, even when the inflection point is degenerate ($k_0 < 1$).
 
-\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (within 5--15\% OCA of SentBERT), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity). The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities. Whether the performance gap with SentBERT closes with a stronger base model remains to be tested.
+\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (within 5--15\% OCA of SentBERT), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity). The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities. We tested whether scaling the base model closes the gap with SentBERT by re-running the evaluation with Qwen3-30B-A3B-Base ($\sim$10$\times$ larger; see Appendix~\ref{app:qwen3-comparison}). It does not: on the binary McDiv/ConTest tasks, the larger model is slightly \emph{worse} than Qwen2.5-3B (mean $-0.014$ AUC), though it is mildly better on the continuous DecTest temperature labels. We interpret this as evidence that the binary human labels are coarse enough to be saturated for our metric at the 3B scale. Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
 
 \section{Related Concepts}
 
@@ -1047,6 +1047,24 @@ These duplicates introduce noise into any correlation analysis: the same $\bar{a
 \subsection{Implications}
 
 This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$---it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
+
+\section{Scaling the Base Model: Qwen2.5-3B vs Qwen3-30B-A3B-Base}\label{app:qwen3-comparison}
+
+To test whether a stronger base model improves the metric on Tevet's benchmarks, we re-ran the full evaluation using Qwen3-30B-A3B-Base (a 30B-parameter mixture-of-experts model with $\sim$3B active parameters per token) via the Tinker API, with the same setup as in Section~\ref{sec:tevet}: completion-format prompting, 50 permutations, no fine-tuning. Table~\ref{tab:qwen3-comparison} reports per-task $C \times a_n$ (per-byte) for both base models.
+
+\begin{table}[h]
+\centering
+\caption{Per-task comparison of $C \times a_n$ (per-byte) for Qwen2.5-3B vs Qwen3-30B-A3B-Base on Tevet diversity-eval. $\Delta$AUC is positive when the larger model wins. ROC AUC is reported for the binary tasks (McDiv, McDiv\_nuggets, ConTest); only Spearman $\rho$ is meaningful for DecTest (continuous temperature labels).}
+\label{tab:qwen3-comparison}
+\small
+\input{../results/tables/qwen3_comparison.tex}
+\end{table}
+
+\paragraph{Result: scaling did not help on the binary tasks.} On the 12 binary classification tasks (McDiv, McDiv\_nuggets, ConTest), Qwen2.5-3B wins on 11 of 12, with ConTest prompt\_gen the only marginal win for Qwen3-30B-A3B ($+0.005$ AUC). The mean degradation from scaling is small but consistent ($\sim$0.014 AUC across binary tasks). On the 6 DecTest tasks (continuous temperature labels), Qwen3-30B-A3B is mildly better on 5 of 6 (mean $+0.020$ in Spearman $\rho$, with one tie).
+
+\paragraph{Interpretation.} A natural reading is that the binary McDiv/ConTest labels have low information content---they distinguish only ``high'' vs ``low'' diversity, and this distinction is coarse enough that a 3B base model already captures the relevant signal. A larger model has nothing more to extract that the binary label can reward. The continuous DecTest labels are noise-free (temperature is the ground truth), so additional metric resolution from a larger model translates into measurable correlation gains. If this interpretation is correct, the binary tasks are saturated for our metric and the path to improvement runs through finer-grained labels rather than larger base models.
+
+\paragraph{Caveat: prompt structure was not optimized.} We made no attempt to optimize the prompt structure used to elicit ICL on these benchmarks; the formatting follows the neutral template from Section~\ref{sec:practical} verbatim. A targeted prompt structure (e.g., explicitly framing the responses as ``Five high-diversity continuations,'' or providing in-context exemplars of diverse vs.\ repetitive sets) would likely improve the metric's discriminative power, particularly for the larger model whose ICL capabilities benefit more from carefully constructed contexts. We leave prompt-structure optimization to future work.
 
 \section*{Acknowledgements}
 
