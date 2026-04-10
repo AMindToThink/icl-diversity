@@ -14,6 +14,7 @@
 \usepackage{pgfplots}
 \usepgfplotslibrary{fillbetween}
 \pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc, shapes.geometric}
 
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\KL}{D_{\mathrm{KL}}}
@@ -41,7 +42,66 @@ We propose an alternative grounded in information theory: use a trusted base mod
 
 \paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses. All quantities derived below --- the progressive conditional surprise curve, the excess entropy, and the coherence term --- measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}. If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity. Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy. The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$. As base models continue to improve at in-context learning, this gap narrows.
 
-\section{Setup and Notation}
+Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper formalizes each step.
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt},
+    stage/.style={box, fill=gray!8},
+    cond/.style={box, fill=orange!10},
+    uncond/.style={box, fill=blue!8},
+    final/.style={box, fill=green!10, very thick},
+    arrow/.style={-{Latex[length=1.8mm]}, thick},
+    node distance=2mm and 4mm,
+]
+
+% --- INPUT + FORMAT (combined, top) ---
+\node[stage, text width=0.92\textwidth] (input) {
+    \textbf{Input:} prompt $p$, responses $r_1,\ldots,r_n$ from policy $\pi$.\quad
+    \textbf{Format:} \texttt{p\textbackslash n\textbackslash nResponse A: $r_{\sigma(1)}$\textbackslash n\textbackslash nResponse B: $r_{\sigma(2)}$\,\ldots}\quad
+    \textbf{Tokenize:} $[\texttt{Resp}][\texttt{onse}][\texttt{ A}][\texttt{:}][\texttt{ Rain}][\texttt{ falls}]\cdots$
+};
+
+% --- CONDITIONAL TRACK (LEFT) ---
+\node[cond, below left=5mm and 1mm of input.south, text width=0.45\textwidth, anchor=north east] (cond) {
+    \textbf{Conditional track} \;{\scriptsize ($\times\,n_\sigma$ permutations)}\\[2pt]
+    Feed concatenated context to base model $\theta$ in one forward pass.\\
+    For each response slot $k$:
+    \[ a_k^\sigma \;=\; -\!\!\sum_{t \in r_{\sigma(k)}}\!\!\log_2 \theta(t \mid \mathrm{prev}) \]
+    Divide by $\|r_{\sigma(k)}\|$ \emph{(per-byte)}, then average over $\sigma$:
+    \[ \bar a_k \;\rightarrow\; \text{floor }a_n \approx a_\infty \]
+};
+
+% --- UNCONDITIONAL TRACK (RIGHT) ---
+\node[uncond, below right=5mm and 1mm of input.south, text width=0.45\textwidth, anchor=north west] (unc) {
+    \textbf{Unconditional track} \;{\scriptsize ($n$ separate passes)}\\[2pt]
+    Feed each $r_i$ alone (with prompt $p$) to $\theta$.
+    \[ h(r_i\mid p) \;=\; -\tfrac{1}{\|r_i\|}\log_2 \theta(r_i \mid p) \]
+    \emph{(per-byte)} Take the geometric mean:
+    \[ C \;=\; 2^{-\,\frac{1}{n}\sum_i h(r_i\mid p)} \]
+};
+
+% Arrows from input down to each track
+\draw[arrow] (input.south) -- ++(0,-1mm) -| (cond.north);
+\draw[arrow] (input.south) -- ++(0,-1mm) -| (unc.north);
+
+% --- FINAL FORMULA ---
+\node[final, below=4mm of input, text width=0.62\textwidth, yshift=-43mm] (out) {
+    \textbf{Diversity score:}\quad $D_{a_\infty} \;=\; C \times a_n$\quad{\scriptsize(bits/byte)}
+};
+
+% Arrows from each track to final
+\draw[arrow] (cond.south) |- ($(out.west) + (-2mm,0)$);
+\draw[arrow] (unc.south)  |- ($(out.east) + (2mm,0)$);
+
+\end{tikzpicture}
+\caption{The diversity-metric pipeline. Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize. The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$. Its last point $a_n$ estimates the asymptotic floor $a_\infty$. The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte, and the geometric mean defines coherence $C$. The product $D_{a_\infty} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte). Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Setup and Notation}\label{sec:setup-notation}
 
 Let:
 \begin{itemize}[nosep]
