@@ -177,161 +177,15 @@ The $a_k$ curve is the fundamental object of interest. Its shape reveals the str
 
 This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
-\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}) and for the choice of estimator for $a_\infty$ (Section~\ref{sec:excess-entropy}). Section~\ref{sec:cross-mode-learning} provides empirical evidence that the sigmoid prediction holds for GPT-2 but not for more capable models, where cross-mode learning produces exponential decay even at high $m$.
-
-\section{Excess Entropy}
-
-\subsection{The Excess Entropy}\label{sec:excess-entropy}
-
-Neither the running average $\bar{a}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is a satisfactory single scalar. The running average converges to $a_\infty$ (the uninteresting residual floor), losing sensitivity to the learnable structure above it. The total correlation grows linearly in $n$ and never saturates, because each new term contributes approximately $-\log_2 \theta(r \mid p) - a_\infty > 0$ for large $k$.
-
-The solution is to isolate the signal above the noise floor. Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:\footnote{The excess entropy $E = \sum_k (a_k - a_\infty)$ is defined as a discrete sum over integer response indices, since ``conditioning on 3.5 responses'' has no direct meaning. However, a continuous extension exists: consider conditioning on a random subset of size $\alpha n$ for $\alpha \in [0,1]$, yielding a continuous curve $\bar{a}(\alpha)$. The discrete $\bar{a}_k$ would be samples at $\alpha = k/n$, and $E$ would correspond to integrating this curve (in which case trapezoidal integration would be more faithful than Riemann sums). We treat $E$ as the discrete sum throughout, but note that the continuous interpretation remains an open question, particularly in connection to the continuous excess entropy literature. The practical difference between Riemann and trapezoidal sums over $\sim$15 points is small.}
-\begin{equation}\label{eq:excess}
-    E = \sum_{k=1}^{\infty}\bigl(a_k - a_\infty\bigr)
-\end{equation}
-
-Units: bits. This is the total learnable structural information in the progressive conditioning process, above the irreducible residual noise. It converges whenever $\theta$'s surprise at new responses eventually stabilizes (since $a_k \to a_\infty$ and the excess $e_k = a_k - a_\infty$ decays to zero). Note that the ``structure'' captured by $E$ is not limited to discrete mode identity: it includes any inter-response regularity that $\theta$ can learn from context, such as shared stylistic patterns, vocabulary, topic constraints, and formatting conventions, in addition to discrete modes.
-
-In practice, $a_\infty$ is unknown. We estimate it as $a_n$ (the last observed value) and compute:
-\begin{equation}\label{eq:excess-hat}
-    \hat{E}_n = \sum_{k=1}^{n}(a_k - a_n)
-\end{equation}
-
-This underestimates $E$ (since $a_n \geq a_\infty$), but the bias decreases with $n$.
-
-\paragraph{Parametric extrapolation of $a_\infty$.} Rather than using $a_n$ directly, one can fit a parametric model to the observed curve and extrapolate $a_\infty$. As discussed in Section~\ref{sec:progressive-conditioning}, the $a_k$ curve is theoretically expected to be sigmoidal (with concave-up/exponential decay as the degenerate case when the inflection point $k_0 < 1$). This motivates fitting a four-parameter sigmoid:
-\begin{equation}\label{eq:sigmoid-fit}
-    a_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
-\end{equation}
-where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point. This fit has several advantages: (i) it yields $a_\infty$ without requiring $n$ to be large enough for convergence, reducing the tension between wanting large $n$ for a good estimate and keeping $n$ small to avoid out-of-distribution effects; (ii) the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (see Section~\ref{sec:mode-count-from-curve}); and (iii) it unifies the exponential and sigmoidal regimes --- when the fit returns $k_0 < 1$, the curve is effectively exponential (few modes), and when $k_0 > 1$, the curve has a genuine plateau (many modes). In practice, we recommend fitting Eq.~\ref{eq:sigmoid-fit} by nonlinear least squares and using the fitted $a_\infty$ in place of $a_n$ in Eq.~\ref{eq:excess-hat}, particularly when the curve has not visibly converged by $k = n$. Section~\ref{sec:mode-count-scaling} provides empirical evidence that the sigmoid-extrapolated $E_{\mathrm{fit}}$ recovers the expected monotonic relationship between mode count and excess entropy, while the raw $\hat{E}_n$ estimator does not.
-
-\paragraph{Out-of-distribution risk.} In practice, the conditioning context grows with $k$. For large $k$, the concatenation of many responses may push $\theta$ out of distribution: the context may exceed lengths seen during pretraining, or the repeated-response formatting may be sufficiently unusual that $\theta$'s predictions become unreliable. When $\theta$ goes out of distribution, $a_k$ may \emph{increase} rather than decrease (reflecting model confusion rather than genuine novelty), violating the monotonicity assumption and corrupting the excess entropy estimate. It is therefore important to monitor $a_k$ for non-monotonicity, particularly at large $k$, and to keep $n$ within a range where the total context length remains well within $\theta$'s reliable operating regime. If responses are long, $n$ may need to be reduced accordingly.
-
-\paragraph{Relationship to total correlation.} The excess entropy and total correlation are complementary decompositions of the same underlying structure. Working in expectation over i.i.d.\ draws from $\pi$, let $\bar{a}_1 = \E[-\log_2 \theta(r \mid p)]$ denote the expected unconditional cross-entropy in bits (identical for all $k$ by identical distribution), $\bar{a}_k = \E[a_k]$ the expected conditional cross-entropy at position $k$, and $e_k = \bar{a}_k - a_\infty$ the excess at step $k$.
-
-The per-step mutual information --- how much the previous responses tell $\theta$ about response $k$ --- is:
-\begin{equation}
-    I_k = \bar{a}_1 - \bar{a}_k
-\end{equation}
-
-Substituting $\bar{a}_k = a_\infty + e_k$:
-\begin{equation}
-    I_k = (\bar{a}_1 - a_\infty) - e_k
-\end{equation}
-
-The total correlation is the sum of per-step MI:
-\begin{equation}
-    \TC_n = \sum_{k=1}^{n} I_k = n(\bar{a}_1 - a_\infty) - \sum_{k=1}^{n} e_k = n(\bar{a}_1 - a_\infty) - E_n
-\end{equation}
-
-Equivalently:
-\begin{equation}\label{eq:tc-decomp}
-    E_n = n(\bar{a}_1 - a_\infty) - \TC_n
-\end{equation}
-
-For large $n$ where $E_n \to E$, the total correlation grows linearly with slope $(\bar{a}_1 - a_\infty)$:
-\begin{equation}
-    \TC_n \approx n(\bar{a}_1 - a_\infty) - E
-\end{equation}
-
-The three quantities have clean interpretations, all in bits: $(\bar{a}_1 - a_\infty)$ is the per-response redundancy once $\theta$ has fully learned the available structure (the asymptotic MI rate); $E$ is the total finite structural information, consumed during $\theta$'s transient learning phase; and $\TC_n$ is the cumulative redundancy, which grows without bound because even after all learnable structure has been extracted, each new response is partially predictable.
-
-Figure~\ref{fig:decomposition} illustrates this decomposition. At each step $k$, the gap between $a_\infty$ and $\bar{a}_1$ decomposes into $I_k$ (how much $\theta$ has learned by step $k$) and $e_k$ (how much remains to be learned). The excess entropy $E$ is the total area of the blue region; the total correlation $\TC_n$ is the total area of the red region.
-
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=0.88\textwidth,
-    height=6.5cm,
-    xlabel={$k$ (response index)},
-    ylabel={bits},
-    xmin=0.5, xmax=12.5,
-    ymin=0, ymax=87,
-    xtick={1,2,3,4,5,6,7,8,9,10,11,12},
-    ytick={0, 24, 48, 72},
-    legend style={font=\small, at={(0.97,0.55)}, anchor=east},
-    clip=false,
-]
-
-% Define h-bar line
-\addplot[name path=hbar, forget plot, draw=none]
-    coordinates {(0.5,72) (12.5,72)};
-
-% Define a_infinity line
-\addplot[name path=ainf, forget plot, draw=none]
-    coordinates {(0.5,24) (12.5,24)};
-
-% Define a_k curve (theoretical, in expectation)
-\addplot[name path=ak, forget plot, draw=none]
-    coordinates {
-        (0.5,72) (1,71) (2,69) (3,66) (4,61)
-        (5,53) (6,42) (7,33) (8,28) (9,25)
-        (10,24.5) (11,24) (12,24) (12.5,24)
-    };
-
-% Fill TC area (between h-bar and a_k) — red
-\addplot[red!25, forget plot] fill between[of=hbar and ak];
-
-% Fill E area (between a_k and a_infinity) — blue
-\addplot[blue!25, forget plot] fill between[of=ak and ainf];
-
-% Draw the visible lines on top
-\addplot[thick, dashed, black]
-    coordinates {(0.5,72) (12.5,72)};
-\addlegendentry{$\bar{a}_1$ (unconditional)}
-
-\addplot[thick, dotted, black]
-    coordinates {(0.5,24) (12.5,24)};
-\addlegendentry{$a_\infty$ (floor)}
-
-\addplot[thick, black, mark=*, mark size=1.5pt]
-    coordinates {
-        (1,71) (2,69) (3,66) (4,61)
-        (5,53) (6,42) (7,33) (8,28) (9,25)
-        (10,24.5) (11,24) (12,24)
-    };
-\addlegendentry{$\bar{a}_k$ curve}
-
-% Labels for the colored regions
-\node[font=\small] at (axis cs:10,55) {$\TC_n = \sum_k I_k$};
-\node[font=\small] at (axis cs:4,36) {$E = \sum_k e_k$};
-
-% Annotation arrows showing I_k and e_k for a single step (k=6, a_6=42)
-\draw[<->, thick, gray] (axis cs:6,42) -- node[right, font=\footnotesize] {$e_k$} (axis cs:6,24);
-\draw[<->, thick, gray] (axis cs:6,72) -- node[right, font=\footnotesize] {$I_k$} (axis cs:6,42);
-
-\end{axis}
-\end{tikzpicture}
-\caption{Decomposition of the gap between unconditional surprise $\bar{a}_1$ and the asymptotic floor $a_\infty$ at each step $k$. The per-step gap $\bar{a}_1 - a_\infty$ splits into mutual information $I_k = \bar{a}_1 - \bar{a}_k$ (\textcolor{red!70}{red}, above the curve) and excess $e_k = \bar{a}_k - a_\infty$ (\textcolor{blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\TC_n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar{a}_1 - a_\infty$ to $\TC_n$, so $\TC_n$ grows linearly while $E$ converges. All quantities are in bits.}
-\label{fig:decomposition}
-\end{figure}
-
-\subsection{Per-Byte Excess Entropy Rate}\label{sec:per-byte-rate}
-
-The excess entropy $E = \sum_k (a_k - a_\infty)$ is in bits and serves as the primary scalar measure of learnable structure. For the length-normalized diversity score $D$ (Section~\ref{sec:scalar}), we define the \textbf{per-byte excess entropy rate} by normalizing each response's surprise by its byte count \emph{before} averaging across permutations.
-
-For a single permutation $\sigma$, the per-byte conditional surprise at position $k$ is $a_k^\sigma / \|r_{\sigma(k)}\|$ (bits/byte). Averaging over permutations gives a permutation-averaged per-byte curve:
-\begin{equation}
-    \hat{a}_k^{\mathrm{rate}} = \E_\sigma\!\left[\frac{a_k^\sigma}{\|r_{\sigma(k)}\|}\right]
-\end{equation}
-
-The per-byte floor is estimated analogously from the last position: $\hat{a}_\infty^{\mathrm{rate}} = \hat{a}_n^{\mathrm{rate}}$. The per-byte excess entropy rate is then:
-\begin{equation}\label{eq:per-byte-E}
-    E_{\mathrm{rate}} = \sum_{k=1}^{n}\bigl(\hat{a}_k^{\mathrm{rate}} - \hat{a}_\infty^{\mathrm{rate}}\bigr)
-\end{equation}
-
-Units: bits/byte. This treats each response equally regardless of length: a 50-byte and a 500-byte response at the same per-byte excess rate contribute equally to $E_{\mathrm{rate}}$, which is the correct behavior for a length-normalized score.
-
-Note that $E_{\mathrm{rate}} \neq E / \bar{B}$ in general, because $\E[X/Y] \neq \E[X]/\E[Y]$ when $X$ and $Y$ are correlated. Total surprise $a_k$ and byte count $\|r_k\|$ are positively correlated (longer responses have more tokens to predict), so $E / \bar{B}$ overweights long responses. The per-response normalization in $E_{\mathrm{rate}}$ avoids this.
+\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout --- resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}). Section~\ref{sec:cross-mode-learning} provides empirical evidence that the sigmoid prediction holds for GPT-2 but not for more capable models, where cross-mode learning produces exponential decay even at high $m$.
 
 \section{The Coherence Term}\label{sec:coherence}
 
-\subsection{Does Excess Entropy Already Handle Incoherence?}
+\subsection{Does the Curve Already Handle Incoherence?}
 
-At first glance, excess entropy appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own. A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so $e_k \approx 0$ and $E \approx 0$. The noise policy correctly scores as having zero structural diversity. No separate coherence penalty is needed for this case.
+At first glance, the $a_k$ curve appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own. A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_\infty$ is high but $C$ will be near zero. The noise policy correctly gets a low $D_{a_\infty}$ because of the coherence term, not because of the curve alone.
 
-The problem arises with a \textbf{policy that has multiple distinct but individually incoherent modes}. Consider a badly steered or finetuned model that produces several recognizably different types of low-quality output. The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$), but each type is still implausible text. In this case $E > 0$, yet the policy should not score as meaningfully diverse. This failure mode is particularly relevant when evaluating models at high steering magnitudes, where the model may produce incoherent outputs that nonetheless condition strongly on their own prior responses.
+The problem the curve alone cannot solve is a \textbf{policy that has multiple distinct but individually incoherent modes}. Consider a badly steered or finetuned model that produces several recognizably different types of low-quality output. The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$ and $a_\infty$ may be low), but each type is still implausible text. Without a separate plausibility term, the policy could score as meaningfully diverse. This failure mode is particularly relevant when evaluating models at high steering magnitudes, where the model may produce incoherent outputs that nonetheless condition strongly on their own prior responses. A separate coherence term lets $D_{a_\infty}$ suppress these.
 
 \subsection{Definition}
 
@@ -363,16 +217,6 @@ So coherence is penalized both by genuine incoherence and by distributional dist
 
 \paragraph{Note on comparability.} Because all quantities are normalized per byte, the per-byte coherence $C$ is invariant to tokenizer choice: two base models $\theta_1, \theta_2$ with different tokenizers but identical predictive distributions will yield identical $C$ values. What remains incomparable across different $\theta$'s is model quality: a better model assigns lower cross-entropy regardless of normalization. This is by design --- $\theta$'s predictive quality is the lens through which diversity is measured.
 
-\subsection{Why Not Weight Excess Entropy by Coherence?}\label{sec:why-not-weight}
-
-A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$ is the per-response coherence. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons.
-
-First, it breaks the information-theoretic interpretation. $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to the excess entropy of Crutchfield and Feldman \citeyearpar{crutchfield2003regularities}. Inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process.
-
-Second, the weights are not independent of what they weight. The weight $w_k$ uses $h_\theta(r_k \mid p)$ and the excess $e_k$ uses $-\log_2 \theta(r_k \mid r_{<k}, p)$. Both are derived from the same response $r_k$ scored by the same model $\theta$. An incoherent response from a novel mode has both high $e_k$ (novel) and low $w_k$ (incoherent), which partially cancel, but \emph{how much} they cancel depends on the specific relationship between unconditional and conditional surprise for that response, which varies in ways that lack a clean characterization.
-
-Third, it makes the noise floor $a_\infty$ ambiguous. In the unweighted version, $a_\infty$ is simply the asymptotic conditional surprise. In the weighted version, it is unclear whether $a_\infty$ should also be weighted, and if so, by what. The separate-terms approach avoids this because $a_\infty$ lives purely in the information-theoretic layer and $C$ lives purely in the plausibility layer.
-
 \section{Reporting the Metric}
 
 \subsection{The Curve Is the Metric}
@@ -381,34 +225,29 @@ The $a_k$ curve is the primary output of this framework. It reveals the total le
 
 Everything below is a lossy summary of this curve. We develop these summaries because curves are difficult to rank, average across prompt suites, or report in tables, but the reader should understand that each successive compression discards information.
 
-\subsection{The \texorpdfstring{$(E, C, \sigma_\ell)$}{(E, C, sigma)} Triple}
+\subsection{The \texorpdfstring{$(a_n, C, \sigma_\ell)$}{(a_n, C, sigma)} Triple}
 
-The excess entropy $E$ and the per-byte coherence $C$ answer genuinely different questions:
+The asymptotic floor $a_n$ (estimating $a_\infty$) and the per-byte coherence $C$ answer genuinely different questions:
 \begin{itemize}[nosep]
-    \item $E$ (bits): ``How many bits of learnable structure does $\theta$ find among $\pi$'s outputs?''
+    \item $a_n$ (bits/byte): ``How much surprise per byte remains after $\theta$ has seen the other responses?''
     \item $C$ (dimensionless, in $(0,1)$): ``How likely, per byte, does $\theta$ find $\pi$'s outputs?''
 \end{itemize}
 
-Since $(E, C)$ is a two-dimensional summary, any scalar function $f(E, C)$ discards information: knowing both $E$ and $C$ always permits recovering the scalar, but not vice versa.
+This separation enables diagnostic reasoning. Comparing a base policy against a steered variant, one might observe that steering reduces $a_n$ (responses become easier to predict once $\theta$ has seen others) while maintaining $C$ (each output remains individually plausible), or at high steering magnitudes that $C$ drops (outputs become incoherent). These are qualitatively different failure modes that a single scalar would conflate.
 
-This separation enables diagnostic reasoning. For instance, when comparing a base policy against a steered variant, one might observe that steering reduces $E$ (less learnable structure) while maintaining $C$ (individually coherent outputs), or at high steering magnitudes, that $C$ drops (incoherent outputs) while $E$ remains nonzero (multiple types of incoherent output). These are qualitatively different failure modes that a single scalar would conflate.
-
-Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(E, C, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
+Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(a_n, C, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
 
 \subsection{Scalar Summary: Plausibility-Weighted Diversity}\label{sec:scalar}
 
-When a single number is required (e.g., for ranking policies in a table), we combine coherence with a measure of diversity into a scalar score. We recommend different scores depending on the regime.
-
-\paragraph{Primary score: the asymptotic surprise floor.}\label{sec:c-ainf}
-The most robust scalar is based on the \emph{level of the floor itself}. Diverse responses remain surprising even after full conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low). This motivates:
+When a single number is required (e.g., for ranking policies in a table), we combine coherence with the asymptotic surprise floor. Diverse responses remain surprising even after full conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low). This motivates:
 \begin{equation}\label{eq:D-ainf}
     D_{a_\infty} = C \times a_\infty
 \end{equation}
-measuring ``how many bits of surprise remain per byte after $\theta$ has learned everything it can from the other responses, weighted by output plausibility.'' The information-theoretic decomposition $a_1 = a_\infty + (a_1 - a_\infty)$ (Section~\ref{sec:excess-entropy}) shows that the complementary quantity $C \times (a_1 - a_\infty)$ measures coherence-weighted redundancy---high when responses share learnable structure, low when they are mutually unpredictable.
+measuring ``how many bits of surprise remain per byte after $\theta$ has learned everything it can from the other responses, weighted by output plausibility.''
 
-In practice, $a_\infty$ can be estimated either by the fitted floor from Eq.~\ref{eq:sigmoid-fit} or simply by the last observed point $a_n$. On short curves (5--10 responses), $a_n$ is more stable than the extrapolated fit (Section~\ref{sec:tevet}). Section~\ref{sec:tevet} provides empirical evidence that $D_{a_\infty}$ substantially outperforms the excess-entropy-based score on external benchmarks, achieving ROC AUC of 0.89 where $C \times E$ achieves 0.64 on the same data.
+In practice, $a_\infty$ is estimated by the last observed point $a_n$ on the permutation-averaged per-byte curve. Section~\ref{sec:tevet} provides empirical evidence that $D_{a_\infty}$ substantially outperforms an alternative score based on the excess entropy (Appendix~\ref{app:excess-entropy}) on external benchmarks, achieving ROC AUC of 0.89 where the excess-entropy variant achieves 0.64 on the same data.
 
-$D_{a_\infty}$ works in both the many-draws regime (where modes repeat and $a_\infty$ reflects the irreducible floor after $\theta$ has learned all recurring patterns) and the few-draws regime (where each response is unique and $a_\infty$ captures how much surprise survives full conditioning). The excess-entropy-based score $C \times E$ fails in the few-draws regime: with no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $E \approx 0$ for both diverse and non-diverse sets.
+$D_{a_\infty}$ works in both the many-draws regime (where modes repeat and $a_\infty$ reflects the irreducible floor after $\theta$ has learned all recurring patterns) and the few-draws regime (where each response is unique and $a_\infty$ captures how much surprise survives full conditioning).
 
 The edge cases behave correctly:
 \begin{enumerate}[nosep]
@@ -418,15 +257,6 @@ The edge cases behave correctly:
     \item \textbf{One coherent pattern}: $C$ high, $a_\infty$ low ($\theta$ learns the mode), so $D_{a_\infty} \approx 0$.
     \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{a_\infty}$ is low.
 \end{enumerate}
-
-\paragraph{Supplementary score: excess-entropy-based diversity.}\label{sec:ce-score}
-When $n$ is large enough for modes to repeat (the many-draws regime), the excess entropy $E$ provides additional diagnostic information that $a_\infty$ alone cannot: specifically, the total learnable structure and, through the sigmoid fit, an estimate of the mode count. In this regime, one can also report:
-\begin{equation}\label{eq:D-total}
-    C \times E \quad \text{(bits)} \qquad \text{or} \qquad C \times E_{\mathrm{rate}} \quad \text{(bits/byte)}
-\end{equation}
-The first weights by total structural information regardless of response length; the second normalizes per byte so long and short responses are treated equally. These scores are complementary to $D_{a_\infty}$ and useful for diagnostic decomposition: one can factor the excess entropy into contributions from different parts of the curve to identify where $\theta$'s learning occurs.
-
-However, $C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure} --- recurring patterns that $\theta$ can extract from seeing multiple responses --- not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, because no recurring pattern exists for $\theta$ to learn. This yields $E \approx 0$ despite maximal diversity. Second, $E$ measures statistical independence of strings as perceived by $\theta$, not semantic diversity of content. A policy that always conveys the same information in different phrasings would ideally score as low-diversity. We expect a capable $\theta$ to compress paraphrases effectively, but the degree of compression is an empirical property of $\theta$.
 
 \paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. Two mitigation strategies are available when coherence variation dominates diversity variation:
 
@@ -439,7 +269,7 @@ We recommend normalization when a single-scalar ranking is the primary use case,
 
 \subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
 
-The coherence $C$ summarizes the plausibility of $\pi$'s outputs as a single number, but a policy may mix coherent and incoherent modes. A policy with 5 coherent modes and 3 incoherent modes will have $E$ reflecting all 8 modes (since $\theta$ learns to predict all of them from context), while $C$ is dragged down by the incoherent samples. The pair $(E, C)$ cannot distinguish ``8 modes, 3 of which are junk'' from ``8 uniformly mediocre modes.''
+The coherence $C$ summarizes the plausibility of $\pi$'s outputs as a single number, but a policy may mix coherent and incoherent modes. A policy with 5 coherent modes and 3 incoherent modes will have a high $a_n$ (since the modes are genuinely distinct and $\theta$ cannot fully predict any one from the others) while $C$ is dragged down by the incoherent samples. The pair $(a_n, C)$ cannot distinguish ``8 modes, 3 of which are junk'' from ``8 uniformly mediocre modes.''
 
 To diagnose this, we report the \textbf{coherence spread} $\sigma_\ell$, defined as the standard deviation of the per-response cross-entropies:
 \begin{equation}
@@ -453,20 +283,18 @@ Since $C = 2^{-\bar{\ell}}$ where $\bar{\ell} = \frac{1}{n}\sum_i h_\theta(r_i \
 
 $C_+$ is the coherence of the better-than-average responses and $C_-$ is the coherence of the worse-than-average responses. These yield a \textbf{diversity uncertainty band}:
 \begin{equation}
-    D_\pm = C_\pm \times E_{\mathrm{rate}}
+    D_\pm = C_\pm \times a_n
 \end{equation}
 
-The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \times E_{\mathrm{rate}}$, is zero when all responses have equal coherence and large when the policy mixes coherent and incoherent modes. A wide band is the diagnostic signal for heterogeneous output quality.
+The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \times a_n$, is zero when all responses have equal coherence and large when the policy mixes coherent and incoherent modes. A wide band is the diagnostic signal for heterogeneous output quality.
 
-\paragraph{What to report.} We recommend reporting $(E, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D = C \times E$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).\footnote{Two more aggressive diagnostic strategies are available when $\sigma_\ell$ is large. First, \emph{threshold-and-recompute}: set a coherence floor $c_{\min}$ (e.g., derived from $\theta$'s own output distribution), discard responses with $c_i < c_{\min}$, and recompute $E$ on the surviving subset. This directly answers ``how diverse is $\pi$ among its coherent outputs?'' at the cost of introducing a hyperparameter and reducing the effective sample size. Second, \emph{coherence-stratified $a_k$ curves}: sort responses by coherence, then compute separate $a_k$ curves for the top-$k$ most coherent responses and for the full set. If the curves diverge, incoherent modes are inflating $E$. Both strategies are complementary to the $(E, C, \sigma_\ell)$ triple and can be applied post hoc without modifying the core metric.}
+\paragraph{What to report.} We recommend reporting $(a_n, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D_{a_\infty} = C \times a_n$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).
 
 \subsection{Estimating Mode Count from the Curve}\label{sec:mode-count-from-curve}
 
-While $E$ measures the total structural information (in bits) that $\theta$ can learn from $\pi$'s outputs, it does not directly yield a mode count. The na\"ive formula $m_{\mathrm{eff}} = 2^{E}$ assumes that all learnable structure corresponds to mode identity, which holds only for near-deterministic modes. For real LLM outputs, $\theta$ learns far more from context than which mode is active --- it learns shared stylistic patterns, vocabulary, topic-specific structure, and other within-mode regularities. This inflates $E$ well beyond $\log_2 m$, making $m_{\mathrm{eff}}$ unreliable.
+The number of effective modes can be read from the \textbf{elbow of the $a_k$ curve}. While $\theta$ is still discovering new modes ($k \lesssim m$), each response is likely novel and $a_k$ remains near $a_1$. Once $\theta$ has seen examples from most modes ($k \gtrsim m$), $a_k$ drops toward $a_\infty$. The transition --- the elbow --- occurs at $k \approx m$, regardless of how much within-mode structure exists. This can be identified visually when comparing a small number of policies, or via changepoint detection methods when automated estimation is needed.
 
-The number of effective modes is instead read from the \textbf{elbow of the $a_k$ curve}. While $\theta$ is still discovering new modes ($k \lesssim m$), each response is likely novel and $a_k$ remains near $a_1$. Once $\theta$ has seen examples from most modes ($k \gtrsim m$), $a_k$ drops toward $a_\infty$. The transition --- the elbow --- occurs at $k \approx m$, regardless of how much within-mode structure exists. This can be identified visually when comparing a small number of policies, or via changepoint detection methods when automated estimation is needed.
-
-\paragraph{Caveat: elbow detection requires $m$ comparable to $n$.} The elbow prescription assumes that the $a_k$ curve has a visible plateau followed by a decline. As discussed in Section~\ref{sec:progressive-conditioning}, this sigmoidal shape only appears when $m$ is comparable to $n$. When $m \ll n$ (e.g., 2--3 modes among 15 samples), $\theta$ discovers all modes within the first few responses, and the curve is monotonically concave-up (exponential decay) with no identifiable elbow or plateau. In this regime, mode count cannot be directly read from curve shape. The parametric sigmoid fit (Eq.~\ref{eq:sigmoid-fit}) provides an alternative: the fitted inflection point $k_0$ estimates $m$ even when no visual elbow is present (returning $k_0 < 1$ for the few-mode case, correctly indicating that mode discovery is essentially immediate).
+\paragraph{Caveat: elbow detection requires $m$ comparable to $n$.} The elbow prescription assumes that the $a_k$ curve has a visible plateau followed by a decline. As discussed in Section~\ref{sec:progressive-conditioning}, this sigmoidal shape only appears when $m$ is comparable to $n$. When $m \ll n$ (e.g., 2--3 modes among 15 samples), $\theta$ discovers all modes within the first few responses, and the curve is monotonically concave-up (exponential decay) with no identifiable elbow or plateau. In this regime, mode count cannot be directly read from curve shape. A parametric sigmoid fit to the curve (Appendix~\ref{app:excess-entropy}) provides an alternative: the fitted inflection point $k_0$ estimates $m$ even when no visual elbow is present.
 
 \subsection{Aggregation Across Prompts}\label{sec:aggregation}
 
@@ -490,7 +318,6 @@ In order of informativeness:
 \begin{enumerate}[nosep]
     \item The $a_k$ curve (the primary output), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). The elbow location indicates approximate mode count (Section~\ref{sec:mode-count-from-curve}). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
     \item $D_{a_\infty} = C \times a_n$ (bits/byte) as the recommended scalar, alongside $C$ and $\sigma_\ell$. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
-    \item $C \times E$ or $C \times E_{\mathrm{rate}}$ as supplementary diagnostics when $n$ is large enough for the excess entropy to converge (Section~\ref{sec:ce-score}).
     \item $\Delta D_{a_\infty} = \bar{D}_{a_\infty,\mathrm{base}} - \bar{D}_{a_\infty,\mathrm{steered}}$ when comparing two policies across a prompt suite.
 \end{enumerate}
 
@@ -555,9 +382,9 @@ This compares favorably to all-pairs PMI, which requires $O(n^2)$ forward passes
 
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
 
-The $a_k$ values depend on the ordering of $\{r_i\}$. Since $a_k$ is in total bits, responses of different lengths produce different $a_k$ values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context. In expectation over random permutations the summary statistics ($E$, $D$) are invariant. We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $E_{\mathrm{rate}}$ is unstable at 3 permutations and that $\geq$50 permutations are needed for reliable rankings.
+The $a_k$ values depend on the ordering of $\{r_i\}$. Since raw $a_k$ is in total bits, responses of different lengths produce different values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context. We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $\geq 50$ permutations are needed for reliable rankings.
 
-For the per-byte excess entropy rate $E_{\mathrm{rate}}$ (Section~\ref{sec:per-byte-rate}), per-response normalization by byte count must be performed \emph{before} averaging across permutations, since the byte count depends on which response lands at each position.
+Per-response normalization by byte count must be performed \emph{before} averaging across permutations, since the byte count depends on which response lands at each position.
 
 \subsection{Choice of $n$}
 
@@ -605,11 +432,11 @@ We construct five synthetic scenarios with known diversity structure:
 
 Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100 permutations and seed 42.
 
-\paragraph{Important caveat.} The results in this section use the raw $\hat{E}_n$ estimator (with $a_n$ as floor), not the sigmoid-extrapolated $E_{\mathrm{fit}}$. With only $n=10$ responses, the curves may not have converged, so $E_{\mathrm{rate}}$ values should be interpreted cautiously. The qualitative orderings of $C$ and $\sigma_\ell$ are more reliable since they do not depend on the floor estimate.
+\paragraph{Important caveat.} The table below reports the excess-entropy-based score $D = C \times E_{\mathrm{rate}}$ (Appendix~\ref{app:excess-entropy}) rather than our recommended $D_{a_\infty}$, because these runs predate the reframe. With only $n=10$ responses the $a_k$ curves may not have converged, so $E_{\mathrm{rate}}$ values should be interpreted cautiously. The qualitative orderings of $C$ and $\sigma_\ell$ are more reliable since they do not depend on the floor estimate, and it is these that carry the validation signal.
 
 \begin{table}[t]
 \centering
-\caption{Scenario validation metrics (mean $\pm$ std across 5 prompts). $E_{\mathrm{rate}}$ is per-byte excess entropy, $C$ is coherence, $D$ is plausibility-weighted diversity, $\sigma_\ell$ is coherence spread. All computed with 100 permutations, $n=10$ responses.}
+\caption{Scenario validation metrics (mean $\pm$ std across 5 prompts). $E_{\mathrm{rate}}$ is per-byte excess entropy (Appendix~\ref{app:excess-entropy}), $C$ is coherence, $D = C \times E_{\mathrm{rate}}$, $\sigma_\ell$ is coherence spread. All computed with 100 permutations, $n=10$ responses. The robust discriminators are $C$ and $\sigma_\ell$; $E_{\mathrm{rate}}$ and $D$ are the excess-entropy variants retained for historical context.}
 \label{tab:scenarios}
 \small
 \begin{tabular}{@{}l rrrr rrrr@{}}
@@ -686,11 +513,9 @@ $m$ & $E_{\mathrm{fit}}$ (bits) & $a_n$ (bits) & $\sigma_\ell$ (bits) & $k_0$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{Key findings.} Figure~\ref{fig:mode-count} and Table~\ref{tab:mode-count} show the results. The sigmoid-extrapolated $E_{\mathrm{fit}}$ increases monotonically with $m$: from 296 bits at $m=1$ to 1807 bits at $m=10$. This vindicates the parametric extrapolation approach from Section~\ref{sec:excess-entropy}. However, confidence intervals widen substantially at high $m$ (the $m=10$ interval spans 1202--3591 bits), reflecting the difficulty of extrapolating a curve that has not converged at $k=n$.
+\paragraph{Key findings.} Figure~\ref{fig:mode-count} and Table~\ref{tab:mode-count} show the results. The floor $a_n$ increases monotonically with $m$ (9.3 bits at $m=1$ to 77.8 bits at $m=10$), reflecting more irreducible entropy remaining after full conditioning. This is exactly the behavior $D_{a_\infty} = C \times a_n$ needs: the asymptotic floor tracks mode count directly. The coherence spread $\sigma_\ell$ also increases, but this reflects the heterogeneous formats of our synthetic modes (code vs.\ haiku vs.\ recipe have very different per-byte cross-entropies) rather than diversity per se.
 
-The raw estimator $\hat{E}_n$ (using $a_n$ as the floor) is \emph{non-monotonic}: it peaks at $m \approx 3$--$4$ and then decreases. This occurs because $a_n$ overestimates $a_\infty$ when the curve has not converged---at high $m$ with limited $n$, the curve is still dropping at $k=n$, so $a_n$ compresses $\hat{E}_n$.
-
-The floor $a_n$ increases monotonically with $m$ (9.3 bits at $m=1$ to 77.8 bits at $m=10$), reflecting more irreducible entropy remaining after full conditioning. The coherence spread $\sigma_\ell$ also increases, but this reflects the heterogeneous formats of our synthetic modes (code vs.\ haiku vs.\ recipe have very different per-byte cross-entropies) rather than diversity per se.
+For comparison, the sigmoid-extrapolated $E_{\mathrm{fit}}$ (Appendix~\ref{app:excess-entropy}) also increases monotonically with $m$, but with confidence intervals that widen substantially at high $m$ (the $m=10$ interval spans 1202--3591 bits), reflecting the difficulty of extrapolating a curve that has not converged at $k=n$. The raw estimator $\hat{E}_n$ (using $a_n$ as the floor) is \emph{non-monotonic}---it peaks at $m \approx 3$--$4$ and then decreases---because $a_n$ overestimates $a_\infty$ when the curve has not converged. These pathologies are another reason we prefer $D_{a_\infty}$ as the primary score.
 
 \begin{figure}[t]
 \centering
@@ -823,9 +648,9 @@ We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020
     \item \textbf{ConTest}: 5 responses per set, binary labels.
     \item \textbf{DecTest}: 10 responses generated at varying temperatures, labeled by temperature.
 \end{itemize}
-We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format. For binary datasets we report ROC AUC (the natural evaluation for binary classification); for DecTest we report Spearman $\rho$ with temperature. See Appendix~\ref{sec:appendix-tevet-full} for the complete comparison across all metric variants.
+We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format. For binary datasets we report ROC AUC (the natural evaluation for binary classification); for DecTest we report Spearman $\rho$ with temperature.
 
-\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest)---well below the 20+ responses needed for $E$ to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{sec:mcdiv-confounds}).
+\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest)---well below the 20+ responses needed for $E$ (Appendix~\ref{app:excess-entropy}) to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
 
 % Source for all numbers in Tables 5--7:
 % - Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3
@@ -870,7 +695,7 @@ Unconditional surprise $a_1$ performs poorly on binary tasks (not shown; OCA nea
 \label{fig:roc-curves}
 \end{figure}
 
-\paragraph{Why $E$ fails here.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity---the $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets. The $E$-based scores thus carry almost no signal (see the discussion in Section~\ref{sec:c-ainf}). The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
+\paragraph{Why $E$ fails here.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity---the $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets. The $E$-based scores thus carry almost no signal (see Appendix~\ref{app:excess-entropy}). The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
 
 % Source: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
 % comparing C×a_n vs C×a_{n-1} in summary_table.txt
@@ -907,11 +732,9 @@ Unconditional surprise $a_1$ performs poorly on binary tasks (not shown; OCA nea
 
 \section{Related Concepts}
 
-\paragraph{Excess entropy.} The quantity $E = \sum_k (a_k - a_\infty)$ is related to the excess entropy of stationary stochastic processes studied in computational mechanics \citep{crutchfield2003regularities}. In that setting, it measures the mutual information between the past and future of a process, or equivalently the statistical complexity beyond the irreducible entropy rate. Our application differs in that the ``process'' is a sequence of i.i.d.\ responses from $\pi$, assessed by $\theta$, rather than a single time series, and the conditioning is performed via the base model's in-context learning rather than explicit state estimation.
+\paragraph{Excess entropy.} An alternative summary of the $a_k$ curve, the \emph{excess entropy} $E = \sum_k (a_k - a_\infty)$, is related to the excess entropy of stationary stochastic processes studied in computational mechanics \citep{crutchfield2003regularities}. In that setting, it measures the mutual information between the past and future of a process, or equivalently the statistical complexity beyond the irreducible entropy rate. We develop the excess-entropy-based score $C \times E$ in Appendix~\ref{app:excess-entropy} and find it empirically inferior to $D_{a_\infty}$; we include it for theoretical completeness and its connection to total correlation.
 
 \paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric. The primary diversity score $D_{a_\infty} = C \times a_\infty$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
-
-\paragraph{Total correlation.} The total correlation $\TC_n$ relates to the excess entropy via Eq.~\eqref{eq:tc-decomp}: $\TC_n = n(\bar{a}_1 - a_\infty) - E_n$. See Section~\ref{sec:excess-entropy} and Figure~\ref{fig:decomposition} for the full derivation and a visual decomposition. Note that since all quantities are cross-entropies under $\theta$ rather than true entropies of $\pi$'s output distribution, $\TC_n$ is a $\theta$-relative quantity that measures the total correlation \emph{as perceived by} $\theta$; it equals the true total correlation only to the extent that $\theta$ approximates $\pi$'s joint distribution.
 
 \paragraph{Coherence as a signal.} Our coherence term $C$ uses the base model's predictive distribution as an unsupervised quality signal. This connects to a broader line of work using model-internal coherence without external supervision: \citet{qiu2026selfimprovement} show theoretically that feedback-free self-improvement methods work by optimizing coherence (compressibility of context-to-behavior mappings), and \citet{wen2025unsupervised} use internal coherence maximization to elicit latent knowledge from language models. Our metric leverages a related insight: the base model's ability to compress responses in context provides a meaningful signal about their diversity structure.
 
@@ -1013,6 +836,140 @@ where $1/\sum_i w_i^2$ is the inverse Simpson index (a standard measure of effec
 
     \item For non-uniform weights, the inverse Simpson index approximation is heuristic. Modes with very small weight $w_i \lesssim 1/n$ may never appear in the sample and do not contribute to $k^*$ or $k_0$.
 \end{enumerate}
+
+\section{Excess Entropy and the \texorpdfstring{$C \times E$}{C x E} Score}\label{app:excess-entropy}
+
+This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting---connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation---but empirically inferior to $D_{a_\infty}$ on the external benchmarks of Section~\ref{sec:tevet}. We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{a_\infty}$.
+
+\subsection{The Excess Entropy}\label{app:excess-entropy-def}
+
+Neither the running average $\bar{a}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is a satisfactory single scalar. The running average converges to $a_\infty$ (the uninteresting residual floor), losing sensitivity to the learnable structure above it. The total correlation grows linearly in $n$ and never saturates, because each new term contributes approximately $-\log_2 \theta(r \mid p) - a_\infty > 0$ for large $k$.
+
+The solution is to isolate the signal above the noise floor. Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:\footnote{The excess entropy $E = \sum_k (a_k - a_\infty)$ is defined as a discrete sum over integer response indices, since ``conditioning on 3.5 responses'' has no direct meaning. However, a continuous extension exists: consider conditioning on a random subset of size $\alpha n$ for $\alpha \in [0,1]$, yielding a continuous curve $\bar{a}(\alpha)$. The discrete $\bar{a}_k$ would be samples at $\alpha = k/n$, and $E$ would correspond to integrating this curve (in which case trapezoidal integration would be more faithful than Riemann sums). We treat $E$ as the discrete sum throughout, but note that the continuous interpretation remains an open question, particularly in connection to the continuous excess entropy literature. The practical difference between Riemann and trapezoidal sums over $\sim$15 points is small.}
+\begin{equation}\label{eq:excess}
+    E = \sum_{k=1}^{\infty}\bigl(a_k - a_\infty\bigr)
+\end{equation}
+
+Units: bits. This is the total learnable structural information in the progressive conditioning process, above the irreducible residual noise. It converges whenever $\theta$'s surprise at new responses eventually stabilizes (since $a_k \to a_\infty$ and the excess $e_k = a_k - a_\infty$ decays to zero). The ``structure'' captured by $E$ is not limited to discrete mode identity: it includes any inter-response regularity that $\theta$ can learn from context, such as shared stylistic patterns, vocabulary, topic constraints, and formatting conventions.
+
+In practice, $a_\infty$ is unknown. We estimate it as $a_n$ (the last observed value) and compute:
+\begin{equation}\label{eq:excess-hat}
+    \hat{E}_n = \sum_{k=1}^{n}(a_k - a_n)
+\end{equation}
+
+This underestimates $E$ (since $a_n \geq a_\infty$), but the bias decreases with $n$.
+
+\paragraph{Parametric extrapolation of $a_\infty$.} Rather than using $a_n$ directly, one can fit a parametric model to the observed curve and extrapolate $a_\infty$. The $a_k$ curve is theoretically expected to be sigmoidal (with concave-up/exponential decay as the degenerate case when the inflection point $k_0 < 1$). This motivates fitting a four-parameter sigmoid:
+\begin{equation}\label{eq:sigmoid-fit}
+    a_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
+\end{equation}
+where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point. The fit yields $a_\infty$ without requiring $n$ to be large enough for convergence, and the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (Appendix~\ref{app:k0-derivation}). Section~\ref{sec:mode-count-scaling} provides empirical evidence that the sigmoid-extrapolated $E_{\mathrm{fit}}$ recovers the expected monotonic relationship between mode count and excess entropy, while the raw $\hat{E}_n$ estimator does not.
+
+\paragraph{Relationship to total correlation.} The excess entropy and total correlation are complementary decompositions of the same underlying structure. Working in expectation over i.i.d.\ draws from $\pi$, let $\bar{a}_1 = \E[-\log_2 \theta(r \mid p)]$ denote the expected unconditional cross-entropy, $\bar{a}_k = \E[a_k]$ the expected conditional cross-entropy at position $k$, and $e_k = \bar{a}_k - a_\infty$ the excess at step $k$. The per-step mutual information is $I_k = \bar{a}_1 - \bar{a}_k = (\bar{a}_1 - a_\infty) - e_k$. Summing:
+\begin{equation}\label{eq:tc-decomp}
+    \TC_n = \sum_{k=1}^{n} I_k = n(\bar{a}_1 - a_\infty) - E_n
+\end{equation}
+
+For large $n$ where $E_n \to E$, the total correlation grows linearly with slope $(\bar{a}_1 - a_\infty)$: $\TC_n \approx n(\bar{a}_1 - a_\infty) - E$. Figure~\ref{fig:decomposition} illustrates. The three quantities have clean interpretations, all in bits: $(\bar{a}_1 - a_\infty)$ is the per-response redundancy once $\theta$ has fully learned the available structure; $E$ is the total finite structural information, consumed during $\theta$'s transient learning phase; $\TC_n$ is the cumulative redundancy, which grows without bound.
+
+\begin{figure}[tb]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.88\textwidth,
+    height=6.5cm,
+    xlabel={$k$ (response index)},
+    ylabel={bits},
+    xmin=0.5, xmax=12.5,
+    ymin=0, ymax=87,
+    xtick={1,2,3,4,5,6,7,8,9,10,11,12},
+    ytick={0, 24, 48, 72},
+    legend style={font=\small, at={(0.97,0.55)}, anchor=east},
+    clip=false,
+]
+
+% Define h-bar line
+\addplot[name path=hbar, forget plot, draw=none]
+    coordinates {(0.5,72) (12.5,72)};
+
+% Define a_infinity line
+\addplot[name path=ainf, forget plot, draw=none]
+    coordinates {(0.5,24) (12.5,24)};
+
+% Define a_k curve (theoretical, in expectation)
+\addplot[name path=ak, forget plot, draw=none]
+    coordinates {
+        (0.5,72) (1,71) (2,69) (3,66) (4,61)
+        (5,53) (6,42) (7,33) (8,28) (9,25)
+        (10,24.5) (11,24) (12,24) (12.5,24)
+    };
+
+% Fill TC area (between h-bar and a_k) — red
+\addplot[red!25, forget plot] fill between[of=hbar and ak];
+
+% Fill E area (between a_k and a_infinity) — blue
+\addplot[blue!25, forget plot] fill between[of=ak and ainf];
+
+% Draw the visible lines on top
+\addplot[thick, dashed, black]
+    coordinates {(0.5,72) (12.5,72)};
+\addlegendentry{$\bar{a}_1$ (unconditional)}
+
+\addplot[thick, dotted, black]
+    coordinates {(0.5,24) (12.5,24)};
+\addlegendentry{$a_\infty$ (floor)}
+
+\addplot[thick, black, mark=*, mark size=1.5pt]
+    coordinates {
+        (1,71) (2,69) (3,66) (4,61)
+        (5,53) (6,42) (7,33) (8,28) (9,25)
+        (10,24.5) (11,24) (12,24)
+    };
+\addlegendentry{$\bar{a}_k$ curve}
+
+% Labels for the colored regions
+\node[font=\small] at (axis cs:10,55) {$\TC_n = \sum_k I_k$};
+\node[font=\small] at (axis cs:4,36) {$E = \sum_k e_k$};
+
+% Annotation arrows showing I_k and e_k for a single step (k=6, a_6=42)
+\draw[<->, thick, gray] (axis cs:6,42) -- node[right, font=\footnotesize] {$e_k$} (axis cs:6,24);
+\draw[<->, thick, gray] (axis cs:6,72) -- node[right, font=\footnotesize] {$I_k$} (axis cs:6,42);
+
+\end{axis}
+\end{tikzpicture}
+\caption{Decomposition of the gap between unconditional surprise $\bar{a}_1$ and the asymptotic floor $a_\infty$ at each step $k$. The per-step gap $\bar{a}_1 - a_\infty$ splits into mutual information $I_k = \bar{a}_1 - \bar{a}_k$ (\textcolor{red!70}{red}, above the curve) and excess $e_k = \bar{a}_k - a_\infty$ (\textcolor{blue!70}{blue}, below the curve). Summing across $k$: the red area is the total correlation $\TC_n$; the blue area is the excess entropy $E$. As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar{a}_1 - a_\infty$ to $\TC_n$, so $\TC_n$ grows linearly while $E$ converges. All quantities are in bits.}
+\label{fig:decomposition}
+\end{figure}
+
+\subsection{Per-Byte Excess Entropy Rate}\label{app:per-byte-rate}
+
+The excess entropy $E = \sum_k (a_k - a_\infty)$ is in bits. For a length-normalized variant, we define the \textbf{per-byte excess entropy rate} by normalizing each response's surprise by its byte count \emph{before} averaging across permutations. For a single permutation $\sigma$, the per-byte conditional surprise at position $k$ is $a_k^\sigma / \|r_{\sigma(k)}\|$ (bits/byte). Averaging over permutations gives
+\begin{equation}
+    \hat{a}_k^{\mathrm{rate}} = \E_\sigma\!\left[\frac{a_k^\sigma}{\|r_{\sigma(k)}\|}\right]
+\end{equation}
+and the per-byte floor is estimated analogously from the last position: $\hat{a}_\infty^{\mathrm{rate}} = \hat{a}_n^{\mathrm{rate}}$. The per-byte excess entropy rate is
+\begin{equation}\label{eq:per-byte-E}
+    E_{\mathrm{rate}} = \sum_{k=1}^{n}\bigl(\hat{a}_k^{\mathrm{rate}} - \hat{a}_\infty^{\mathrm{rate}}\bigr).
+\end{equation}
+This treats each response equally regardless of length. Note that $E_{\mathrm{rate}} \neq E / \bar{B}$ in general: because total surprise $a_k$ and byte count $\|r_k\|$ are positively correlated, $E / \bar{B}$ overweights long responses, while the per-response normalization in $E_{\mathrm{rate}}$ avoids this.
+
+\subsection{The \texorpdfstring{$C \times E$}{C x E} Score}
+
+Combining $E$ with the coherence term $C$ (Section~\ref{sec:coherence}) yields scalar scores
+\begin{equation}\label{eq:D-total}
+    C \times E \quad \text{(bits)} \qquad \text{or} \qquad C \times E_{\mathrm{rate}} \quad \text{(bits/byte)}.
+\end{equation}
+The first weights total structural information by per-byte plausibility; the second normalizes per byte so long and short responses are treated equally.
+
+\subsection{Why Not Weight Excess Entropy Inside the Sum?}\label{app:why-not-weight}
+
+A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons. First, it breaks the information-theoretic interpretation: $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to Crutchfield and Feldman's excess entropy, and inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process. Second, the weights are not independent of what they weight: both $w_k$ and $e_k$ are derived from the same response scored by the same model, and an incoherent response from a novel mode has both high $e_k$ and low $w_k$, which partially cancel in ways that lack a clean characterization. Third, it makes the noise floor $a_\infty$ ambiguous---unclear whether it should also be weighted, and if so by what.
+
+\subsection{Limitations of $C \times E$}
+
+$C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure}---recurring patterns that $\theta$ can extract from seeing multiple responses---not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity. Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal. These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
+
+\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data. In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), the sigmoid-extrapolated $E_{\mathrm{fit}}$ is monotonic in mode count for Qwen2.5-3B but has wide confidence intervals at high $m$, while the raw $\hat{E}_n$ estimator is non-monotonic.
 
 \section{Dataset Construction Confounds in McDiv}\label{app:confound}
 
