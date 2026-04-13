@@ -259,14 +259,7 @@ The edge cases behave correctly:
     \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{a_\infty}$ is low.
 \end{enumerate}
 
-\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. Two mitigation strategies are available when coherence variation dominates diversity variation:
-
-\begin{enumerate}[nosep]
-    \item \textbf{Normalization}: Replace $C$ with $C / C_{\mathrm{base}}$, where $C_{\mathrm{base}}$ is the coherence of $\theta$'s own samples given the same prompt. The ratio lives in $(0, 1]$ and equals 1 when $\pi$ is as coherent as $\theta$, removing the baseline suppression.
-    \item \textbf{Fractional exponent}: Replace $C$ with $C^\alpha$ for $\alpha \in (0, 1)$, which compresses the coherence penalty. This softens the dominance of $C$ but introduces a free hyperparameter without information-theoretic motivation.
-\end{enumerate}
-
-We recommend normalization when a single-scalar ranking is the primary use case, and the unmodified $C$ when the goal is diagnostic.
+\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. If coherence variation dominates diversity variation in a particular application, $C$ can be normalized (e.g., dividing by the coherence of $\theta$'s own samples); see Appendix~\ref{app:c-normalization} for details.
 
 \subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
 
@@ -389,7 +382,7 @@ Per-response normalization by byte count must be performed \emph{before} averagi
 
 \subsection{Choice of $n$}
 
-The excess entropy estimator $\hat{E}_n$ depends on $n$ through both the summation range and the estimate $a_n \approx a_\infty$. We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency. A practical choice is $n = 10$--20, which suffices for policies where $\theta$'s learning stabilizes within this range.
+The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$. We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency. A practical choice is $n = 10$--20, which suffices for policies where $\theta$'s learning stabilizes within this range.
 
 \paragraph{Detectable mode weight.} Modes with weight $w \lesssim 1/n$ will rarely appear in the sample, and even when they do, $\theta$ has insufficient examples to learn the pattern. As a rough guide, modes with weight below $1/n$ are invisible to the metric. For $n = 15$, this means modes contributing less than $\sim$7\% of the probability mass are unlikely to be captured. If rare modes are of interest (e.g., when evaluating whether an intervention eliminates low-frequency behaviors), $n$ should be increased accordingly, subject to the context-length constraints discussed above.
 
@@ -437,22 +430,10 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 
 \begin{table}[t]
 \centering
-\caption{Scenario validation metrics (mean $\pm$ std across 5 prompts). $E_{\mathrm{rate}}$ is per-byte excess entropy (Appendix~\ref{app:excess-entropy}), $C$ is coherence, $D = C \times E_{\mathrm{rate}}$, $\sigma_\ell$ is coherence spread. All computed with 100 permutations, $n=10$ responses. The robust discriminators are $C$ and $\sigma_\ell$; $E_{\mathrm{rate}}$ and $D$ are the excess-entropy variants retained for historical context.}
+\caption{Scenario validation metrics (mean across 5 prompts). $E_{\mathrm{rate}}$ is per-byte excess entropy (Appendix~\ref{app:excess-entropy}), $C$ is coherence, $D = C \times E_{\mathrm{rate}}$, $\sigma_\ell$ is coherence spread. All computed with 100 permutations, $n=10$ responses. The robust discriminators are $C$ and $\sigma_\ell$; $E_{\mathrm{rate}}$ and $D$ are the excess-entropy variants retained for historical context.}
 \label{tab:scenarios}
 \small
-\begin{tabular}{@{}l rrrr rrrr@{}}
-\toprule
-& \multicolumn{4}{c}{\textbf{GPT-2 (124M)}} & \multicolumn{4}{c}{\textbf{Qwen2.5-32B}} \\
-\cmidrule(lr){2-5} \cmidrule(lr){6-9}
-Scenario & $E_{\mathrm{rate}}$ & $C$ & $D$ & $\sigma_\ell$ & $E_{\mathrm{rate}}$ & $C$ & $D$ & $\sigma_\ell$ \\
-\midrule
-Pure noise      & 0.55 & 0.006 & 0.003 & 0.20 & 0.44 & 0.009 & 0.004 & 0.09 \\
-Multi-incoher.  & 5.64 & 0.121 & 0.681 & 0.51 & 2.42 & 0.273 & 0.659 & 0.84 \\
-Multi-mode      & 1.55 & 0.495 & 0.748 & 0.08 & 1.22 & 0.617 & 0.742 & 0.09 \\
-One-mode        & 1.24 & 0.496 & 0.610 & 0.06 & 0.85 & 0.603 & 0.507 & 0.08 \\
-Mixed           & $-$1.27 & 0.290 & $-$0.339 & 1.12 & 0.69 & 0.572 & 0.386 & 0.47 \\
-\bottomrule
-\end{tabular}
+\input{../results/tables/scenario_validation.tex}
 \end{table}
 
 \paragraph{Results.} Table~\ref{tab:scenarios} summarizes the metrics. Figure~\ref{fig:scenario-curves} shows the $a_k$ curves for all scenarios.
@@ -476,56 +457,12 @@ To test whether the metric reflects the number of distinct modes, we construct r
 
 \begin{figure}[t]
 \centering
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
-    \caption{$a_k$ curves fan out with increasing $m$.}
-    \label{fig:ak-overlay}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
-    \caption{Summary metrics vs.\ mode count $m$.}
-    \label{fig:metrics-vs-m}
-\end{subfigure}
-\caption{Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). Left: $a_k$ curves by mode count, showing progressively higher floors and slower convergence with more modes. Right: metric summaries. $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
+\includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
+\caption{Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). The $a_k$ curves fan out with increasing $m$: higher floors, slower convergence. All curves are exponential (no sigmoidal plateau), even at $m=10$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).}
 \label{fig:mode-count}
 \end{figure}
 
-\begin{table}[t]
-\centering
-\caption{Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy (bits); $a_n$ is the mean floor at $k=20$; $\sigma_\ell$ is coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}
-\label{tab:mode-count}
-\small
-\begin{tabular}{@{}r rrrr@{}}
-\toprule
-$m$ & $E_{\mathrm{fit}}$ (bits) & $a_n$ (bits) & $\sigma_\ell$ (bits) & $k_0$ \\
-\midrule
-1  & $296 \pm 11$ & 9.3  & 5.9  & $-10.0$ \\
-2  & $568 \pm 24$ & 16.9 & 23.7 & $-10.0$ \\
-3  & $704 \pm 41$ & 26.7 & 30.1 & $-10.0$ \\
-4  & $799 \pm 67$ & 37.4 & 38.9 & $-10.0$ \\
-5  & $855 \pm 113$ & 48.0 & 41.5 & $-10.0$ \\
-6  & $940 \pm 127$ & 56.1 & 44.1 & $-10.0$ \\
-7  & $1069 \pm 194$ & 61.5 & 45.7 & $-10.0$ \\
-8  & $1138 \pm 253$ & 66.9 & 44.6 & $-10.0$ \\
-9  & $1563 \pm 705$ & 72.8 & 44.7 & $-10.0$ \\
-10 & $1807 \pm 1194$ & 77.8 & 43.5 & $-10.0$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Key findings.} Figure~\ref{fig:mode-count} and Table~\ref{tab:mode-count} show the results. The floor $a_n$ increases monotonically with $m$ (9.3 bits at $m=1$ to 77.8 bits at $m=10$), reflecting more irreducible entropy remaining after full conditioning. This is exactly the behavior $D_{a_\infty} = C \times a_n$ needs: the asymptotic floor tracks mode count directly. The coherence spread $\sigma_\ell$ also increases, but this reflects the heterogeneous formats of our synthetic modes (code vs.\ haiku vs.\ recipe have very different per-byte cross-entropies) rather than diversity per se.
-
-For comparison, the sigmoid-extrapolated $E_{\mathrm{fit}}$ (Appendix~\ref{app:excess-entropy}) also increases monotonically with $m$, but with confidence intervals that widen substantially at high $m$ (the $m=10$ interval spans 1202--3591 bits), reflecting the difficulty of extrapolating a curve that has not converged at $k=n$. The raw estimator $\hat{E}_n$ (using $a_n$ as the floor) is \emph{non-monotonic}---it peaks at $m \approx 3$--$4$ and then decreases---because $a_n$ overestimates $a_\infty$ when the curve has not converged. These pathologies are another reason we prefer $D_{a_\infty}$ as the primary score.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.7\textwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
-\caption{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B). The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau---inconsistent with the sigmoidal prediction for high $m$ (see Section~\ref{sec:cross-mode-learning}).}
-\label{fig:fit-params}
-\end{figure}
-
-Notably, the sigmoid inflection point $k_0$ remains at the lower bound ($-10$, the optimizer constraint) for all $m$ (Figure~\ref{fig:fit-params}), indicating that all curves are purely exponential even at $m=10$. The expected transition to sigmoidal shape at high $m$ does not occur for Qwen2.5-3B. Section~\ref{sec:cross-mode-learning} investigates why.
+\paragraph{Key findings.} Figure~\ref{fig:mode-count} shows the $a_k$ curves. The floor $a_n$ increases monotonically with $m$ (9.3 bits at $m=1$ to 77.8 bits at $m=10$), reflecting more irreducible entropy remaining after full conditioning. This is exactly the behavior $D_{a_\infty} = C \times a_n$ needs: the asymptotic floor tracks mode count directly. All curves are purely exponential (no sigmoidal plateau), even at $m=10$; Section~\ref{sec:cross-mode-learning} investigates why. For a detailed comparison of the excess-entropy-based scores on this data, including the sigmoid fit parameters and the non-monotonicity of $\hat{E}_n$, see Appendix~\ref{app:excess-entropy}.
 
 \subsection{Cross-Mode Learning and Curve Shape}\label{sec:cross-mode-learning}
 
@@ -972,7 +909,42 @@ A natural alternative to reporting $E$ and $C$ separately is to weight the terms
 
 $C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure}---recurring patterns that $\theta$ can extract from seeing multiple responses---not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity. Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal. These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
 
-\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data. In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), the sigmoid-extrapolated $E_{\mathrm{fit}}$ is monotonic in mode count for Qwen2.5-3B but has wide confidence intervals at high $m$, while the raw $\hat{E}_n$ estimator is non-monotonic.
+\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data.
+
+\subsection{Coherence Normalization Strategies}\label{app:c-normalization}
+
+Two strategies are available when coherence variation dominates diversity variation:
+\begin{enumerate}[nosep]
+    \item \textbf{Normalization}: Replace $C$ with $C / C_{\mathrm{base}}$, where $C_{\mathrm{base}}$ is the coherence of $\theta$'s own samples given the same prompt. The ratio lives in $(0, 1]$ and equals 1 when $\pi$ is as coherent as $\theta$, removing the baseline suppression. This has a clean interpretation as ``what fraction of baseline coherence does $\pi$ retain?''
+    \item \textbf{Fractional exponent}: Replace $C$ with $C^\alpha$ for $\alpha \in (0, 1)$, which compresses the coherence penalty. This softens the dominance of $C$ but introduces a free hyperparameter without information-theoretic motivation.
+\end{enumerate}
+We recommend normalization when a single-scalar ranking is the primary use case, and the unmodified $C$ when the goal is diagnostic. We did not use either strategy in our experiments.
+
+\subsection{Mode Count Scaling: Excess-Entropy Metrics}
+
+In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), the sigmoid-extrapolated $E_{\mathrm{fit}}$ is monotonic in mode count for Qwen2.5-3B but has wide confidence intervals at high $m$, while the raw $\hat{E}_n$ estimator is non-monotonic. Table~\ref{tab:mode-count} and Figure~\ref{fig:metrics-vs-m} show the details.
+
+\begin{table}[h]
+\centering
+\caption{Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=20$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}
+\label{tab:mode-count}
+\small
+\input{../results/tables/mode_count_scaling.tex}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
+\caption{Summary metrics vs.\ mode count $m$ (Qwen2.5-3B, $n=20$, 1000 draws). $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
+\label{fig:metrics-vs-m}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
+\caption{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B). The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau (see Section~\ref{sec:cross-mode-learning}).}
+\label{fig:fit-params}
+\end{figure}
 
 \section{Dataset Construction Confounds in McDiv}\label{app:confound}
 
