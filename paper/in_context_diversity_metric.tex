@@ -178,7 +178,7 @@ The $a_k$ curve is the fundamental object of interest. Its shape reveals the str
 
 This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
-\paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout, resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}). Section~\ref{sec:cross-mode-learning} provides empirical evidence that the sigmoid prediction holds for GPT-2 but not for more capable models, where cross-mode learning produces exponential decay even at high $m$.
+\paragraph{Curve shape.} If modes were independent (seeing one mode's response tells $\theta$ nothing about other modes), the curve shape would depend on the ratio $m/n$: sigmoidal with a plateau at high $m/n$, exponential decay at low $m/n$. Appendix~\ref{app:k0-derivation} derives this prediction formally. In practice, capable base models exhibit cross-mode learning (Section~\ref{sec:cross-mode-learning}), which violates the independence assumption and produces exponential decay at all $m/n$ ratios. The sigmoid prediction holds only for weaker models like GPT-2.
 
 \section{The Coherence Term}\label{sec:coherence}
 
@@ -754,6 +754,8 @@ However, their ground truth is itself a trained classifier (79\% accuracy), maki
 \appendix
 
 \section{Relating the Sigmoid Inflection Point to Mode Count}\label{app:k0-derivation}
+
+\textbf{Note:} The derivation below assumes that modes are approximately independent (seeing a response from mode $i$ does not help $\theta$ predict mode $j$). Section~\ref{sec:cross-mode-learning} shows this assumption fails for capable base models, which exhibit cross-mode learning and produce exponential decay at all $m/n$ ratios rather than the predicted sigmoid. The derivation is included for theoretical completeness and because it does hold for weaker models (GPT-2).
 
 \subsection{Setup}
 
