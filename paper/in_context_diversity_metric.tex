@@ -155,7 +155,7 @@ Both yield $\pmi \approx 0$. The distinguishing signal lies in the probability $
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
-Rather than all-pairs PMI (a metric which cannot notice the 'low diversity' case when a response is a mix of other two), we use the chain rule of mutual information. Define:
+Rather than all-pairs PMI (a metric which cannot recognize the case when response 3 is a mix of response 1 and response 2 as low-diversity), we use the chain rule of mutual information. Define:
 \begin{equation}\label{eq:ak}
     a_k = -\log_2 \theta(r_k \mid r_{<k}, p) \quad \text{for } k = 1, \ldots, n
 \end{equation}
@@ -164,14 +164,14 @@ Units: bits. Each $a_k$ is the total surprise of the $k$-th response given all p
 
 Since responses have different lengths, the raw total-bits $a_k$ values for a single ordering reflect both structural learning and length variation. Per-byte normalization and averaging over random permutations of the response ordering (Section~\ref{sec:ordering}) remove these effects: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context.
 
-If $\theta$ were the true joint distribution of $\pi$'s outputs, then $\E[a_k]$ would be non-increasing in $k$ by the information-theoretic identity $H(X \mid Y, Z) \leq H(X \mid Y)$. Since $a_k$ is a \emph{cross}-entropy under $\theta$ rather than the true conditional entropy, this monotonicity is an empirical property of $\theta$'s in-context learning, not a theorem: the cross-entropy decomposes as $H + \KL$, and while the entropy component is non-increasing with additional conditioning, the model-mismatch component could in principle increase if $\theta$'s predictions degrade with longer or more complex contexts. We assume throughout that $\theta$ is a sufficiently capable model that this mismatch remains small and does not reverse the monotonicity. If $a_k$ is observed to be non-monotone in practice, this is a diagnostic signal that $\theta$'s in-context learning is failing for the given context length or formatting. The total correlation decomposes as:
+If $\theta$ were the true joint distribution of $\pi$'s outputs, then $\E[a_k]$ would be non-increasing in $k$ by the information-theoretic identity $H(X \mid Y, Z) \leq H(X \mid Y)$. Since $a_k$ is a \emph{cross}-entropy under $\theta$ rather than the true conditional entropy, this monotonicity is an empirical property of $\theta$'s in-context learning, not a theorem: the cross-entropy decomposes as $H + \KL$, and while the entropy component is non-increasing with additional conditioning, the model-mismatch component could in principle increase if $\theta$'s predictions degrade with longer or more complex contexts. We assume throughout that $\theta$ is a sufficiently capable model that this mismatch remains small and does not reverse the monotonicity. We do observe mild non-monotonicity in practice: on Tevet's benchmarks with $n=5$ responses, approximately 63\% of samples have $a_5 > a_4$ (Section~\ref{sec:tevet}). This last-position uptick is small enough that it does not reverse the overall trend, but it does add noise to the $a_n$ estimate of $a_\infty$. The total correlation decomposes as:
 \begin{equation}
     \TC_n = \sum_{k=1}^{n}\bigl[-\log_2 \theta(r_k \mid p) - a_k\bigr]
 \end{equation}
 
 The $a_k$ curve is the fundamental object of interest. Its shape reveals the structure among the policy's outputs:
 \begin{itemize}[nosep]
-    \item For small $k$, each new response is likely to contain patterns $\theta$ has not yet seen, so $a_k$ remains near $a_1$.
+    \item For small $k$, each new response is likely to contain patterns $\theta$ has not yet seen, so $a_k$ remains near $a_1$. In practice, cross-mode learning causes a_k to drop even when responses are varied, but less than when they are similar.
     \item As $k$ grows, $\theta$ begins to recognize recurring structure --- shared modes, stylistic regularities, topic patterns --- and $a_k$ declines.
     \item For large $k$, $a_k$ converges to a floor $a_\infty > 0$ reflecting irreducible within-pattern variation that $\theta$ cannot predict from context alone.
 \end{itemize}
