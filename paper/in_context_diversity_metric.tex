@@ -34,11 +34,11 @@ We develop a diversity metric for language model outputs that uses a trusted bas
 
 \section{Motivation}
 
-Consider evaluating the diversity of outputs from a language model policy $\pi$ (which may be a steered, finetuned, or otherwise modified model). Existing approaches typically measure diversity via embedding-space clustering \citep{lai2024llmmeans} or surface-level $n$-gram statistics. These have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
+Consider evaluating the diversity of outputs from a language model policy $\pi$. This is useful for comparing any generation process: RLHF-trained or finetuned models, different prompting strategies, decoding parameters, representation-engineering interventions, or even human writers. Existing approaches typically measure diversity via embedding-space clustering \citep{lai2024llmmeans} or surface-level $n$-gram statistics. These have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
 
 We propose an alternative grounded in information theory: use a trusted base model $\theta$ with per-token logprob access to assess how much information responses from $\pi$ share with one another. The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another. If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
 
-\paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs. A steered model may assign high probability to all its (narrowed) outputs, masking the loss of diversity. Using an independent $\theta$ provides an external reference frame.
+\paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs. A post-trained model may assign high probability to all its (narrowed) outputs, masking the loss of diversity. Using an independent $\theta$ provides an external reference frame.
 
 \paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses. All quantities derived below (the progressive conditional surprise curve, the asymptotic floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}. If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity. Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy. The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$. As base models continue to improve at in-context learning, this gap narrows.
 
@@ -171,12 +171,12 @@ If $\theta$ were the true joint distribution of $\pi$'s outputs, then $\E[a_k]$ 
 
 The $a_k$ curve is the fundamental object of interest. Its shape reveals the structure among the policy's outputs:
 \begin{itemize}[nosep]
-    \item For small $k$, each new response is likely to contain patterns $\theta$ has not yet seen, so $a_k$ remains near $a_1$. In practice, cross-mode learning causes a_k to drop even when responses are varied, but less than when they are similar.
+    \item For small $k$, each new response is likely to contain patterns $\theta$ has not yet seen, so $a_k$ remains near $a_1$. In practice, cross-mode learning causes $a_k$ to drop even when responses are varied, but less than when they are similar.
     \item As $k$ grows, $\theta$ begins to recognize recurring structure (shared modes, stylistic regularities, topic patterns) and $a_k$ declines.
     \item For large $k$, $a_k$ converges to a floor $a_\infty > 0$ reflecting irreducible within-pattern variation that $\theta$ cannot predict from context alone.
 \end{itemize}
 
-This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies (e.g., base vs.\ steered) on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
+This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance. Overlaying $a_k$ curves from different policies on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
 \paragraph{Curve shape depends on $m/n$.} The qualitative shape of the $a_k$ curve depends on the ratio of the number of modes $m$ to the number of samples $n$. When $m$ is small relative to $n$ (e.g., 2--3 modes among 15 responses), $\theta$ discovers all modes early: even the first few responses are likely to cover most modes, so $a_k$ begins declining immediately and the curve is \emph{concave-up} throughout, resembling exponential decay with no identifiable elbow. When $m$ is comparable to $n$ (e.g., 10 modes among 15 responses), the first several responses each reveal a genuinely new mode, and $\theta$ cannot begin learning until it has accumulated enough examples. The curve is then \emph{sigmoidal}: an initial plateau where $a_k \approx a_1$ (most modes remain unseen), followed by a rapid decline once $\theta$ has observed enough modes to begin generalizing, and finally convergence to $a_\infty$. The inflection point of the sigmoid occurs at $k_0 \propto m$ (specifically $k_0 \approx m \ln 2$; see Appendix~\ref{app:k0-derivation} for a derivation) and marks the transition from ``still discovering modes'' to ``consolidating learned structure.'' The curve shape is therefore itself diagnostic: a concave-up curve signals few modes relative to the sample size, while a sigmoidal curve with a visible plateau signals many modes. This distinction matters for mode-count estimation (Section~\ref{sec:mode-count-from-curve}). Section~\ref{sec:cross-mode-learning} provides empirical evidence that the sigmoid prediction holds for GPT-2 but not for more capable models, where cross-mode learning produces exponential decay even at high $m$.
 
@@ -186,7 +186,7 @@ This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals 
 
 At first glance, the $a_k$ curve appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own. A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_\infty$ is high but $C$ will be near zero. The noise policy correctly gets a low $D_{a_\infty}$ because of the coherence term, not because of the curve alone.
 
-The problem the curve alone cannot solve is a \textbf{policy that has multiple distinct but individually incoherent modes}. Consider a badly steered or finetuned model that produces several recognizably different types of low-quality output. The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$ and $a_\infty$ may be low), but each type is still implausible text. Without a separate plausibility term, the policy could score as meaningfully diverse. This failure mode is particularly relevant when evaluating models at high steering magnitudes, where the model may produce incoherent outputs that nonetheless condition strongly on their own prior responses. A separate coherence term lets $D_{a_\infty}$ suppress these.
+The problem the curve alone cannot solve is a \textbf{policy that has multiple distinct but individually incoherent modes}. Consider a badly trained or modified model that produces several recognizably different types of low-quality output. The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$ and $a_\infty$ may be low), but each type is still implausible text. Without a separate plausibility term, the policy could score as meaningfully diverse. A separate coherence term lets $D_{a_\infty}$ suppress these cases.
 
 \subsection{Definition}
 
@@ -214,7 +214,7 @@ We chose the geometric mean (equivalently, $1/n$ inside the exponent) over the a
     \E_\pi\bigl[h_\theta(r \mid p)\bigr] = H_\pi(\cdot \mid p) + \KL(\pi \| \theta \mid p)
 \end{equation}
 
-So coherence is penalized both by genuine incoherence and by distributional distance from the base model. For the purpose of evaluating steered or finetuned policies, this is a feature: a heavily steered policy that assigns probability mass to regions $\theta$ finds implausible is penalized accordingly, reflecting that the base model's probability landscape is treated as the reference.
+So coherence is penalized both by genuine incoherence and by distributional distance from the base model. For the purpose of evaluating modified policies, this is a feature: a policy that assigns probability mass to regions $\theta$ finds implausible is penalized accordingly, reflecting that the base model's probability landscape is treated as the reference.
 
 \paragraph{Note on comparability.} Because all quantities are normalized per byte, the per-byte coherence $C$ is invariant to tokenizer choice: two base models $\theta_1, \theta_2$ with different tokenizers but identical predictive distributions will yield identical $C$ values. What remains incomparable across different $\theta$'s is model quality: a better model assigns lower cross-entropy regardless of normalization. This is by design: $\theta$'s predictive quality is the lens through which diversity is measured.
 
@@ -222,7 +222,7 @@ So coherence is penalized both by genuine incoherence and by distributional dist
 
 \subsection{The Curve Is the Metric}
 
-The $a_k$ curve is the primary output of this framework. It reveals the total learnable structure among the policy's outputs: the elbow location indicates when $\theta$ has learned most of the available patterns, $a_\infty$ reflects residual unpredictable variation, and $a_1$ reflects the unconditional surprise. Overlaying curves from different policies on the same axes provides immediate visual diagnosis of how an intervention (steering, finetuning) changes the output distribution, just as comparing scree plots does in PCA.
+The $a_k$ curve is the primary output of this framework. It reveals the total learnable structure among the policy's outputs: the elbow location indicates when $\theta$ has learned most of the available patterns, $a_\infty$ reflects residual unpredictable variation, and $a_1$ reflects the unconditional surprise. Overlaying curves from different policies on the same axes provides immediate visual diagnosis of how an intervention changes the output distribution, just as comparing scree plots does in PCA.
 
 Everything below is a lossy summary of this curve. We develop these summaries because curves are difficult to rank, average across prompt suites, or report in tables, but the reader should understand that each successive compression discards information.
 
@@ -234,7 +234,7 @@ The asymptotic floor $a_n$ (estimating $a_\infty$) and the per-byte coherence $C
     \item $C$ (dimensionless, in $(0,1)$): ``How likely, per byte, does $\theta$ find $\pi$'s outputs?''
 \end{itemize}
 
-This separation enables diagnostic reasoning. Comparing a base policy against a steered variant, one might observe that steering reduces $a_n$ (responses become easier to predict once $\theta$ has seen others) while maintaining $C$ (each output remains individually plausible), or at high steering magnitudes that $C$ drops (outputs become incoherent). These are qualitatively different failure modes that a single scalar would conflate.
+This separation enables diagnostic reasoning. Comparing two policies, one might observe that one has lower $a_n$ (responses become easier to predict once $\theta$ has seen others) while maintaining similar $C$ (each output remains individually plausible), or that $C$ drops (outputs become incoherent) without a corresponding change in $a_n$. These are qualitatively different failure modes that a single scalar would conflate.
 
 Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(a_n, C, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
 
@@ -304,14 +304,14 @@ The diversity scores are defined relative to a single prompt $p$. To summarize a
     \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{a_\infty}(\pi, p_j)
 \end{equation}
 
-To compare two policies (e.g., a base model against a steered variant), the natural scalar is the difference:
+To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
 \begin{equation}
-    \Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_{\mathrm{base}}) - \bar{D}_{a_\infty}(\pi_{\mathrm{steered}})
+    \Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
 \end{equation}
 
-$\Delta D_{a_\infty}$ answers ``how much plausibility-weighted residual diversity did steering remove, on average?'' No division is involved, so $\Delta D_{a_\infty}$ is stable even when $D_{a_\infty,\mathrm{base}}$ is near zero.
+$\Delta D_{a_\infty}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?'' No division is involved, so $\Delta D_{a_\infty}$ is stable even when either policy's score is near zero.
 
-\paragraph{Why not a ratio?} The relative measure $D_{\mathrm{steered}} / D_{\mathrm{base}}$ is appealing (``what fraction of diversity survived steering?'') but requires division by $D_{\mathrm{base}}$, which is near zero for any constrained prompt. Clamping the denominator introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference avoids these issues.
+\paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt. Clamping the denominator introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference avoids these issues.
 
 \subsection{What to Report}
 
@@ -319,7 +319,7 @@ In order of informativeness:
 \begin{enumerate}[nosep]
     \item The $a_k$ curve (the primary output), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). The elbow location indicates approximate mode count (Section~\ref{sec:mode-count-from-curve}). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
     \item $D_{a_\infty} = C \times a_n$ (bits/byte) as the recommended scalar, alongside $C$ and $\sigma_\ell$. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
-    \item $\Delta D_{a_\infty} = \bar{D}_{a_\infty,\mathrm{base}} - \bar{D}_{a_\infty,\mathrm{steered}}$ when comparing two policies across a prompt suite.
+    \item $\Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)$ when comparing two policies across a prompt suite.
 \end{enumerate}
 
 \section{Practical Considerations}\label{sec:practical}
@@ -356,7 +356,7 @@ The neutral formatting above (``Response A:'', ``Response B:'', \ldots) lets $\t
     \item ``Here are several arguments for different positions:'' $\to$ $\theta$ attends to stance diversity.
 \end{itemize}
 
-The resulting $E$ then measures diversity \emph{along the specified dimension as perceived by $\theta$}. By computing $E$ under multiple framings, one obtains a \textbf{diversity profile}: a vector of per-dimension diversity scores for the same set of responses. This could reveal, for instance, that a happiness steering vector collapses topic diversity but preserves stylistic diversity, a richer claim than ``steering reduces diversity'' in aggregate.
+The resulting curve then measures diversity \emph{along the specified dimension as perceived by $\theta$}. By computing diversity scores under multiple framings, one obtains a \textbf{diversity profile}: a vector of per-dimension diversity scores for the same set of responses. This could reveal, for instance, that an intervention collapses topic diversity but preserves stylistic diversity, a richer claim than ``the intervention reduces diversity'' in aggregate.
 
 We recommend the neutral prompt structure as the default for overall diversity measurement. Dimension-specific structures are a complementary tool for targeted analysis. Three caveats apply. First, each measurement is now $(\theta, \text{framing})$-relative rather than just $\theta$-relative, adding a degree of freedom that must be controlled across comparisons. Second, a leading framing can cause $\theta$ to hallucinate structure that is not present: an aggressive prompt like ``Here are responses with hidden symbolic patterns:'' might inflate $E$ for random text. The neutral framing avoids this by not priming $\theta$ toward any particular kind of structure, and should always be reported alongside any dimension-specific measurements. Third, the effect of the framing is concentrated in the early $a_k$ values. As $\theta$ sees more responses, the actual structure in the data dominates the prior imposed by the framing, and $a_k$ curves from different prompt structures should converge. This means that dimension-specific framings primarily affect \emph{what $\theta$ learns first}, not the asymptotic floor or the total excess entropy at large $n$. The meaningful differences between diversity profiles are therefore found in the first few values of the $a_k$ curve, and using large $n$ may wash out the signal that dimension-specific framing is intended to capture.
 
@@ -391,7 +391,7 @@ Per-response normalization by byte count must be performed \emph{before} averagi
 
 The excess entropy estimator $\hat{E}_n$ depends on $n$ through both the summation range and the estimate $a_n \approx a_\infty$. We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency. A practical choice is $n = 10$--20, which suffices for policies where $\theta$'s learning stabilizes within this range.
 
-\paragraph{Detectable mode weight.} Modes with weight $w \lesssim 1/n$ will rarely appear in the sample, and even when they do, $\theta$ has insufficient examples to learn the pattern. As a rough guide, modes with weight below $1/n$ are invisible to the metric. For $n = 15$, this means modes contributing less than $\sim$7\% of the probability mass are unlikely to be captured. If rare modes are of interest (e.g., when evaluating whether steering eliminates low-frequency behaviors), $n$ should be increased accordingly, subject to the context-length constraints discussed above.
+\paragraph{Detectable mode weight.} Modes with weight $w \lesssim 1/n$ will rarely appear in the sample, and even when they do, $\theta$ has insufficient examples to learn the pattern. As a rough guide, modes with weight below $1/n$ are invisible to the metric. For $n = 15$, this means modes contributing less than $\sim$7\% of the probability mass are unlikely to be captured. If rare modes are of interest (e.g., when evaluating whether an intervention eliminates low-frequency behaviors), $n$ should be increased accordingly, subject to the context-length constraints discussed above.
 
 \subsection{Ensembling Base Models}\label{sec:ensemble}
 
