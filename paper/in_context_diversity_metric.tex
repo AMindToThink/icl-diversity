@@ -70,8 +70,9 @@ Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper
     Feed concatenated context to base model $\theta$ in one forward pass.\\
     For each response slot $k$:
     \[ a_k^\sigma \;=\; -\!\!\sum_{t \in r_{\sigma(k)}}\!\!\log_2 \theta(t \mid \mathrm{prev}) \]
-    Divide by $\|r_{\sigma(k)}\|$ \emph{(per-byte)}, then average over $\sigma$:
-    \[ \bar a_k \;\rightarrow\; \text{floor }a_n \approx a_\infty \]
+    Divide by $\|r_{\sigma(k)}\|$ \emph{(per-byte)}.\\
+    Average over $\sigma$ to get $\bar{a}_k$ curve.\\[2pt]
+    Last point: $a_n \approx a_\infty$
 };
 
 % --- UNCONDITIONAL TRACK (RIGHT) ---
