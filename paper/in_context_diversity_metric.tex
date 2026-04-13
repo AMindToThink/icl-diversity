@@ -36,7 +36,7 @@ We develop a diversity metric for language model outputs that uses a trusted bas
 
 Consider evaluating the diversity of outputs from a language model policy $\pi$ (which may be a steered, finetuned, or otherwise modified model). Existing approaches typically measure diversity via embedding-space clustering \citep{lai2024llmmeans} or surface-level $n$-gram statistics. These have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
 
-We propose an alternative grounded in information theory: use a trusted base model $\theta$ with white-box access to assess how much information responses from $\pi$ share with one another. The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another. If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
+We propose an alternative grounded in information theory: use a trusted base model $\theta$ with per-token logprob access to assess how much information responses from $\pi$ share with one another. The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another. If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
 
 \paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs. A steered model may assign high probability to all its (narrowed) outputs, masking the loss of diversity. Using an independent $\theta$ provides an external reference frame.
 
@@ -108,7 +108,7 @@ Let:
     \item $p$ be a prompt,
     \item $\pi$ be the policy under evaluation,
     \item $r_1, r_2, \ldots, r_n \sim \pi(\cdot \mid p)$ be $n$ i.i.d.\ responses sampled from $\pi$,
-    \item $\theta$ be a trusted base model with white-box access (we can compute token-level log-probabilities),
+    \item $\theta$ be a trusted base model from which we can obtain per-token log-probabilities,
     \item $|r|_{\mathrm{tok}}$ denote the number of tokens in response $r$,
     \item $\|r\|$ denote the number of bytes in the UTF-8 encoding of response $r$.
 \end{itemize}
