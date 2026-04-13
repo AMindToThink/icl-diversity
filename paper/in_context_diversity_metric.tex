@@ -88,13 +88,13 @@ Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper
 \draw[arrow] (input.south) -- ++(0,-1mm) -| (unc.north);
 
 % --- FINAL FORMULA ---
-\node[final, below=4mm of input, text width=0.62\textwidth, yshift=-43mm] (out) {
+\node[final, below=4mm of input, text width=0.62\textwidth, yshift=-49mm] (out) {
     \textbf{Diversity score:}\quad $D_{a_\infty} \;=\; C \times a_n$\quad{\scriptsize(bits/byte)}
 };
 
-% Arrows from each track down into the final box (enter from top)
-\draw[arrow] (cond.south) |- ([xshift=-12mm]out.north);
-\draw[arrow] (unc.south)  |- ([xshift=12mm]out.north);
+% Arrows from each track straight down into the final box
+\draw[arrow] (cond.south) -- (cond.south |- out.north);
+\draw[arrow] (unc.south)  -- (unc.south |- out.north);
 
 \end{tikzpicture}
 \caption{The diversity-metric pipeline. Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize. The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$. Its last point $a_n$ estimates the asymptotic floor $a_\infty$. The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte, and the geometric mean defines coherence $C$. The product $D_{a_\infty} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte). Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
