@@ -42,7 +42,7 @@ We propose an alternative grounded in information theory: use a trusted base mod
 
 \paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses. All quantities derived below --- the progressive conditional surprise curve, the asymptotic floor, and the coherence term --- measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}. If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity. Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy. The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$. As base models continue to improve at in-context learning, this gap narrows.
 
-Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper formalizes and validates each step.
+Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper formalizes each step and validates the resulting metric.
 
 \begin{figure}[tbp]
 \centering
