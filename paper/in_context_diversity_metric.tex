@@ -580,16 +580,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \paragraph{Results.} Tables~\ref{tab:contest}--\ref{tab:dectest} compare $C \times a_n$ against Tevet's baseline metrics. On the conTest binary classification tasks (Table~\ref{tab:contest}), $C \times a_n$ is competitive with embedding-based metrics: it achieves $\rho = +0.73$ and OCA = 0.85 on McDiv prompt\_gen, compared to SentBERT's $\rho = +0.80$ and OCA = 0.90. SentBERT is the strongest baseline across all tasks, but $C \times a_n$ consistently outperforms distinct-$n$ and is within 5--15\% of SentBERT's OCA. On decTest (Table~\ref{tab:dectest}), raw $a_n$ achieves $\rho = +0.92$ on prompt\_gen and resp\_gen, matching or exceeding all baselines including distinct-$n$ ($\rho = +0.91$).
 
-\paragraph{Alternative scalars.} The $C$ weighting consistently helps: raw $a_n$ is 5--17\% lower in OCA than $C \times a_n$ across all binary tasks. Unconditional surprise $a_1$ performs poorly (OCA near chance), confirming that the diversity signal is in the \emph{residual} surprise after conditioning, not the initial surprise. The excess-entropy-based scores $C \times E$ fail entirely in this regime (Appendix~\ref{app:excess-entropy}). Perhaps most surprisingly, raw $C$ alone correlates positively with human diversity labels: diverse response sets are on average more plausible to the base model than non-diverse ones. This is consistent with the McDiv construction confound (Appendix~\ref{app:confound}), where low-diversity sets contain specific, dramatic endings that are intrinsically less likely under $\theta$. The $C$ weighting in $D_{a_\infty}$ thus helps rather than hurts on this benchmark, though we expect $a_n$ to carry most of the signal in settings without this confound.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
-\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (orange dashed) consistently outperforms $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all tasks.}
-\label{fig:roc-curves}
-\end{figure}
-
-\paragraph{Why $E$ fails here.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity---the $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets. The $E$-based scores thus carry almost no signal (see Appendix~\ref{app:excess-entropy}). The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
+\paragraph{Alternative scalars.} The $C$ weighting consistently helps: raw $a_n$ is 5--17\% lower in OCA than $C \times a_n$ across all binary tasks. Unconditional surprise $a_1$ performs poorly (OCA near chance), confirming that the diversity signal is in the \emph{residual} surprise after conditioning, not the initial surprise. We also tested an alternative score based on the excess entropy $E$ (a measure of total learnable structure in the $a_k$ curve); it failed entirely in this few-draws regime, where the curve stays flat regardless of diversity. See Appendix~\ref{app:excess-entropy} for the definition, ROC curves, and a detailed comparison. Perhaps most surprisingly, raw $C$ alone correlates positively with human diversity labels: diverse response sets are on average more plausible to the base model than non-diverse ones. This is consistent with the McDiv construction confound (Appendix~\ref{app:confound}), where low-diversity sets contain specific, dramatic endings that are intrinsically less likely under $\theta$. The $C$ weighting in $D_{a_\infty}$ thus helps rather than hurts on this benchmark, though we expect $a_n$ to carry most of the signal in settings without this confound.
 
 % Source: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
 % comparing C×a_n vs C×a_{n-1} in summary_table.txt
@@ -952,7 +943,16 @@ A natural alternative to reporting $E$ and $C$ separately is to weight the terms
 
 $C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure}---recurring patterns that $\theta$ can extract from seeing multiple responses---not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity. Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal. These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
 
-\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data.
+\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data. Figure~\ref{fig:roc-curves} shows the ROC curves.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
+\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (orange dashed) consistently outperforms $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all tasks.}
+\label{fig:roc-curves}
+\end{figure}
+
+\paragraph{Why $E$ fails in this regime.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity. The $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets. The $E$-based scores thus carry almost no signal. The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low). This is the fundamental reason $D_{a_\infty}$ is preferred.
 
 \subsection{Coherence Normalization Strategies}\label{app:c-normalization}
 
