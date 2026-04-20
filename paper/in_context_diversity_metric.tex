@@ -234,7 +234,7 @@ The asymptotic floor $a_n$ (estimating $a_\infty$) and the per-byte coherence $C
     \item $C$ (dimensionless, in $(0,1)$): ``How likely, per byte, does $\theta$ find $\pi$'s outputs?''
 \end{itemize}
 
-This separation enables diagnostic reasoning. Comparing two policies, one might observe that one has lower $a_n$ (responses become easier to predict once $\theta$ has seen others) while maintaining similar $C$ (each output remains individually plausible), or that $C$ drops (outputs become incoherent) without a corresponding change in $a_n$. These are qualitatively different failure modes that a single scalar would conflate.
+This separation enables diagnostic reasoning. Comparing policy $\pi_1$ against $\pi_2$, one might observe that $\pi_2$ has lower $a_n$ (its responses become easier to predict once $\theta$ has seen others) while its $C$ remains similar to $\pi_1$'s (each output is individually plausible). Alternatively, $\pi_2$ might have lower $C$ (its outputs are less plausible to $\theta$) without a corresponding change in $a_n$. These are qualitatively different failure modes that a single scalar would conflate.
 
 Because $C$ is a mean, it can mask heterogeneity. We therefore pair it with the coherence spread $\sigma_\ell$ (Section~\ref{sec:coherence-hetero}), giving the standard summary triple $(a_n, C, \sigma_\ell)$. Note that $\sigma_\ell$ is defined in per-byte units (the standard deviation of per-byte cross-entropies $h_\theta(r_i \mid p)$) rather than total bits, because this isolates quality variation from length variation, making it a better diagnostic of coherence heterogeneity.
 
