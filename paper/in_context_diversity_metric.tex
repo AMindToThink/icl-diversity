@@ -259,7 +259,7 @@ The edge cases behave correctly:
     \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{a_\infty}$ is low.
 \end{enumerate}
 
-\paragraph{Typical range of $C$.} For well-formed English text scored by a capable base model, bits-per-byte values typically fall in the range 0.5--1.5 (corresponding to per-byte perplexities of roughly 1.4--2.8), so $C \in [0.35, 0.7]$. If coherence variation dominates diversity variation in a particular application, $C$ can be normalized (e.g., dividing by the coherence of $\theta$'s own samples); see Appendix~\ref{app:c-normalization} for details.
+\paragraph{Typical range of $C$.} Published bits-per-byte values for English text range from $\sim$0.72 (GPT-3 davinci on The Pile \citep{gao2020pile}) to $\sim$1.05 (GPT-2 XL), corresponding to $C \in [0.49, 0.61]$. In our Tevet evaluation with Qwen2.5-3B, we observe per-sample bits-per-byte values ranging from 0.5 to 2.3, giving $C \in [0.20, 0.70]$, with a mean around 0.4--0.5 for coherent text. If coherence variation dominates diversity variation in a particular application, $C$ can be normalized (e.g., dividing by the coherence of $\theta$'s own samples); see Appendix~\ref{app:c-normalization} for details.
 
 \subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
 
@@ -1078,6 +1078,11 @@ James~P. Crutchfield and David~P. Feldman.
 Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
 \newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
 \newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Gao et al.(2020)]{gao2020pile}
+Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, and Connor Leahy.
+\newblock The {Pile}: An 800{GB} dataset of diverse text for language modeling.
+\newblock \emph{arXiv preprint arXiv:2101.00027}, 2020.
 
 \bibitem[Radford et al.(2019)]{radford2019language}
 Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever.
