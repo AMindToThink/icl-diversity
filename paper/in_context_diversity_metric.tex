@@ -333,8 +333,6 @@ In summary:
     \item Permutation averaging (if desired): multiply the single-pass cost by the number of permutations.
 \end{itemize}
 
-This compares favorably to all-pairs PMI, which requires $O(n^2)$ forward passes.
-
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
 
 The $a_k$ values depend on the ordering of $\{r_i\}$. Since raw $a_k$ is in total bits, responses of different lengths produce different values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context. We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $\geq 50$ permutations are needed for reliable rankings.
