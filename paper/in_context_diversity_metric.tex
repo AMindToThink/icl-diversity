@@ -284,36 +284,15 @@ The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \time
 
 \paragraph{What to report.} We recommend reporting $(a_n, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D_{a_\infty} = C \times a_n$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).
 
-\subsection{Estimating Mode Count from the Curve}\label{sec:mode-count-from-curve}
-
-The number of effective modes can be read from the \textbf{elbow of the $a_k$ curve}. While $\theta$ is still discovering new modes ($k \lesssim m$), each response is likely novel and $a_k$ remains near $a_1$. Once $\theta$ has seen examples from most modes ($k \gtrsim m$), $a_k$ drops toward $a_\infty$. The transition (the elbow) occurs at $k \approx m$, regardless of how much within-mode structure exists. This can be identified visually when comparing a small number of policies, or via changepoint detection methods when automated estimation is needed.
-
-\paragraph{Caveat: elbow detection requires $m$ comparable to $n$.} The elbow prescription assumes that the $a_k$ curve has a visible plateau followed by a decline. As discussed in Section~\ref{sec:progressive-conditioning}, this sigmoidal shape only appears when $m$ is comparable to $n$. When $m \ll n$ (e.g., 2--3 modes among 15 samples), $\theta$ discovers all modes within the first few responses, and the curve is monotonically concave-up (exponential decay) with no identifiable elbow or plateau. In this regime, mode count cannot be directly read from curve shape. A parametric sigmoid fit to the curve (Appendix~\ref{app:excess-entropy}) provides an alternative: the fitted inflection point $k_0$ estimates $m$ even when no visual elbow is present.
-
-\subsection{Aggregation Across Prompts}\label{sec:aggregation}
-
-The diversity scores are defined relative to a single prompt $p$. To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, we average:
-\begin{equation}
-    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{a_\infty}(\pi, p_j)
-\end{equation}
-
-To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
-\begin{equation}
-    \Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
-\end{equation}
-
-$\Delta D_{a_\infty}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?'' No division is involved, so $\Delta D_{a_\infty}$ is stable even when either policy's score is near zero.
-
-\paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt. Clamping the denominator introduces a hyperparameter and makes the ratio depend on $\epsilon$ precisely for the prompts where it matters most. The absolute difference avoids these issues.
-
 \subsection{What to Report}
 
 In order of informativeness:
 \begin{enumerate}[nosep]
-    \item The $a_k$ curve (the primary output), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). The elbow location indicates approximate mode count (Section~\ref{sec:mode-count-from-curve}). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
+    \item The $a_k$ curve (the primary output), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
     \item $D_{a_\infty} = C \times a_n$ (bits/byte) as the recommended scalar, alongside $C$ and $\sigma_\ell$. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
-    \item $\Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)$ when comparing two policies across a prompt suite.
 \end{enumerate}
+
+The score is defined per prompt $p$. When comparing policies across a prompt suite, one can average $D_{a_\infty}$ over prompts or take differences; see Appendix~\ref{app:aggregation} for details.
 
 \section{Practical Considerations}\label{sec:practical}
 
@@ -767,6 +746,12 @@ This no longer has a clean closed form for $k^*$. However, the scaling is govern
 
 where $1/\sum_i w_i^2$ is the inverse Simpson index (a standard measure of effective diversity). When weights are uniform, $\sum_i w_i^2 = 1/m$ and this recovers $k^* = m \ln 2$. When weights are concentrated on a few dominant modes, $k^*$ is smaller because the dominant modes are observed early.
 
+\subsection{Estimating Mode Count from the Curve}\label{sec:mode-count-from-curve}
+
+A natural idea is to read the number of effective modes from the \textbf{elbow of the $a_k$ curve}: while $\theta$ is still discovering new modes ($k \lesssim m$), each response is likely novel and $a_k$ remains near $a_1$; once $\theta$ has seen most modes ($k \gtrsim m$), $a_k$ drops toward $a_\infty$. The transition occurs at $k \approx m$. The fitted $k_0$ from Eq.~\ref{eq:sigmoid-fit} yields a mode count estimator $\hat{m} = k_0 / \ln 2 \approx 1.443\, k_0$ (assuming uniform mode weights).
+
+However, this prescription requires the curve to be sigmoidal with a visible plateau, which in turn requires modes to be approximately independent. As shown in Section~\ref{sec:cross-mode-learning}, capable base models exhibit cross-mode learning that violates this assumption: all curves are exponential regardless of $m$, and the fitted $k_0$ hits the optimizer's lower bound ($-10$) at every mode count. The elbow-based mode count estimator therefore does not work for capable models. It remains valid for weaker models like GPT-2, but we do not recommend it as a general-purpose tool.
+
 \subsection{Caveats}
 
 \begin{enumerate}
@@ -1041,6 +1026,24 @@ These duplicates introduce noise into any correlation analysis: the same $\bar{a
 \subsection{Implications}
 
 This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$---it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
+
+\section{Aggregation Across Prompts}\label{app:aggregation}
+
+The diversity score $D_{a_\infty}$ is defined relative to a single prompt $p$. To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, one can average:
+\begin{equation}
+    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{a_\infty}(\pi, p_j)
+\end{equation}
+
+To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
+\begin{equation}
+    \Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
+\end{equation}
+
+$\Delta D_{a_\infty}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?'' No division is involved, so $\Delta D_{a_\infty}$ is stable even when either policy's score is near zero.
+
+\paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt. Clamping the denominator introduces a hyperparameter. The absolute difference avoids these issues.
+
+\paragraph{Limitation.} We have not yet validated the aggregation machinery by sampling from actual models and comparing their diversity scores across prompts. Our experiments evaluate diversity of fixed response sets (human-written or synthetically constructed). Applying $\Delta D_{a_\infty}$ to compare, e.g., a base model against an RLHF-trained variant across a prompt suite is a natural next step.
 
 \section{Scaling the Base Model: Qwen2.5-3B vs Qwen3-30B-A3B-Base}\label{app:qwen3-comparison}
 
