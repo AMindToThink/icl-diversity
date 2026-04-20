@@ -328,9 +328,8 @@ The coherence term $C$ and spread $\sigma_\ell$ additionally require the \emph{u
 
 In summary:
 \begin{itemize}[nosep]
-    \item $a_k$ curve and $E$: 1 forward pass (long context).
+    \item $a_k$ curve: 1 forward pass per permutation (long context).
     \item $C$ and $\sigma_\ell$: $n$ forward passes (short contexts, batchable).
-    \item Permutation averaging (if desired): multiply the single-pass cost by the number of permutations.
 \end{itemize}
 
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
@@ -406,9 +405,7 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 
 The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise. The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
 
-Across models, 12--13 of 13 within-model hypotheses pass. $C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text). Cross-model $E_{\mathrm{rate}}$ comparisons are less reliable: only 5 of 10 cross-model hypotheses pass, partly because the stronger model's lower unconditional surprise compresses the $E_{\mathrm{rate}}$ range.
-
-One informative failure: the hypothesis that multi-incoherent should have lower $E_{\mathrm{rate}}$ than multi-mode fails because incoherent modes \emph{do} contain learnable structure (repeated templates, fixed vocabulary), which the metric correctly detects. This is not a bug---the metric measures learnable structure, not coherent structure.
+Across models, 12--13 of 13 within-model hypotheses pass. $C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text).
 
 \subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
 
@@ -598,11 +595,11 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 % comparing C×a_n vs C×a_{n-1} in summary_table.txt
 \paragraph{Last-position uptick.} The mean $a_k$ curve shows a systematic uptick at $k = n$ (the last response position) across McDiv\_nuggets datasets: approximately 63\% of samples have $a_5 > a_4$. This anomaly inflates $a_n$ relative to the true $a_\infty$, adding noise to our score. As a diagnostic, we evaluated $C \times a_{n-1}$ (using the second-to-last point instead of the last). Across McDiv\_nuggets tasks, $C \times a_{n-1}$ is comparable to $C \times a_n$ (sometimes better, sometimes worse), which is striking given that $a_{n-1}$ uses strictly \emph{less} conditioning information (4 prior responses instead of 5). Our working hypothesis is that 4 responses genuinely form a learnable pattern---shared format conventions, topic vocabulary, and stylistic regularities that $\theta$ can extract---but the 5th response partially disrupts this pattern by introducing enough novel structure to increase surprise. If correct, the uptick reflects a real phenomenon (small response sets exhibit fragile learned patterns) rather than a bug, though it does mean $a_n$ slightly overestimates $a_\infty$ at small $n$.
 
-\paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = 0.98$) and Qwen2.5-3B ($r = 0.99$). $D_{\mathrm{fit}}$ also performs well on Qwen ($r = 0.92$, monotonic) but shows non-monotonicity on GPT-2. However, the existing mode count data uses single-ordering curves (no permutation averaging), so this comparison is preliminary. A controlled experiment with permutation-averaged curves is needed to fairly compare $D_{a_\infty}$ and $D$ in the many-mode regime.
+\paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = 0.98$) and Qwen2.5-3B ($r = 0.99$). The excess-entropy-based alternatives are compared in Appendix~\ref{app:excess-entropy}.
 
 \subsection{Practical Findings}\label{sec:practical-findings}
 
-\paragraph{Permutation sensitivity.} $E_{\mathrm{rate}}$ is highly sensitive to the number of permutations. At 3 permutations, scenario rankings are unreliable: multi\_incoherent can flip from last to first in the $E_{\mathrm{rate}}$ ranking across different seeds. At 100 permutations, rankings stabilize. We recommend $n_{\mathrm{permutations}} \geq 50$. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
+\paragraph{Permutation sensitivity.} The per-byte $a_k$ curve depends on the response ordering. At 3 permutations, scenario rankings are unreliable; at 100 permutations, rankings stabilize. We recommend $n_{\mathrm{permutations}} \geq 50$. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
 
 \paragraph{BPE boundary artifacts.} Single-pass computation introduces a small systematic bias ($<0.02$ bits/byte per position) when the tokenizer merges boundary characters across the response separator (e.g., Qwen's tokenizer creates a single token for ``.\textbackslash n\textbackslash n''). This artifact accounts for $<6\%$ of the total curve decline and does not affect qualitative conclusions.
 
@@ -610,7 +607,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.} $\sigma_\ell$ increased monotonically with $m$ in our synthetic experiments because our modes have very different formats (code vs.\ haiku vs.\ recipe $\to$ different per-byte cross-entropies). But $\sigma_\ell$ measures coherence \emph{heterogeneity}, not diversity: modes with similar fluency would have low $\sigma_\ell$ despite high diversity, and a single mode with high quality variance could have high $\sigma_\ell$ with zero diversity. Its role is diagnostic (detecting mixed coherence), not as a standalone diversity score.
 
-\paragraph{Cross-mode learning is model-dependent.} The off-diagonal sign determines curve shape, and this sign depends on $\theta$'s ICL capability. The metric's behavior is entangled with $\theta$'s capabilities in ways theory did not anticipate. Stronger models may produce systematically different $E$ values for the same response set---not because the responses changed, but because $\theta$ detects more cross-mode structure.
+\paragraph{Cross-mode learning is model-dependent.} The off-diagonal sign determines curve shape, and this sign depends on $\theta$'s ICL capability. The metric's behavior is entangled with $\theta$'s capabilities in ways theory did not anticipate. Stronger models may produce systematically different $a_k$ curves for the same response set, not because the responses changed, but because $\theta$ detects more cross-mode structure.
 
 \paragraph{Cross-mode information scales with model quality.} To test this, we run the pairwise matrix experiment on four dense Llama models (1B, 3B, 8B, 70B) using the same 15 modes and 5 samples per mode. Figure~\ref{fig:scaling-crossmode} shows the results. The off-diagonal mean increases monotonically with model size: $-4.9$ (1B), $-1.4$ (3B), $-1.2$ (8B), $+2.1$ (70B) bits, transitioning from negative (cross-mode context hurts) to positive (cross-mode context helps). The fraction of positive off-diagonal entries follows the same monotone trend: 25\%, 41\%, 44\%, 63\%. Since there are $n(n{-}1) = 210$ off-diagonal pairs vs.\ $n = 15$ diagonal entries, cross-mode information transfer dominates the $a_k$ curve's behavior at high $m$. This hypothesis was pre-registered before running any Llama models, and the probability of accidental monotonicity across four models under the null is $1/4! \approx 4\%$.
 
@@ -656,6 +653,77 @@ NoveltyBench \citep{lam2025noveltybench} defines diversity through pairwise func
 However, their ground truth is itself a trained classifier (79\% accuracy), making it unclear whether correlation with their labels validates a metric or merely measures agreement between two model-based scores.
 \citet{he2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
 \citet{chen2025linguistic} benchmark linguistic diversity of LLMs, extending Tevet and Berant's framework to a broader set of generation tasks.
+
+\section*{Acknowledgements}
+
+Implementation and writing were assisted by Claude (Anthropic).
+
+\bibliographystyle{plainnat}
+
+\begin{thebibliography}{10}
+
+\bibitem[Crutchfield and Feldman(2003)]{crutchfield2003regularities}
+James~P. Crutchfield and David~P. Feldman.
+\newblock Regularities unseen, randomness observed: The entropy convergence
+  hierarchy.
+\newblock \emph{Chaos}, 15:25--54, 2003.
+
+\bibitem[Lai et al.(2024)]{lai2024llmmeans}
+Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
+\newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
+\newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Gao et al.(2020)]{gao2020pile}
+Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, and Connor Leahy.
+\newblock The {Pile}: An 800{GB} dataset of diverse text for language modeling.
+\newblock \emph{arXiv preprint arXiv:2101.00027}, 2020.
+
+\bibitem[Radford et al.(2019)]{radford2019language}
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever.
+\newblock Language models are unsupervised multitask learners.
+\newblock \emph{OpenAI Blog}, 2019.
+
+\bibitem[Tevet and Berant(2021)]{tevet2020evaluating}
+Guy Tevet and Jonathan Berant.
+\newblock Evaluating the evaluation of diversity in natural language generation.
+\newblock In \emph{Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL)}, pages 326--346, 2021.
+
+\bibitem[Yang et al.(2024)]{yang2024qwen25}
+An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li, Chengyuan Li, Dayiheng Liu, Fei Huang, et~al.
+\newblock Qwen2.5: A party of foundation models.
+\newblock \emph{arXiv preprint arXiv:2412.15115}, 2024.
+
+\bibitem[Zhang et al.(2024)]{zhang2024writingprompts}
+Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.
+\newblock Trading off diversity and quality in natural language generation.
+\newblock \emph{arXiv preprint}, 2024.
+
+\bibitem[Chen et al.(2025)]{chen2025linguistic}
+Yanzhu Chen, Jiaheng Wei, and Xuezhi Wang.
+\newblock Benchmarking linguistic diversity of large language models.
+\newblock \emph{Transactions of the Association for Computational Linguistics}, 2025.
+
+\bibitem[He et al.(2025)]{he2025commonsense}
+Yun He, Pengfei Liu, and others.
+\newblock Evaluating the evaluation of diversity in commonsense generation.
+\newblock \emph{arXiv preprint arXiv:2506.00514}, 2025.
+
+\bibitem[Lam et al.(2025)]{lam2025noveltybench}
+Xuan Phi Lam, Gia-Huy Do, and others.
+\newblock {NoveltyBench}: Evaluating creativity and diversity in language models.
+\newblock \emph{arXiv preprint arXiv:2504.05228}, 2025.
+
+\bibitem[Qiu et al.(2026)]{qiu2026selfimprovement}
+Tianyi Qiu, Ahmed Hani Ismail, Zhonghao He, and Shi Feng.
+\newblock Self-improvement as coherence optimization: A theoretical account.
+\newblock \emph{arXiv preprint arXiv:2601.13566}, 2026.
+
+\bibitem[Wen et al.(2025)]{wen2025unsupervised}
+Jiaxin Wen, Zachary Ankner, Arushi Somani, Peter Hase, Samuel Marks, Jacob Goldman-Wetzler, Linda Petrini, Henry Sleight, Collin Burns, He He, Shi Feng, Ethan Perez, and Jan Leike.
+\newblock Unsupervised elicitation of language models.
+\newblock \emph{arXiv preprint arXiv:2506.10139}, 2025.
+
+\end{thebibliography}
 
 \appendix
 
@@ -1052,76 +1120,5 @@ To test whether a stronger base model improves the metric on Tevet's benchmarks,
 \paragraph{Interpretation.} A natural reading is that the binary McDiv/ConTest labels have low information content---they distinguish only ``high'' vs ``low'' diversity, and this distinction is coarse enough that a 3B base model already captures the relevant signal. A larger model has nothing more to extract that the binary label can reward. The continuous DecTest labels are noise-free (temperature is the ground truth), so additional metric resolution from a larger model translates into measurable correlation gains. If this interpretation is correct, the binary tasks are saturated for our metric and the path to improvement runs through finer-grained labels rather than larger base models.
 
 \paragraph{Caveat: prompt structure was not optimized.} We made no attempt to optimize the prompt structure used to elicit ICL on these benchmarks; the formatting follows the neutral template from Section~\ref{sec:practical} verbatim. A targeted prompt structure (e.g., explicitly framing the responses as ``Five high-diversity continuations,'' or providing in-context exemplars of diverse vs.\ repetitive sets) would likely improve the metric's discriminative power, particularly for the larger model whose ICL capabilities benefit more from carefully constructed contexts. We leave prompt-structure optimization to future work.
-
-\section*{Acknowledgements}
-
-Implementation and writing were assisted by Claude (Anthropic).
-
-\bibliographystyle{plainnat}
-
-\begin{thebibliography}{10}
-
-\bibitem[Crutchfield and Feldman(2003)]{crutchfield2003regularities}
-James~P. Crutchfield and David~P. Feldman.
-\newblock Regularities unseen, randomness observed: The entropy convergence
-  hierarchy.
-\newblock \emph{Chaos}, 15:25--54, 2003.
-
-\bibitem[Lai et al.(2024)]{lai2024llmmeans}
-Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
-\newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
-\newblock \emph{arXiv preprint}, 2024.
-
-\bibitem[Gao et al.(2020)]{gao2020pile}
-Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, and Connor Leahy.
-\newblock The {Pile}: An 800{GB} dataset of diverse text for language modeling.
-\newblock \emph{arXiv preprint arXiv:2101.00027}, 2020.
-
-\bibitem[Radford et al.(2019)]{radford2019language}
-Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever.
-\newblock Language models are unsupervised multitask learners.
-\newblock \emph{OpenAI Blog}, 2019.
-
-\bibitem[Tevet and Berant(2021)]{tevet2020evaluating}
-Guy Tevet and Jonathan Berant.
-\newblock Evaluating the evaluation of diversity in natural language generation.
-\newblock In \emph{Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL)}, pages 326--346, 2021.
-
-\bibitem[Yang et al.(2024)]{yang2024qwen25}
-An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li, Chengyuan Li, Dayiheng Liu, Fei Huang, et~al.
-\newblock Qwen2.5: A party of foundation models.
-\newblock \emph{arXiv preprint arXiv:2412.15115}, 2024.
-
-\bibitem[Zhang et al.(2024)]{zhang2024writingprompts}
-Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.
-\newblock Trading off diversity and quality in natural language generation.
-\newblock \emph{arXiv preprint}, 2024.
-
-\bibitem[Chen et al.(2025)]{chen2025linguistic}
-Yanzhu Chen, Jiaheng Wei, and Xuezhi Wang.
-\newblock Benchmarking linguistic diversity of large language models.
-\newblock \emph{Transactions of the Association for Computational Linguistics}, 2025.
-
-\bibitem[He et al.(2025)]{he2025commonsense}
-Yun He, Pengfei Liu, and others.
-\newblock Evaluating the evaluation of diversity in commonsense generation.
-\newblock \emph{arXiv preprint arXiv:2506.00514}, 2025.
-
-\bibitem[Lam et al.(2025)]{lam2025noveltybench}
-Xuan Phi Lam, Gia-Huy Do, and others.
-\newblock {NoveltyBench}: Evaluating creativity and diversity in language models.
-\newblock \emph{arXiv preprint arXiv:2504.05228}, 2025.
-
-\bibitem[Qiu et al.(2026)]{qiu2026selfimprovement}
-Tianyi Qiu, Ahmed Hani Ismail, Zhonghao He, and Shi Feng.
-\newblock Self-improvement as coherence optimization: A theoretical account.
-\newblock \emph{arXiv preprint arXiv:2601.13566}, 2026.
-
-\bibitem[Wen et al.(2025)]{wen2025unsupervised}
-Jiaxin Wen, Zachary Ankner, Arushi Somani, Peter Hase, Samuel Marks, Jacob Goldman-Wetzler, Linda Petrini, Henry Sleight, Collin Burns, He He, Shi Feng, Ethan Perez, and Jan Leike.
-\newblock Unsupervised elicitation of language models.
-\newblock \emph{arXiv preprint arXiv:2506.10139}, 2025.
-
-\end{thebibliography}
 
 \end{document}
