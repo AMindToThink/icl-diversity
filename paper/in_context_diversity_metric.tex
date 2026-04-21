@@ -610,8 +610,7 @@ Several directions remain unexplored.
 
 \paragraph{Embedding-based diversity.} Prior work uses embedding distances or clustering (e.g., $k$-LLMmeans \citep{lai2024llmmeans}) to measure diversity. These approaches are complementary: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model. The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
 
-% TODO: swap citation to Holtzman et al. 2020 ("The Curious Case of Neural Text Degeneration", arXiv:1904.09751) once the refs_ids.toml tooling branch lands. Current zhang2024writingprompts citation (actually Zhang et al. 2020, arXiv:2004.10450) uses Shannon entropy of the model distribution, NOT self-BLEU / n-gram overlap, so does not support this claim.
-\paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{zhang2024writingprompts} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
+\paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{holtzman2020curious} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
 
 \paragraph{Diversity evaluation benchmarks.}
 \citet{tevet2020evaluating} introduced the first systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels. We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.
@@ -626,71 +625,7 @@ However, their ground truth is itself a trained classifier (79\% accuracy), maki
 Implementation and writing were assisted by Claude (Anthropic).
 
 \bibliographystyle{plainnat}
-
-\begin{thebibliography}{10}
-
-\bibitem[Crutchfield and Feldman(2003)]{crutchfield2003regularities}
-James~P. Crutchfield and David~P. Feldman.
-\newblock Regularities unseen, randomness observed: The entropy convergence
-  hierarchy.
-\newblock \emph{Chaos}, 15:25--54, 2003.
-
-\bibitem[Lai et al.(2024)]{lai2024llmmeans}
-Viet~Dac Lai, Chien Van~Nguyen, Nghia~Trung Ngo, Thuat Nguyen, Franck Dernoncourt, Ryan~A. Rossi, and Thien~Huu Nguyen.
-\newblock $k$-LLMmeans: Combining LLMs and $k$-means for zero-shot clustering of text.
-\newblock \emph{arXiv preprint}, 2024.
-
-\bibitem[Gao et al.(2020)]{gao2020pile}
-Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, and Connor Leahy.
-\newblock The {Pile}: An 800{GB} dataset of diverse text for language modeling.
-\newblock \emph{arXiv preprint arXiv:2101.00027}, 2020.
-
-\bibitem[Radford et al.(2019)]{radford2019language}
-Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever.
-\newblock Language models are unsupervised multitask learners.
-\newblock \emph{OpenAI Blog}, 2019.
-
-\bibitem[Tevet and Berant(2021)]{tevet2020evaluating}
-Guy Tevet and Jonathan Berant.
-\newblock Evaluating the evaluation of diversity in natural language generation.
-\newblock In \emph{Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL)}, pages 326--346, 2021.
-
-\bibitem[Yang et al.(2024)]{yang2024qwen25}
-An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li, Chengyuan Li, Dayiheng Liu, Fei Huang, et~al.
-\newblock Qwen2.5: A party of foundation models.
-\newblock \emph{arXiv preprint arXiv:2412.15115}, 2024.
-
-\bibitem[Zhang et al.(2024)]{zhang2024writingprompts}
-Hugh Zhang, Daniel Duckworth, Daphne Ippolito, and Arvind Neelakantan.
-\newblock Trading off diversity and quality in natural language generation.
-\newblock \emph{arXiv preprint}, 2024.
-
-\bibitem[Chen et al.(2025)]{chen2025linguistic}
-Yanzhu Chen, Jiaheng Wei, and Xuezhi Wang.
-\newblock Benchmarking linguistic diversity of large language models.
-\newblock \emph{Transactions of the Association for Computational Linguistics}, 2025.
-
-\bibitem[He et al.(2025)]{he2025commonsense}
-Yun He, Pengfei Liu, and others.
-\newblock Evaluating the evaluation of diversity in commonsense generation.
-\newblock \emph{arXiv preprint arXiv:2506.00514}, 2025.
-
-\bibitem[Lam et al.(2025)]{lam2025noveltybench}
-Xuan Phi Lam, Gia-Huy Do, and others.
-\newblock {NoveltyBench}: Evaluating creativity and diversity in language models.
-\newblock \emph{arXiv preprint arXiv:2504.05228}, 2025.
-
-\bibitem[Qiu et al.(2026)]{qiu2026selfimprovement}
-Tianyi Qiu, Ahmed Hani Ismail, Zhonghao He, and Shi Feng.
-\newblock Self-improvement as coherence optimization: A theoretical account.
-\newblock \emph{arXiv preprint arXiv:2601.13566}, 2026.
-
-\bibitem[Wen et al.(2025)]{wen2025unsupervised}
-Jiaxin Wen, Zachary Ankner, Arushi Somani, Peter Hase, Samuel Marks, Jacob Goldman-Wetzler, Linda Petrini, Henry Sleight, Collin Burns, He He, Shi Feng, Ethan Perez, and Jan Leike.
-\newblock Unsupervised elicitation of language models.
-\newblock \emph{arXiv preprint arXiv:2506.10139}, 2025.
-
-\end{thebibliography}
+\bibliography{refs}
 
 \appendix
 
@@ -971,9 +906,9 @@ When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}
 
 \subsection{Mechanism}
 
-McDiv\_nuggets creates low-diversity response sets by giving crowd-workers a specific ending and asking them to paraphrase it five times. The chosen endings tend to be specific or dramatic (e.g., ``He scored winner,'' ``they quit''). High-diversity sets, by contrast, ask workers to write five \emph{different} continuations, which naturally produce more generic, predictable completions (e.g., ``Joel fired the cook when things went too far downhill'').
+The McDiv\_nuggets protocol (Tevet and Berant \S6.4) pairs a low-diversity set with each high-diversity set as follows. Workers first write five \emph{different} continuations (the high-diversity set). The same worker is then asked to \emph{self-select one} of their own five responses and paraphrase it five times, preserving content while varying form (the low-diversity set). Tevet and Berant do not characterize the distribution of which responses workers self-select.
 
-This asymmetry means that individual low-diversity responses are intrinsically more surprising to the base model---not because of diversity, but because of the specificity of the content chosen for paraphrasing.
+Empirically (see Table~\ref{tab:confound-stats} and Figure~\ref{fig:confound-a1-dist}, and the illustrative examples from the McDiv\_nuggets story\_gen dataset in Section~\ref{sec:mcdiv-examples} below), we observe that the self-selected endings for the low-diversity sets tend to be more specific or dramatic (e.g., ``He scored winner'' or ``they quit'') than the typical high-diversity continuations (e.g., ``Joel fired the cook when things went too far downhill''). This means that individual low-diversity responses are intrinsically more surprising to the base model, not because of diversity, but because of the specificity of the endings workers self-selected for paraphrasing.
 
 \subsection{Evidence}
 
@@ -1011,7 +946,7 @@ $[80, 120)$ & 0.734 & 0.818 & +0.085 \\
 \end{tabular}
 \end{table}
 
-\subsection{Illustrative Examples}
+\subsection{Illustrative Examples}\label{sec:mcdiv-examples}
 
 Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surprise (in bits) for the first response of a high-diversity and low-diversity sample, respectively. Red bars are measured response tokens; grey bars are masked context tokens.
 
