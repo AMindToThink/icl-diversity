@@ -24,12 +24,34 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_TEX = PROJECT_ROOT / "paper" / "in_context_diversity_metric.tex"
 DEFAULT_BIB = PROJECT_ROOT / "paper" / "refs.bib"
 
 # natbib commands: \cite, \citep, \citet, \citealp, \citealt, \citeauthor, \citeyear, ...
 CITE_RE = re.compile(r"\\cite[a-zA-Z]*\*?(?:\[[^\]]*\])?(?:\[[^\]]*\])?\{([^}]+)\}")
 ENTRY_HEAD_RE = re.compile(r"^\s*@\w+\s*\{\s*([^,\s}]+)", re.MULTILINE)
+
+
+def _find_default_tex() -> Path:
+    """Return the sole .tex file in paper/ that contains \\documentclass.
+
+    If there are zero or multiple candidates, fall back to paper/main.tex.
+    The caller will get a clear "file not found" error, and the user can
+    pass --tex explicitly. This avoids hardcoding a project-specific
+    filename while still "just working" for the single-paper case.
+    """
+    paper_dir = PROJECT_ROOT / "paper"
+    if paper_dir.is_dir():
+        candidates = []
+        for tex in sorted(paper_dir.glob("*.tex")):
+            try:
+                head = tex.read_text(encoding="utf-8", errors="ignore")[:4096]
+            except OSError:
+                continue
+            if r"\documentclass" in head:
+                candidates.append(tex)
+        if len(candidates) == 1:
+            return candidates[0]
+    return paper_dir / "main.tex"
 
 
 def extract_cite_keys(tex_path: Path) -> set[str]:
@@ -58,7 +80,7 @@ def extract_bib_keys(bib_path: Path) -> set[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tex", type=Path, default=DEFAULT_TEX)
+    parser.add_argument("--tex", type=Path, default=_find_default_tex())
     parser.add_argument("--bib", type=Path, default=DEFAULT_BIB)
     parser.add_argument("--ignore-unused", action="store_true")
     args = parser.parse_args()

@@ -64,6 +64,12 @@ uv run ruff format .
 
 # CLI for custom response files
 uv run calculate-icl-diversity --input responses.jsonl --base-model gpt2 --n-permutations 3
+
+# Regenerate paper/refs.bib from paper/refs_ids.toml (see Citation Pipeline below)
+uv run python scripts/build_bib.py
+
+# Lint: every \cite{} in the paper resolves to an entry in refs.bib (offline, no network)
+uv run python scripts/verify_cites.py
 ```
 
 ## Architecture
@@ -113,6 +119,19 @@ Paper tables are **machine-generated** by `scripts/analyze_c_ainf.py` and `\inpu
 When reading, citing, or discussing table numbers, always read the `.tex` or `.txt` files directly. Cross-check any hand-written inline numbers in the paper prose against the generated tables.
 
 All figures referenced by the paper are also script-generated (in `figures/`). The paper compiles from the `paper/` directory (`cd paper && latexmk -pdf`).
+
+## Citation Pipeline
+
+The paper's bibliography is **machine-generated** by `scripts/build_bib.py`, following the same "identifier-first, never hand-type" principle as the tables. Author lists, titles, years, and venues are fetched from arXiv / Crossref / ACL Anthology rather than typed from memory — this prevents the LLM-typical citation-fabrication failure mode (audit on 2026-04-21 found 5 of 12 pre-tool citations had fabricated author lists or unsupported claims; see `paper/citation_verification_report.md`).
+
+- **Source of truth:** `paper/refs_ids.toml` (identifier + claim per citation; the ONLY human-edited citation file).
+- **Generated:** `paper/refs.bib` (do NOT hand-edit; each entry is annotated with `% source:` and `% claim:` comments).
+- **Workflow doc:** `paper/CITATIONS.md` (project-local; mirrors the global `bibliography-from-ids` skill).
+- **Regenerate:** `uv run python scripts/build_bib.py` (hits APIs; fails loudly on any unresolved identifier).
+- **Lint:** `uv run python scripts/verify_cites.py` (offline; checks every `\cite{}` resolves to an entry in `refs.bib` and flags unused entries).
+- **Unit tests:** `uv run pytest tests/test_bib_pipeline.py` (10 tests; no network).
+
+When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, then `verify_cites.py`, then `latexmk -pdf`. Don't `\bibitem`-by-hand — it reintroduces the failure mode. See the `bibliography-from-ids` and `verify-citation-claims` skills in `~/.claude/skills/` for the general pattern.
 
 ## Key Design Decisions
 
