@@ -307,7 +307,7 @@ Computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a context conta
     Response C: [r_3]
 \end{verbatim}
 
-This leverages the base model's in-context learning to treat the responses as parallel completions. An instruction-tuned model might instead interpret previous responses as conversation turns, confounding the measurement. The formatting choice should be ablated.
+This leverages the base model's in-context learning to treat the responses as parallel completions. An instruction-tuned model might instead interpret previous responses as conversation turns, confounding the measurement.
 
 \paragraph{Base vs.\ instruction-tuned models.} We use a base (non-instruction-tuned) model as $\theta$ for two reasons. First, an instruction-tuned model has had its output distribution shaped by RLHF or similar procedures, so using one as $\theta$ reintroduces the kind of distributional bias we seek to avoid. Second, an instruction-tuned $\theta$ may assign systematically different probabilities to text that follows or violates its alignment training, introducing a confound between coherence-as-fluency and coherence-as-alignment that the metric should not conflate. Modern base models already exhibit strong in-context learning from pretraining alone, so this choice does not sacrifice ICL capability. Optimizing the prompt format to maximally elicit in-context learning from $\theta$ is an interesting direction but out of scope for this paper; we use the neutral ``Response A/B/C'' template throughout.
 
@@ -350,7 +350,7 @@ The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$. 
 
 We evaluate the metric using two base models: GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} and Qwen2.5-32B (32B parameters, 32K-token context window) \citep{yang2024qwen25}. For mode-count scaling and cross-mode learning experiments, we additionally use Qwen2.5-3B to enable larger-scale sampling within reasonable compute budgets.
 
-All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}). Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments. Responses are formatted as described in Section~\ref{sec:cost}. All code is publicly available.\footnote{\url{https://github.com/mkhoriaty/icl-diversity}}
+All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}). Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments. Responses are formatted as described in Section~\ref{sec:cost}. All code is publicly available.\footnote{\url{https://github.com/AMindToThink/icl-diversity}}
 
 \subsection{Scenario Validation}\label{sec:scenario-validation}
 
@@ -385,7 +385,7 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 
 The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise. The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
 
-Across models, 12--13 of 13 within-model hypotheses pass. $C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text).
+$C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text). $D_{a_\infty}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
 
 \subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
 
