@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte). Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses). We validate on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-32B), on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ achieves ROC AUC 0.89, competitive with embedding-based metrics), and on a cross-model scaling study showing that larger base models extract more cross-mode information.
+We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte). Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses). We validate on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-32B), on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ achieves ROC AUC 0.87, competitive with embedding-based metrics), and on a cross-model scaling study showing that larger base models extract more cross-mode information.
 \end{abstract}
 
 \section{Motivation}
@@ -272,14 +272,12 @@ $C_+$ is the coherence of the better-than-average responses and $C_-$ is the coh
 
 The width of this band, $D_+ - D_- = C(2^{\sigma_\ell} - 2^{-\sigma_\ell}) \times a_n$, is zero when all responses have equal coherence and large when the policy mixes coherent and incoherent modes. A wide band is the diagnostic signal for heterogeneous output quality.
 
-\paragraph{What to report.} We recommend reporting $(a_n, C, \sigma_\ell)$ as the standard summary triple. When $\sigma_\ell$ is small, $C$ faithfully represents the policy's coherence and $D_{a_\infty} = C \times a_n$ is a reliable scalar. When $\sigma_\ell$ is large, the band $[D_-, D_+]$ conveys the uncertainty, and the policy merits closer inspection (e.g., examining which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values).
-
 \subsection{What to Report}
 
 In order of informativeness:
 \begin{enumerate}[nosep]
-    \item The $a_k$ curve (the primary output), which reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
-    \item $D_{a_\infty} = C \times a_n$ (bits/byte) as the recommended scalar, alongside $C$ and $\sigma_\ell$. When $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$.
+    \item The $a_k$ curve, the primary output. It reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$). When comparing policies, overlaying curves on the same axes provides immediate visual insight.
+    \item The summary triple $(a_n, C, \sigma_\ell)$ together with the scalar $D_{a_\infty} = C \times a_n$ (bits/byte). When $\sigma_\ell$ is small, $D_{a_\infty}$ is a reliable scalar; when $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$ and examine which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values.
 \end{enumerate}
 
 The score is defined per prompt $p$. When comparing policies across a prompt suite, one can average $D_{a_\infty}$ over prompts or take differences; see Appendix~\ref{app:aggregation} for details.
@@ -361,7 +359,6 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 \begin{table}[t]
 \centering
 \caption{Scenario validation metrics (mean across 5 prompts, 100 permutations, $n=10$ responses, per-byte). We report several candidate scalars: unconditional surprise $a_1$, the asymptotic floor $a_n$, coherence $C$, our recommended score $D_{a_\infty} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{a_\infty}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$. Both $E$ and $C \times E$ go negative for the mixed scenario on GPT-2.}
-\scriptsize
 \label{tab:scenarios}
 \small
 \input{../results/tables/scenario_validation.tex}
@@ -395,7 +392,7 @@ To test whether the metric reflects the number of distinct modes, we construct r
 
 \subsection{Cross-Mode Learning and Curve Shape}\label{sec:cross-mode-learning}
 
-The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate. GPT-2 shows this pattern at $m=10$. Qwen2.5-3B does not---it shows immediate exponential decay at all $m$. This section investigates the discrepancy through systematic pairwise analysis.
+The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate. GPT-2 shows this pattern at $m=10$. Qwen2.5-3B does not: it shows immediate exponential decay at all $m$. This section investigates the discrepancy through systematic pairwise analysis.
 
 \paragraph{Pairwise cross-mode surprise matrix.} For 15 modes, we compute a $15 \times 15$ matrix $M_{ij}$: the surprise reduction (in bits) when a response from mode $j$ is in the context and mode $i$ is the target. Diagonal entries measure same-mode learning; off-diagonal entries measure cross-mode information transfer. Each entry averages over 5 context--target samples (using different samples for context and target to avoid self-prediction inflation).
 
@@ -425,7 +422,7 @@ The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an ini
 The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwise-matrices}):
 \begin{itemize}[nosep]
     \item \textbf{Positive off-diagonal (Qwen)}: Every response helps predict every other response through format calibration and topic priming. The $a_k$ curve drops from position 1, producing exponential decay.
-    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions. At $m=10$, the expected first-step net drop is only $+0.9$ bits (cross-mode damage nearly cancels diagonal gain), producing a flat plateau until same-mode repetitions accumulate---the predicted sigmoid.
+    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions. At $m=10$, the expected first-step net drop is only $+0.9$ bits (cross-mode damage nearly cancels diagonal gain), producing a flat plateau until same-mode repetitions accumulate, the predicted sigmoid.
 \end{itemize}
 
 \paragraph{The independent model fails.} If cross-mode contributions were independent, summing pairwise contributions should predict the observed $a_k$ curve. Figure~\ref{fig:predicted-observed} compares the predicted and observed cumulative drops at $m=10$: the independent model overpredicts by $10.6\times$ (622 bits predicted vs.\ 58.8 bits observed). The first few responses provide most of the format/topic calibration; subsequent responses have rapidly diminishing marginal value.
@@ -433,7 +430,7 @@ The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwis
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{predicted_vs_observed_m10.png}
-\caption{Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $10.6\times$, demonstrating that pairwise contributions are not additive---information saturates rapidly with context length.}
+\caption{Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $10.6\times$, demonstrating that pairwise contributions are not additive: information saturates rapidly with context length.}
 \label{fig:predicted-observed}
 \end{figure}
 
@@ -443,9 +440,9 @@ The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwis
 \end{equation}
 where $p_{\mathrm{rep}}(k)$ is the probability that position $k{+}1$ shares a mode with some position in $1 \ldots k$.
 
-This model produces exponentially decaying marginals (matching observations) rather than the additive model's increasing marginals. At $m=1$, it is nearly exact ($1.0\times$ ratio). However, it predicts approximately the same total drop (${\sim}130$ bits) for all $m$ values (Figure~\ref{fig:multiplicative-total-drop}), while the observed total drop ranges from 128 bits ($m=1$) to 59 bits ($m=10$)---an overprediction of $2.2\times$ at $m=10$.
+This model produces exponentially decaying marginals (matching observations) rather than the additive model's increasing marginals. At $m=1$, it is nearly exact ($1.0\times$ ratio). However, it predicts approximately the same total drop (${\sim}130$ bits) for all $m$ values (Figure~\ref{fig:multiplicative-total-drop}), while the observed total drop ranges from 128 bits ($m=1$) to 59 bits ($m=10$), an overprediction of $2.2\times$ at $m=10$.
 
-The core limitation is that the pairwise matrix measures \emph{single-encounter} information transfer. Real $a_k$ curves involve repeated encounters with overlapping information, where each subsequent encounter has diminishing marginal returns. A complete model would need to account for information overlap between responses---structure that the pairwise matrix does not capture. What the pairwise matrix \emph{does} successfully explain is: (1) the first step at each $m$, (2) why Qwen drops and GPT-2 doesn't (the sign of the off-diagonal), and (3) the qualitative exponential shape.
+The core limitation is that the pairwise matrix measures \emph{single-encounter} information transfer. Real $a_k$ curves involve repeated encounters with overlapping information, where each subsequent encounter has diminishing marginal returns. A complete model would need to account for information overlap between responses, structure that the pairwise matrix does not capture. What the pairwise matrix \emph{does} successfully explain is: (1) the first step at each $m$, (2) why Qwen drops and GPT-2 doesn't (the sign of the off-diagonal), and (3) the qualitative exponential shape.
 
 \begin{figure}[t]
 \centering
@@ -469,7 +466,7 @@ The core limitation is that the pairwise matrix measures \emph{single-encounter}
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{pairwise_symmetry.png}
-\caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$. Under symmetric mutual information, points would lie on $y = x$. The best-fit slope is 0.46 ($R^2 = 0.24$), and many pairs have opposite signs---mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
+\caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$. Under symmetric mutual information, points would lie on $y = x$. The best-fit slope is 0.46 ($R^2 = 0.24$), and many pairs have opposite signs: mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
 \label{fig:pairwise-symmetry}
 \end{figure}
 
@@ -505,7 +502,7 @@ Figure~\ref{fig:row-vs-col} compares the two models. Qwen shows a tighter row--c
     \item \textbf{Topic/vocabulary priming} (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode. This contributes $\sim$5--15 bits spread across the response.
 \end{itemize}
 
-\paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent. For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes. The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals. If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves---but confirming this requires testing additional base models of varying sizes.
+\paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent. For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes. The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals. If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves, but confirming this requires testing additional base models of varying sizes.
 
 \subsection{External Validation}\label{sec:tevet}
 
@@ -517,7 +514,7 @@ We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020
 \end{itemize}
 We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format. For binary datasets we report ROC AUC (the natural evaluation for binary classification); for DecTest we report Spearman $\rho$ with temperature.
 
-\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest)---well below the 20+ responses needed for $E$ (Appendix~\ref{app:excess-entropy}) to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
+\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest), well below the 20+ responses needed for $E$ (Appendix~\ref{app:excess-entropy}) to converge. Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
 
 % Source for all numbers in Tables 5--7:
 % - Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3
@@ -557,7 +554,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 % Source: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
 % comparing C×a_n vs C×a_{n-1} in summary_table.txt
-\paragraph{Last-position uptick.} The mean $a_k$ curve shows a systematic uptick at $k = n$ (the last response position) across McDiv\_nuggets datasets: approximately 63\% of samples have $a_5 > a_4$. This anomaly inflates $a_n$ relative to the true $a_\infty$, adding noise to our score. As a diagnostic, we evaluated $C \times a_{n-1}$ (using the second-to-last point instead of the last). Across McDiv\_nuggets tasks, $C \times a_{n-1}$ is comparable to $C \times a_n$ (sometimes better, sometimes worse), which is striking given that $a_{n-1}$ uses strictly \emph{less} conditioning information (4 prior responses instead of 5). Our working hypothesis is that 4 responses genuinely form a learnable pattern---shared format conventions, topic vocabulary, and stylistic regularities that $\theta$ can extract---but the 5th response partially disrupts this pattern by introducing enough novel structure to increase surprise. If correct, the uptick reflects a real phenomenon (small response sets exhibit fragile learned patterns) rather than a bug, though it does mean $a_n$ slightly overestimates $a_\infty$ at small $n$.
+\paragraph{Last-position uptick.} The mean $a_k$ curve shows a systematic uptick at $k = n$ (the last response position) across McDiv\_nuggets datasets: approximately 63\% of samples have $a_5 > a_4$. This anomaly inflates $a_n$ relative to the true $a_\infty$, adding noise to our score. As a diagnostic, we evaluated $C \times a_{n-1}$ (using the second-to-last point instead of the last). Across McDiv\_nuggets tasks, $C \times a_{n-1}$ is comparable to $C \times a_n$ (sometimes better, sometimes worse), which is striking given that $a_{n-1}$ uses strictly \emph{less} conditioning information (4 prior responses instead of 5). Our working hypothesis is that 4 responses genuinely form a learnable pattern (shared format conventions, topic vocabulary, and stylistic regularities that $\theta$ can extract) but the 5th response partially disrupts this pattern by introducing enough novel structure to increase surprise. If correct, the uptick reflects a real phenomenon (small response sets exhibit fragile learned patterns) rather than a bug, though it does mean $a_n$ slightly overestimates $a_\infty$ at small $n$.
 
 \paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = 0.98$) and Qwen2.5-3B ($r = 0.99$). The excess-entropy-based alternatives are compared in Appendix~\ref{app:excess-entropy}.
 
@@ -584,9 +581,9 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent. This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay). The sigmoid fit still provides a useful parametric form for extrapolating $a_\infty$, even when the inflection point is degenerate ($k_0 < 1$).
 
-\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (within 5--15\% OCA of SentBERT), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity). The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities. We tested whether scaling the base model closes the gap with SentBERT by re-running the evaluation with Qwen3-30B-A3B-Base ($\sim$10$\times$ larger; see Appendix~\ref{app:qwen3-comparison}). It does not: on the binary McDiv/ConTest tasks, the larger model is slightly \emph{worse} than Qwen2.5-3B (mean $-0.014$ AUC), though it is mildly better on the continuous DecTest temperature labels. We interpret this as evidence that the binary human labels are coarse enough to be saturated for our metric at the 3B scale. Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
+\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (within 5--15\% OCA of SentBERT), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity). The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities. We tested whether scaling the base model closes the gap with SentBERT by re-running the evaluation with Qwen3-30B-A3B-Base, a mixture-of-experts model with 30B total parameters and $\sim$3B active per token (see Appendix~\ref{app:qwen3-comparison}). It does not: on the binary McDiv/ConTest tasks, the larger model is slightly \emph{worse} than Qwen2.5-3B (mean $-0.014$ AUC), though it is mildly better on the continuous DecTest temperature labels. We interpret this as evidence that the binary human labels are coarse enough to be saturated for our metric at the 3B scale. Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
 
-\paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{a_\infty} = C \times a_n$ is one natural summary of it among many. Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$. Different applications may warrant different choices---for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar. We have not explored this space systematically; we focus on $D_{a_\infty}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
+\paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{a_\infty} = C \times a_n$ is one natural summary of it among many. Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$. Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar. We have not explored this space systematically; we focus on $D_{a_\infty}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
 
 \section{Future Work}
 
@@ -615,7 +612,7 @@ Several directions remain unexplored.
 \paragraph{Diversity evaluation benchmarks.}
 \citet{tevet2020evaluating} introduced the first systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels. We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.
 More recent work has revisited the meta-evaluation problem.
-NoveltyBench \citep{lam2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples)---conceptually close to our mode count.
+NoveltyBench \citep{lam2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples), conceptually close to our mode count.
 However, their ground truth is itself a trained classifier (79\% accuracy), making it unclear whether correlation with their labels validates a metric or merely measures agreement between two model-based scores.
 \citet{he2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
 \citet{chen2025linguistic} benchmark linguistic diversity of LLMs, extending Tevet and Berant's framework to a broader set of generation tasks.
@@ -724,7 +721,7 @@ However, this prescription requires the curve to be sigmoidal with a visible pla
 
 \section{Excess Entropy and the \texorpdfstring{$C \times E$}{C x E} Score}\label{app:excess-entropy}
 
-This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting---connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation---but empirically inferior to $D_{a_\infty}$ on the external benchmarks of Section~\ref{sec:tevet}. We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{a_\infty}$.
+This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting (connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation) but empirically inferior to $D_{a_\infty}$ on the external benchmarks of Section~\ref{sec:tevet}. We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{a_\infty}$.
 
 \subsection{The Excess Entropy}\label{app:excess-entropy-def}
 
@@ -848,13 +845,15 @@ The first weights total structural information by per-byte plausibility; the sec
 
 \subsection{Why Not Weight Excess Entropy Inside the Sum?}\label{app:why-not-weight}
 
-A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons. First, it breaks the information-theoretic interpretation: $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to Crutchfield and Feldman's excess entropy, and inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process. Second, the weights are not independent of what they weight: both $w_k$ and $e_k$ are derived from the same response scored by the same model, and an incoherent response from a novel mode has both high $e_k$ and low $w_k$, which partially cancel in ways that lack a clean characterization. Third, it makes the noise floor $a_\infty$ ambiguous---unclear whether it should also be weighted, and if so by what.
+A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$. This would suppress contributions from incoherent modes directly at the point of measurement. We considered and rejected this approach for three reasons. First, it breaks the information-theoretic interpretation: $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to Crutchfield and Feldman's excess entropy, and inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process. Second, the weights are not independent of what they weight: both $w_k$ and $e_k$ are derived from the same response scored by the same model, and an incoherent response from a novel mode has both high $e_k$ and low $w_k$, which partially cancel in ways that lack a clean characterization. Third, it makes the noise floor $a_\infty$ ambiguous: unclear whether it should also be weighted, and if so by what.
 
 \subsection{Limitations of $C \times E$}
 
-$C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure}---recurring patterns that $\theta$ can extract from seeing multiple responses---not continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity. Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal. These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
+$C \times E$ inherits two limitations from $E$. First, $E$ measures learnable \emph{structure} (recurring patterns that $\theta$ can extract from seeing multiple responses) rather than continuous spread. A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity. Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal. These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
 
-\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.89 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant achieves 0.64 and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $<$ 0.5) on the same data. Figure~\ref{fig:roc-curves} shows the ROC curves.
+% Source: figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+% McDiv_nuggets prompt_gen (no_hds): C×a_n (pb) AUC = 0.867; D_fit (pb) = NaN (sigmoid fit fails on 5 points); D_disc (pb) AUC = 0.303
+\paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of 0.87 on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant cannot be computed at all (the four-parameter sigmoid fails to converge on only five points) and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC $\approx 0.30$, well below chance). Figure~\ref{fig:roc-curves} shows the ROC curves.
 
 \begin{figure}[h]
 \centering
@@ -900,9 +899,11 @@ In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), 
 \label{fig:fit-params}
 \end{figure}
 
+\input{../results/tables/confound_examples.tex}
+
 \section{Dataset Construction Confounds in McDiv}\label{app:confound}
 
-When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}, we observed that the mean $\bar{a}_1$ curve (per-byte) for the ``low diversity'' group starts \emph{above} the ``high diversity'' group in the story\_gen task (Figure~\ref{fig:confound-a1-dist}). Since $a_1$ measures the surprise of the first response conditioned only on the prompt---before any other responses appear in context---this gap cannot reflect diversity. It is a confound in the dataset construction.
+When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}, we observed that the mean $\bar{a}_1$ curve (per-byte) for the ``low diversity'' group starts \emph{above} the ``high diversity'' group in the story\_gen task (Figure~\ref{fig:confound-a1-dist}). Since $a_1$ measures the surprise of the first response conditioned only on the prompt (before any other responses appear in context), this gap cannot reflect diversity. It is a confound in the dataset construction.
 
 \subsection{Mechanism}
 
@@ -912,52 +913,34 @@ Empirically (see Table~\ref{tab:confound-stats} and Figure~\ref{fig:confound-a1-
 
 \subsection{Evidence}
 
-Table~\ref{tab:confound-stats} summarizes the gap. The per-byte $a_1$ difference (+0.13 bits/byte) is substantial, while the total-bits difference is negligible (+0.1 bits), because high-diversity responses are on average 6.3 bytes longer.
+Table~\ref{tab:confound-stats} summarizes the gap. The per-byte $a_1$ difference is substantial (a content effect) while the total-bits difference is small because high-diversity responses are on average several bytes longer.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Unconditional surprise ($a_1$) by diversity label, McDiv\_nuggets story\_gen.}\label{tab:confound-stats}
-\begin{tabular}{lccc}
-\toprule
- & High diversity & Low diversity & Gap \\
-\midrule
-$a_1$ (bits/byte) & 0.831 & 0.965 & +0.134 \\
-$a_1$ (total bits) & 43.9 & 44.0 & +0.1 \\
-Mean response bytes & 52.7 & 46.5 & $-6.3$ \\
-$n$ & 103 & 97 & \\
-\bottomrule
-\end{tabular}
+\input{../results/tables/confound_stats.tex}
 \end{table}
 
-The gap persists even after controlling for response length (Table~\ref{tab:confound-length}), confirming that it is primarily a content effect, not a length artifact.
+The gap persists after binning by response length (Table~\ref{tab:confound-length}), confirming it is primarily a content effect rather than a length artifact: the high-minus-low per-byte gap remains positive across the bulk of the length range.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
-\caption{Unconditional per-byte surprise by response length bin, story\_gen. The gap narrows for longer responses but remains significant at all lengths.}\label{tab:confound-length}
-\begin{tabular}{lccl}
-\toprule
-Byte range & High div.\ mean & Low div.\ mean & Gap \\
-\midrule
-$[20, 40)$ & 0.788 & 0.987 & +0.199 \\
-$[40, 60)$ & 0.698 & 0.860 & +0.163 \\
-$[60, 80)$ & 0.749 & 0.851 & +0.103 \\
-$[80, 120)$ & 0.734 & 0.818 & +0.085 \\
-\bottomrule
-\end{tabular}
+\caption{Unconditional per-byte surprise by response length bin, story\_gen.}\label{tab:confound-length}
+\input{../results/tables/confound_length.tex}
 \end{table}
 
 \subsection{Illustrative Examples}\label{sec:mcdiv-examples}
 
 Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surprise (in bits) for the first response of a high-diversity and low-diversity sample, respectively. Red bars are measured response tokens; grey bars are masked context tokens.
 
-\paragraph{High diversity} (Figure~\ref{fig:confound-high}). Context: \emph{``Joel owned a restaurant. He hired a cook that didn't care about his work. The cook didn't clean after himself. The kitchen was a mess.''} Response: \emph{``Joel fired the cook when things went too far downhill.''} This is a natural, predictable continuation ($a_1 = 0.783$ bits/byte).
+\paragraph{High diversity} (Figure~\ref{fig:confound-high}). Context: \emph{``Joel owned a restaurant. He hired a cook that didn't care about his work. The cook didn't clean after himself. The kitchen was a mess.''} Response: \emph{``Joel fired the cook when things went too far downhill.''} This is a natural, predictable continuation ($a_1 = \confoundHighRoAone$ bits/byte).
 
-\paragraph{Low diversity} (Figure~\ref{fig:confound-low}). Context: \emph{``Harry and his basketball team was losing the game. The coach called for a timeout. Harry boosted morale by talking to his team. The team caught up and the game was tied.''} Response: \emph{``He scored winner.''} This is a specific, somewhat ungrammatical ending ($a_1 = 1.777$ bits/byte). All five responses in this set are paraphrases of the same idea (``Harry scored the winning point'').
+\paragraph{Low diversity} (Figure~\ref{fig:confound-low}). Context: \emph{``Harry and his basketball team was losing the game. The coach called for a timeout. Harry boosted morale by talking to his team. The team caught up and the game was tied.''} Response: \emph{``He scored winner.''} This is a specific, somewhat ungrammatical ending ($a_1 = \confoundLowRoAone$ bits/byte). All five responses in this set are paraphrases of the same idea (``Harry scored the winning point'').
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../figures/dataset_confound/a1_distributions.png}
-\caption{Distribution of $a_1$ (unconditional surprise of the first response) for high- vs.\ low-diversity story\_gen samples. Left: per-byte. Right: total bits. The per-byte gap (+0.13 bits/byte) is a dataset construction artifact.}\label{fig:confound-a1-dist}
+\caption{Distribution of $a_1$ (unconditional surprise of the first response) for high- vs.\ low-diversity story\_gen samples. Left: per-byte. Right: total bits. The per-byte gap (see Table~\ref{tab:confound-stats}) is a dataset construction artifact.}\label{fig:confound-a1-dist}
 \end{figure}
 
 \begin{figure}[h]
@@ -976,25 +959,17 @@ Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surpri
 
 In addition to the construction confound, we found that the McDiv\_nuggets CSVs contain duplicate sample IDs with \emph{conflicting labels}: the same response set appears once labeled as high diversity and once as low diversity. Table~\ref{tab:contamination} shows the extent of this contamination across the three generation tasks.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Number of sample IDs appearing with both high- and low-diversity labels in the McDiv\_nuggets (with HDS) CSVs.}\label{tab:contamination}
-\begin{tabular}{lcc}
-\toprule
-Task & Conflicting IDs & Total rows \\
-\midrule
-prompt\_gen & 9 & 200 \\
-resp\_gen & 11 & 200 \\
-story\_gen & 7 & 200 \\
-\bottomrule
-\end{tabular}
+\input{../results/tables/confound_contamination.tex}
 \end{table}
 
 These duplicates introduce noise into any correlation analysis: the same $\bar{a}_k$ curve is counted as evidence for \emph{both} labels, diluting the signal. We did not remove these duplicates from our analysis, so the correlations reported here are conservative.
 
 \subsection{Implications}
 
-This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$---it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
+This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label. Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$: it shifts the entire $\bar{a}_k$ curve vertically without changing its shape. Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
 
 \section{Aggregation Across Prompts}\label{app:aggregation}
 
@@ -1028,7 +1003,7 @@ To test whether a stronger base model improves the metric on Tevet's benchmarks,
 
 \paragraph{Result: scaling did not help on the binary tasks.} On the 12 binary classification tasks (McDiv, McDiv\_nuggets, ConTest), Qwen2.5-3B wins on 11 of 12, with ConTest prompt\_gen the only marginal win for Qwen3-30B-A3B ($+0.005$ AUC). The mean degradation from scaling is small but consistent ($\sim$0.014 AUC across binary tasks). On the 6 DecTest tasks (continuous temperature labels), Qwen3-30B-A3B is mildly better on 5 of 6 (mean $+0.020$ in Spearman $\rho$, with one tie).
 
-\paragraph{Interpretation.} A natural reading is that the binary McDiv/ConTest labels have low information content---they distinguish only ``high'' vs ``low'' diversity, and this distinction is coarse enough that a 3B base model already captures the relevant signal. A larger model has nothing more to extract that the binary label can reward. The continuous DecTest labels are noise-free (temperature is the ground truth), so additional metric resolution from a larger model translates into measurable correlation gains. If this interpretation is correct, the binary tasks are saturated for our metric and the path to improvement runs through finer-grained labels rather than larger base models.
+\paragraph{Interpretation.} A natural reading is that the binary McDiv/ConTest labels have low information content: they distinguish only ``high'' vs ``low'' diversity, and this distinction is coarse enough that a 3B base model already captures the relevant signal. A larger model has nothing more to extract that the binary label can reward. The continuous DecTest labels are noise-free (temperature is the ground truth), so additional metric resolution from a larger model translates into measurable correlation gains. If this interpretation is correct, the binary tasks are saturated for our metric and the path to improvement runs through finer-grained labels rather than larger base models.
 
 \paragraph{Caveat: prompt structure was not optimized.} We made no attempt to optimize the prompt structure used to elicit ICL on these benchmarks; the formatting follows the neutral template from Section~\ref{sec:practical} verbatim. A targeted prompt structure (e.g., explicitly framing the responses as ``Five high-diversity continuations,'' or providing in-context exemplars of diverse vs.\ repetitive sets) would likely improve the metric's discriminative power, particularly for the larger model whose ICL capabilities benefit more from carefully constructed contexts. We leave prompt-structure optimization to future work.
 
