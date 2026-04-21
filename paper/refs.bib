@@ -1,0 +1,152 @@
+% paper/refs.bib -- GENERATED FILE, DO NOT EDIT BY HAND.
+%
+% Regenerate with:  uv run python scripts/build_bib.py
+% Source of truth:  paper/refs_ids.toml
+% See also:         paper/CITATIONS.md
+%
+% Each entry is preceded by a `% source:` line naming the authoritative
+% identifier (arXiv ID, DOI, or ACL Anthology ID) and a `% claim:` line
+% naming the specific claim our paper makes against this reference. If
+% you find an entry whose author list, title, or year looks wrong, DO
+% NOT edit refs.bib -- edit refs_ids.toml and re-run the script.
+
+% source: arxiv:2502.09667
+% claim : Embedding + k-means text clustering (cited as an example of embedding-based clustering approaches). Actual title: 'Summaries as Centroids for Interpretable and Scalable Text Clustering'. Sole author: Jairo Diaz-Rodriguez. ICLR 2026.
+@misc{lai2024llmmeans,
+  author         = {Jairo Diaz-Rodriguez},
+  title          = {Summaries as Centroids for Interpretable and Scalable Text Clustering},
+  year           = {2025},
+  eprint         = {2502.09667},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2502.09667v5}
+}
+
+% source: arxiv:2101.00027
+% claim : GPT-3 davinci BPB = 0.7177 and GPT-2 XL BPB = 1.0468 on The Pile (Table 2). Used to motivate the typical range of C.
+@misc{gao2020pile,
+  author         = {Leo Gao and Stella Biderman and Sid Black and Laurence Golding and Travis Hoppe and Charles Foster and Jason Phang and Horace He and Anish Thite and Noa Nabeshima and Shawn Presser and Connor Leahy},
+  title          = {The Pile: An 800GB Dataset of Diverse Text for Language Modeling},
+  year           = {2020},
+  eprint         = {2101.00027},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2101.00027v1}
+}
+
+% source: manual
+% claim : GPT-2 paper. Table 2 of the report states 117M parameters for the smallest model; the released HuggingFace checkpoint (used in our experiments) contains 124,439,808 parameters because Table 2 omits embedding parameters. Context length 1024 is confirmed in Section 2.2 'Input Representation'.
+@techreport{radford2019language,
+  author      = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  title       = {Language Models are Unsupervised Multitask Learners},
+  institution = {OpenAI},
+  year        = {2019},
+  url         = {https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf}
+}
+
+% source: arxiv:2412.15115
+% claim : Qwen2.5 Technical Report. Table 1 lists Qwen2.5-32B with a 128K-token context window (not 32K). Qwen2.5-3B is 32K.
+@misc{yang2024qwen25,
+  author         = {An Yang and Baosong Yang and Beichen Zhang and Binyuan Hui and Bo Zheng and Bowen Yu and Chengyuan Li and Dayiheng Liu and Fei Huang and Haoran Wei and Huan Lin and Jian Yang and Jianhong Tu and Jianwei Zhang and Jianxin Yang and Jiaxi Yang and Jingren Zhou and Junyang Lin and Kai Dang and Keming Lu and Keqin Bao and Kexin Yang and Le Yu and Mei Li and Mingfeng Xue and Pei Zhang and Qin Zhu and Rui Men and Runji Lin and Tianhao Li and Tianyi Tang and Tingyu Xia and Xingzhang Ren and Xuancheng Ren and Yang Fan and Yang Su and Yichang Zhang and Yu Wan and Yuqiong Liu and Zeyu Cui and Zhenru Zhang and Zihan Qiu},
+  title          = {Qwen2.5 Technical Report},
+  year           = {2024},
+  eprint         = {2412.15115},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2412.15115v2}
+}
+
+% source: acl:2021.eacl-main.25
+% claim : Diversity-eval benchmark. Two diagnostic tests (decTest §3.1/6.3; conTest §3.2/6.4) and the McDiv dataset (§6.4, with McDiv_nuggets as a form-neutralized subset). McDiv_nuggets low-diversity construction: workers self-select one of their own diverse responses and paraphrase it 5 times (§6.4, p. 332-333).
+@inproceedings{tevet2020evaluating,
+    title = "Evaluating the Evaluation of Diversity in Natural Language Generation",
+    author = "Tevet, Guy  and
+      Berant, Jonathan",
+    editor = "Merlo, Paola  and
+      Tiedemann, Jorg  and
+      Tsarfaty, Reut",
+    booktitle = "Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: Main Volume",
+    month = apr,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.eacl-main.25/",
+    doi = "10.18653/v1/2021.eacl-main.25",
+    pages = "326--346"
+}
+
+% source: doi:10.1063/1.1530990
+% claim : Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 48). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 15, 25-54, 2003).
+@article{crutchfield2003regularities, title={Regularities unseen, randomness observed: Levels of entropy convergence}, volume={13}, ISSN={1089-7682}, url={http://dx.doi.org/10.1063/1.1530990}, DOI={10.1063/1.1530990}, number={1}, journal={Chaos: An Interdisciplinary Journal of Nonlinear Science}, publisher={AIP Publishing}, author={Crutchfield, James P. and Feldman, David P.}, year={2003}, month=mar, pages={25–54} }
+
+% source: arxiv:1904.09751
+% claim : Canonical decoding-time diversity reference using self-BLEU and distinct-n (§4). Introduced nucleus/top-p sampling (ICLR 2020). Replaces the earlier zhang2024writingprompts citation, which measured Shannon entropy instead of self-BLEU/n-gram overlap.
+@misc{holtzman2020curious,
+  author         = {Ari Holtzman and Jan Buys and Li Du and Maxwell Forbes and Yejin Choi},
+  title          = {The Curious Case of Neural Text Degeneration},
+  year           = {2019},
+  eprint         = {1904.09751},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/1904.09751v2}
+}
+
+% source: arxiv:2412.10271
+% claim : Actual authors: Yanzhu Guo, Guokan Shang, Chloé Clavel. The old bib's 'Chen, Wei, Wang' attribution was wrong. The paper adopts Tevet & Berant's form/content taxonomy (§3) and evaluates across 5 NLG tasks (Table 1). Preprint, not TACL.
+@misc{chen2025linguistic,
+  author         = {Yanzhu Guo and Guokan Shang and Chloé Clavel},
+  title          = {Benchmarking Linguistic Diversity of Large Language Models},
+  year           = {2024},
+  eprint         = {2412.10271},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2412.10271v2}
+}
+
+% source: arxiv:2506.00514
+% claim : Actual authors: Tianhui Zhang, Bei Peng, Danushka Bollegala (no author named 'He'). Meta-evaluation of 12 diversity metrics for GCR using GPT-4o as annotator (§4.1.1).
+@misc{he2025commonsense,
+  author         = {Tianhui Zhang and Bei Peng and Danushka Bollegala},
+  title          = {Evaluating the Evaluation of Diversity in Commonsense Generation},
+  year           = {2025},
+  eprint         = {2506.00514},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2506.00514v1}
+}
+
+% source: arxiv:2504.05228
+% claim : Actual title: 'NoveltyBench: Evaluating Language Models for Humanlike Diversity'. Actual first author: Yiming Zhang (8 authors total). The old bib's 'Lam, Do' attribution was wrong. deberta-v3-large fine-tuned for functional equivalence (§3.2); 79% accuracy in main body vs 71% in Appendix A.4.
+@misc{lam2025noveltybench,
+  author         = {Yiming Zhang and Harshita Diddee and Susan Holm and Hanchen Liu and Xinyue Liu and Vinay Samuel and Barry Wang and Daphne Ippolito},
+  title          = {NoveltyBench: Evaluating Language Models for Humanlike Diversity},
+  year           = {2025},
+  eprint         = {2504.05228},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2504.05228v4}
+}
+
+% source: arxiv:2601.13566
+% claim : Theoretically shows feedback-free self-improvement = coherence optimization. Abstract literally says 'finding a context-to-behavior mapping that's most compressible'. Theorems 4.2 and 5.5; Appendix C reduces debate / bootstrap / ICM to coherence optimization.
+@misc{qiu2026selfimprovement,
+  author         = {Tianyi Qiu and Ahmed Hani Ismail and Zhonghao He and Shi Feng},
+  title          = {Self-Improvement as Coherence Optimization: A Theoretical Account},
+  year           = {2026},
+  eprint         = {2601.13566},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.LG},
+  url            = {http://arxiv.org/abs/2601.13566v1}
+}
+
+% source: arxiv:2506.10139
+% claim : Internal Coherence Maximization (ICM). Algorithm 1 in §2.3. Paper's own framing uses 'concepts/skills/capabilities'; 'latent knowledge' is inherited from Burns et al. 2022 (CCS).
+@misc{wen2025unsupervised,
+  author         = {Jiaxin Wen and Zachary Ankner and Arushi Somani and Peter Hase and Samuel Marks and Jacob Goldman-Wetzler and Linda Petrini and Henry Sleight and Collin Burns and He He and Shi Feng and Ethan Perez and Jan Leike},
+  title          = {Unsupervised Elicitation of Language Models},
+  year           = {2025},
+  eprint         = {2506.10139},
+  archivePrefix  = {arXiv},
+  primaryClass   = {cs.CL},
+  url            = {http://arxiv.org/abs/2506.10139v2}
+}

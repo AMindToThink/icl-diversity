@@ -1,0 +1,99 @@
+# Source of truth for all paper citations.
+#
+# Each [[cite]] entry specifies a BibTeX key and ONE authoritative identifier
+# (arxiv, doi, or acl). `scripts/build_bib.py` resolves each identifier by
+# hitting the arXiv API / Crossref / ACL Anthology and writes
+# paper/refs.bib. The .tex file never hand-types author lists or titles —
+# that is what this file exists to prevent.
+#
+# Manual entries (for papers with no stable digital identifier) set
+# `manual = true` and embed the BibTeX verbatim. Use sparingly; each manual
+# entry is a source of the hallucination risk this system is designed to
+# remove.
+#
+# Identifier precedence when more than one is present:
+#   acl > doi > arxiv > manual
+# (ACL Anthology entries are already in @inproceedings form with the
+# canonical published venue; DOIs resolve to peer-reviewed records;
+# arXiv is the preprint fallback.)
+#
+# After editing this file:
+#   uv run python scripts/build_bib.py       # regenerate paper/refs.bib
+#   uv run python scripts/verify_cites.py    # lint \cite{...} keys
+#
+# See paper/CITATIONS.md for the workflow rationale and background.
+
+[[cite]]
+key   = "lai2024llmmeans"
+arxiv = "2502.09667"
+claim = "Embedding + k-means text clustering (cited as an example of embedding-based clustering approaches). Actual title: 'Summaries as Centroids for Interpretable and Scalable Text Clustering'. Sole author: Jairo Diaz-Rodriguez. ICLR 2026."
+
+[[cite]]
+key   = "gao2020pile"
+arxiv = "2101.00027"
+claim = "GPT-3 davinci BPB = 0.7177 and GPT-2 XL BPB = 1.0468 on The Pile (Table 2). Used to motivate the typical range of C."
+
+[[cite]]
+key   = "radford2019language"
+manual = true
+entry = """\
+@techreport{radford2019language,
+  author      = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  title       = {Language Models are Unsupervised Multitask Learners},
+  institution = {OpenAI},
+  year        = {2019},
+  url         = {https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf}
+}
+"""
+claim = "GPT-2 paper. Table 2 of the report states 117M parameters for the smallest model; the released HuggingFace checkpoint (used in our experiments) contains 124,439,808 parameters because Table 2 omits embedding parameters. Context length 1024 is confirmed in Section 2.2 'Input Representation'."
+
+[[cite]]
+key   = "yang2024qwen25"
+arxiv = "2412.15115"
+# arXiv records the team as a "corporate author" (name == "Qwen"), which
+# would push natbib's short-label to "Qwen et al. (2024)" instead of the
+# conventional "Yang et al. (2024)". Drop the team-name artifact.
+skip_authors = ["Qwen"]
+claim = "Qwen2.5 Technical Report. Table 1 lists Qwen2.5-32B with a 128K-token context window (not 32K). Qwen2.5-3B is 32K."
+
+[[cite]]
+key   = "tevet2020evaluating"
+acl   = "2021.eacl-main.25"
+arxiv = "2004.02990"
+claim = "Diversity-eval benchmark. Two diagnostic tests (decTest §3.1/6.3; conTest §3.2/6.4) and the McDiv dataset (§6.4, with McDiv_nuggets as a form-neutralized subset). McDiv_nuggets low-diversity construction: workers self-select one of their own diverse responses and paraphrase it 5 times (§6.4, p. 332-333)."
+
+[[cite]]
+key   = "crutchfield2003regularities"
+arxiv = "cond-mat/0102181"
+doi   = "10.1063/1.1530990"
+claim = "Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 48). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 15, 25-54, 2003)."
+
+[[cite]]
+key   = "holtzman2020curious"
+arxiv = "1904.09751"
+claim = "Canonical decoding-time diversity reference using self-BLEU and distinct-n (§4). Introduced nucleus/top-p sampling (ICLR 2020). Replaces the earlier zhang2024writingprompts citation, which measured Shannon entropy instead of self-BLEU/n-gram overlap."
+
+[[cite]]
+key   = "chen2025linguistic"
+arxiv = "2412.10271"
+claim = "Actual authors: Yanzhu Guo, Guokan Shang, Chloé Clavel. The old bib's 'Chen, Wei, Wang' attribution was wrong. The paper adopts Tevet & Berant's form/content taxonomy (§3) and evaluates across 5 NLG tasks (Table 1). Preprint, not TACL."
+
+[[cite]]
+key   = "he2025commonsense"
+arxiv = "2506.00514"
+claim = "Actual authors: Tianhui Zhang, Bei Peng, Danushka Bollegala (no author named 'He'). Meta-evaluation of 12 diversity metrics for GCR using GPT-4o as annotator (§4.1.1)."
+
+[[cite]]
+key   = "lam2025noveltybench"
+arxiv = "2504.05228"
+claim = "Actual title: 'NoveltyBench: Evaluating Language Models for Humanlike Diversity'. Actual first author: Yiming Zhang (8 authors total). The old bib's 'Lam, Do' attribution was wrong. deberta-v3-large fine-tuned for functional equivalence (§3.2); 79% accuracy in main body vs 71% in Appendix A.4."
+
+[[cite]]
+key   = "qiu2026selfimprovement"
+arxiv = "2601.13566"
+claim = "Theoretically shows feedback-free self-improvement = coherence optimization. Abstract literally says 'finding a context-to-behavior mapping that's most compressible'. Theorems 4.2 and 5.5; Appendix C reduces debate / bootstrap / ICM to coherence optimization."
+
+[[cite]]
+key   = "wen2025unsupervised"
+arxiv = "2506.10139"
+claim = "Internal Coherence Maximization (ICM). Algorithm 1 in §2.3. Paper's own framing uses 'concepts/skills/capabilities'; 'latent knowledge' is inherited from Burns et al. 2022 (CCS)."
