@@ -132,16 +132,9 @@ In practice, computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a 
 
 \section{From Mutual Information to Progressive Conditioning}
 
-\subsection{Pairwise Pointwise Mutual Information}
+\subsection{Why Not Pairwise MI?}
 
-The natural starting point is the mutual information between two responses. For specific samples $r_1, r_2$, the relevant quantity is the \textbf{pointwise mutual information} (PMI):
-\begin{equation}
-    \pmi_\theta(r_1; r_2 \mid p) = \log_2 \frac{\theta(r_1 \mid r_2, p)}{\theta(r_1 \mid p)}
-\end{equation}
-
-Note the distinction from mutual information proper: $I_\theta(R_1; R_2 \mid p) = \E_{r_1, r_2 \sim \pi}[\pmi_\theta(r_1; r_2 \mid p)]$. PMI for a single pair can be negative, unlike MI. With $n$ samples, the average of $\binom{n}{2}$ pairwise PMI values estimates MI.
-
-\paragraph{Asymmetry.} PMI is symmetric under the true joint distribution, but the quantity above is computed via autoregressive conditioning: $\theta(r_1 \mid r_2, p)$ places $r_2$ before $r_1$ in context, and there is no guarantee that swapping the order yields the same value. The asymmetry $\pmi_\theta(r_1; r_2 \mid p) \neq \pmi_\theta(r_2; r_1 \mid p)$ is an artifact of $\theta$'s context-order sensitivity. One could symmetrize by averaging both orderings, at the cost of doubling the computation. The progressive conditional surprise framework (Section~3.3) relies on permutations of the $n$ responses to alleviate this asymmetry.
+A natural starting point is pairwise mutual information: measure how much seeing one response helps $\theta$ predict another. However, pairwise MI cannot detect a key failure mode of low diversity: when one response is a blend or interpolation of two others. All three pairwise MI values may be near zero (the blend is not especially predictable from either parent alone), yet the set is clearly not diverse. Progressive conditioning (Section~\ref{sec:progressive-conditioning}) handles this by conditioning on \emph{all} previous responses simultaneously, so the blend becomes predictable once both parents are in context.
 
 \subsection{The Coherence Problem}\label{sec:coherence-problem}
 
@@ -151,7 +144,7 @@ Low MI (or low average PMI) means responses are approximately statistically inde
     \item \textbf{Random/incoherent}: $\pi$ produces noise; each sample is improbable under $\theta$ but trivially independent.
 \end{enumerate}
 
-Both yield $\pmi \approx 0$. The distinguishing signal lies in the probability $\theta$ puts on the response without seeing other responses, $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
+Both yield low pairwise MI. The distinguishing signal lies in the probability $\theta$ puts on the response without seeing other responses, $h_\theta(r \mid p)$, not in the pairwise structure. This motivates decomposing the metric into separate coherence and independence components.
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
@@ -348,7 +341,7 @@ The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$. 
 
 \subsection{Experimental Setup}\label{sec:exp-setup}
 
-We evaluate the metric using two base models: GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} and Qwen2.5-32B (32B parameters, 32K-token context window) \citep{yang2024qwen25}. For mode-count scaling and cross-mode learning experiments, we additionally use Qwen2.5-3B to enable larger-scale sampling within reasonable compute budgets.
+We evaluate the metric using two base models: GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} and Qwen2.5-32B (32B parameters, 128K-token context window) \citep{yang2024qwen25}. For mode-count scaling and cross-mode learning experiments, we additionally use Qwen2.5-3B to enable larger-scale sampling within reasonable compute budgets.
 
 All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}). Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments. Responses are formatted as described in Section~\ref{sec:cost}. All code is publicly available.\footnote{\url{https://github.com/AMindToThink/icl-diversity}}
 
@@ -516,7 +509,7 @@ Figure~\ref{fig:row-vs-col} compares the two models. Qwen shows a tighter row--c
 
 \subsection{External Validation}\label{sec:tevet}
 
-We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which contains 13,679 response sets from three evaluation frameworks with human diversity annotations:
+We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which comprises two diagnostic tests (decTest, conTest) and the McDiv dataset (including the McDiv\_nuggets subset), totalling roughly 6K McDiv sets, 3K McDiv\_nuggets sets, 3.6K decTest sets, and 670 conTest sets (Tevet and Berant \S6.3--6.4):
 \begin{itemize}[nosep]
     \item \textbf{McDiv\_nuggets}: 5 responses per set, binary labels (high/low content diversity).
     \item \textbf{ConTest}: 5 responses per set, binary labels.
@@ -617,6 +610,7 @@ Several directions remain unexplored.
 
 \paragraph{Embedding-based diversity.} Prior work uses embedding distances or clustering (e.g., $k$-LLMmeans \citep{lai2024llmmeans}) to measure diversity. These approaches are complementary: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model. The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
 
+% TODO: swap citation to Holtzman et al. 2020 ("The Curious Case of Neural Text Degeneration", arXiv:1904.09751) once the refs_ids.toml tooling branch lands. Current zhang2024writingprompts citation (actually Zhang et al. 2020, arXiv:2004.10450) uses Shannon entropy of the model distribution, NOT self-BLEU / n-gram overlap, so does not support this claim.
 \paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{zhang2024writingprompts} typically operates at the surface level ($n$-gram overlap, self-BLEU). Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
 
 \paragraph{Diversity evaluation benchmarks.}
