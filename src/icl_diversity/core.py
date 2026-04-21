@@ -16,9 +16,23 @@ throughout.
 Supports:
 - **Batching**: Forward passes for unconditional surprises and permutations
   are batched for GPU parallelism (controlled via ``batch_size``).
-- **Model ensembling** (Section 7.5): Multiple base models can be ensembled
-  at the token level by averaging softmax probabilities. All models must
-  share the same tokenizer/vocabulary.
+- **Model ensembling**: Multiple base models can be ensembled at the token
+  level by averaging softmax probabilities. All models must share the same
+  tokenizer/vocabulary. This feature is implemented but has NOT been
+  experimentally validated as of April 2026. Design notes:
+    - Token-level ensembling (averaging softmax probs) is preferred over
+      averaging a_k curves because it preserves the autoregressive structure
+      and provides robustness: if one model goes OOD on a long context, the
+      mixture is rescued by any model that remains well-calibrated (by
+      Jensen's inequality, the mixture assigns at least as much probability
+      as the geometric mean of the individual models).
+    - All models must share a tokenizer. Cross-family ensembles (e.g.,
+      Llama 2 + Mistral, which share the SentencePiece 32K vocab) are
+      preferable to within-family ensembles (e.g., Llama 3 8B + 70B)
+      because different training data reduces correlated failure modes.
+    - Fallback for incompatible tokenizers: average the total-bits a_k
+      values across models (tokenizer-agnostic but not a principled
+      probabilistic mixture).
 
 Assumptions:
 - theta must have strong in-context learning capability
