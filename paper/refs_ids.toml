@@ -74,17 +74,17 @@ arxiv = "1904.09751"
 claim = "Canonical decoding-time diversity reference using self-BLEU and distinct-n (§4). Introduced nucleus/top-p sampling (ICLR 2020). Replaces the earlier zhang2024writingprompts citation, which measured Shannon entropy instead of self-BLEU/n-gram overlap."
 
 [[cite]]
-key   = "chen2025linguistic"
+key   = "guo2024linguistic"
 arxiv = "2412.10271"
 claim = "Actual authors: Yanzhu Guo, Guokan Shang, Chloé Clavel. The old bib's 'Chen, Wei, Wang' attribution was wrong. The paper adopts Tevet & Berant's form/content taxonomy (§3) and evaluates across 5 NLG tasks (Table 1). Preprint, not TACL."
 
 [[cite]]
-key   = "he2025commonsense"
+key   = "zhang2025commonsense"
 arxiv = "2506.00514"
 claim = "Actual authors: Tianhui Zhang, Bei Peng, Danushka Bollegala (no author named 'He'). Meta-evaluation of 12 diversity metrics for GCR using GPT-4o as annotator (§4.1.1)."
 
 [[cite]]
-key   = "lam2025noveltybench"
+key   = "zhang2025noveltybench"
 arxiv = "2504.05228"
 claim = "Actual title: 'NoveltyBench: Evaluating Language Models for Humanlike Diversity'. Actual first author: Yiming Zhang (8 authors total). The old bib's 'Lam, Do' attribution was wrong. deberta-v3-large fine-tuned for functional equivalence (§3.2); 79% accuracy in main body vs 71% in Appendix A.4."
 
