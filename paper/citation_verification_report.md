@@ -4,6 +4,8 @@ Date: 2026-04-21
 Paper: `paper/in_context_diversity_metric.tex`
 Method: Each citation was verified by a parallel subagent that located the actual paper via web search and cross-checked the specific claim in our paper against the cited work.
 
+> **Resolution (2026-04-22):** The fabricated-author keys below (`chen2025linguistic`, `he2025commonsense`, `lam2025noveltybench`) were renamed to match the real first authors (`guo2024linguistic`, `zhang2025commonsense`, `zhang2025noveltybench`) in commit `1ef7a33`. The old keys are preserved here for historical accuracy; anyone `grep`ping the current tree will find them only in this report. The `zhang2024writingprompts` HIGH-severity entry was replaced by `holtzman2020curious` earlier (commit `7313b47`). A follow-up claim-level audit ran 2026-04-22 — see `citation_claim_verification_2026-04-22.md`.
+
 ## Summary Table
 
 | Bibkey | Status | Severity | Issue |

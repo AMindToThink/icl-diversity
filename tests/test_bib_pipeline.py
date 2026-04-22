@@ -5,6 +5,7 @@ a real run in CI or by hand; here we test the pure-logic pieces
 (TOML parsing, manual-entry rendering, verify_cites regex) so regressions
 in those layers fail fast without a live API.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -18,6 +19,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = PROJECT_ROOT / "scripts"
 BUILD = SCRIPTS / "build_bib.py"
 VERIFY = SCRIPTS / "verify_cites.py"
+
+# Make scripts/ importable so tests can reach into verify_cites for direct
+# function-level tests (e.g. _find_default_tex).
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 
 def run(cmd: list[str], cwd: Path = PROJECT_ROOT) -> subprocess.CompletedProcess:
@@ -71,9 +77,14 @@ def test_verify_unused_key_waivable(tmp_path: Path) -> None:
     bib = _write(tmp_path, "refs.bib", """@misc{used}\n@misc{dead}\n""")
     r = run(
         [
-            "uv", "run", "python", str(VERIFY),
-            "--tex", str(tex),
-            "--bib", str(bib),
+            "uv",
+            "run",
+            "python",
+            str(VERIFY),
+            "--tex",
+            str(tex),
+            "--bib",
+            str(bib),
             "--ignore-unused",
         ]
     )
@@ -106,6 +117,86 @@ def test_verify_ignores_commented_cites(tmp_path: Path) -> None:
 
 
 # ----------------------------------------------------------------------------
+# verify_cites._find_default_tex
+# ----------------------------------------------------------------------------
+
+
+def test_find_default_tex_single_candidate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A lone paper/*.tex file with \\documentclass is auto-discovered."""
+    import verify_cites
+
+    paper_dir = tmp_path / "paper"
+    paper_dir.mkdir()
+    tex = paper_dir / "foo.tex"
+    tex.write_text(
+        r"""\documentclass{article}
+\begin{document}
+Hello.
+\end{document}
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(verify_cites, "PROJECT_ROOT", tmp_path)
+    assert verify_cites._find_default_tex() == tex
+
+
+def test_find_default_tex_no_documentclass_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A .tex file that lacks \\documentclass is not treated as the paper."""
+    import verify_cites
+
+    paper_dir = tmp_path / "paper"
+    paper_dir.mkdir()
+    notes = paper_dir / "notes.tex"
+    notes.write_text(
+        "Just some scratch notes, no documentclass here.\n", encoding="utf-8"
+    )
+
+    monkeypatch.setattr(verify_cites, "PROJECT_ROOT", tmp_path)
+    result = verify_cites._find_default_tex()
+    # Falls back to paper/main.tex (which does not exist in this temp project).
+    assert result == paper_dir / "main.tex"
+    assert not result.exists()
+
+
+def test_find_default_tex_multiple_candidates_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With more than one \\documentclass file, auto-discover is ambiguous."""
+    import verify_cites
+
+    paper_dir = tmp_path / "paper"
+    paper_dir.mkdir()
+    (paper_dir / "a.tex").write_text(
+        r"\documentclass{article}\begin{document}A\end{document}",
+        encoding="utf-8",
+    )
+    (paper_dir / "b.tex").write_text(
+        r"\documentclass{article}\begin{document}B\end{document}",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(verify_cites, "PROJECT_ROOT", tmp_path)
+    result = verify_cites._find_default_tex()
+    assert result == paper_dir / "main.tex"
+
+
+def test_find_default_tex_no_paper_dir_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If paper/ doesn't exist at all, the fallback path is still returned."""
+    import verify_cites
+
+    monkeypatch.setattr(verify_cites, "PROJECT_ROOT", tmp_path)
+    result = verify_cites._find_default_tex()
+    assert result == tmp_path / "paper" / "main.tex"
+
+
+# ----------------------------------------------------------------------------
 # build_bib
 # ----------------------------------------------------------------------------
 
@@ -132,8 +223,19 @@ claim = "A test claim"
     # tmp TOML, we stage a symlink/copy of the script inside tmp.
     tmp_scripts = env_root / "scripts"
     tmp_scripts.mkdir(exist_ok=True)
-    (tmp_scripts / "build_bib.py").write_text(BUILD.read_text(encoding="utf-8"), encoding="utf-8")
-    r = run(["uv", "run", "python", str(tmp_scripts / "build_bib.py"), "--offline-manual-only"], cwd=env_root)
+    (tmp_scripts / "build_bib.py").write_text(
+        BUILD.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    r = run(
+        [
+            "uv",
+            "run",
+            "python",
+            str(tmp_scripts / "build_bib.py"),
+            "--offline-manual-only",
+        ],
+        cwd=env_root,
+    )
     assert r.returncode == 0, (r.stdout, r.stderr)
     bib = (env_root / "paper" / "refs.bib").read_text(encoding="utf-8")
     assert "@misc{sample" in bib
@@ -160,8 +262,19 @@ entry = "@misc{dup}"
     )
     tmp_scripts = tmp_path / "scripts"
     tmp_scripts.mkdir(exist_ok=True)
-    (tmp_scripts / "build_bib.py").write_text(BUILD.read_text(encoding="utf-8"), encoding="utf-8")
-    r = run(["uv", "run", "python", str(tmp_scripts / "build_bib.py"), "--offline-manual-only"], cwd=tmp_path)
+    (tmp_scripts / "build_bib.py").write_text(
+        BUILD.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    r = run(
+        [
+            "uv",
+            "run",
+            "python",
+            str(tmp_scripts / "build_bib.py"),
+            "--offline-manual-only",
+        ],
+        cwd=tmp_path,
+    )
     assert r.returncode != 0
     assert "duplicate" in (r.stdout + r.stderr).lower()
 
@@ -178,8 +291,19 @@ claim = "missing identifier"
     )
     tmp_scripts = tmp_path / "scripts"
     tmp_scripts.mkdir(exist_ok=True)
-    (tmp_scripts / "build_bib.py").write_text(BUILD.read_text(encoding="utf-8"), encoding="utf-8")
-    r = run(["uv", "run", "python", str(tmp_scripts / "build_bib.py"), "--offline-manual-only"], cwd=tmp_path)
+    (tmp_scripts / "build_bib.py").write_text(
+        BUILD.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    r = run(
+        [
+            "uv",
+            "run",
+            "python",
+            str(tmp_scripts / "build_bib.py"),
+            "--offline-manual-only",
+        ],
+        cwd=tmp_path,
+    )
     assert r.returncode != 0
     assert "no identifier" in (r.stdout + r.stderr).lower()
 
@@ -200,8 +324,19 @@ entry = \"\"\"
     )
     tmp_scripts = tmp_path / "scripts"
     tmp_scripts.mkdir(exist_ok=True)
-    (tmp_scripts / "build_bib.py").write_text(BUILD.read_text(encoding="utf-8"), encoding="utf-8")
-    r = run(["uv", "run", "python", str(tmp_scripts / "build_bib.py"), "--offline-manual-only"], cwd=tmp_path)
+    (tmp_scripts / "build_bib.py").write_text(
+        BUILD.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    r = run(
+        [
+            "uv",
+            "run",
+            "python",
+            str(tmp_scripts / "build_bib.py"),
+            "--offline-manual-only",
+        ],
+        cwd=tmp_path,
+    )
     assert r.returncode == 0, (r.stdout, r.stderr)
     bib = (tmp_path / "paper" / "refs.bib").read_text(encoding="utf-8")
     assert "@misc{newkey" in bib
