@@ -24,7 +24,7 @@
 # See paper/CITATIONS.md for the workflow rationale and background.
 
 [[cite]]
-key   = "lai2024llmmeans"
+key   = "diaz2025llmmeans"
 arxiv = "2502.09667"
 claim = "Embedding + k-means text clustering (cited as an example of embedding-based clustering approaches). Actual title: 'Summaries as Centroids for Interpretable and Scalable Text Clustering'. Sole author: Jairo Diaz-Rodriguez. ICLR 2026."
 
