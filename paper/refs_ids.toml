@@ -24,9 +24,14 @@
 # See paper/CITATIONS.md for the workflow rationale and background.
 
 [[cite]]
-key   = "diaz2025llmmeans"
-arxiv = "2502.09667"
-claim = "Embedding + k-means text clustering (cited as an example of embedding-based clustering approaches). Actual title: 'Summaries as Centroids for Interpretable and Scalable Text Clustering'. Sole author: Jairo Diaz-Rodriguez. ICLR 2026."
+key   = "du2019boosting"
+acl   = "P19-1005"
+claim = "k-means clustering of sentence embeddings with inertia as a diversity metric. Cited by Tevet and Berant (2021, §2) as a canonical embedding-clustering approach to NLG diversity."
+
+[[cite]]
+key   = "lai2020diversity"
+arxiv = "2003.08529"
+claim = "Volume induced by embedded sentences as a diversity metric (also defines density and homogeneity). Cited by Tevet and Berant (2021, §2) alongside Du and Black (2019) as the two canonical embedding-based approaches to NLG diversity. Authors: Yi-An Lai, Xuan Zhu, Yi Zhang, Mona Diab."
 
 [[cite]]
 key   = "gao2020pile"

@@ -10,16 +10,35 @@
 % you find an entry whose author list, title, or year looks wrong, DO
 % NOT edit refs.bib -- edit refs_ids.toml and re-run the script.
 
-% source: arxiv:2502.09667
-% claim : Embedding + k-means text clustering (cited as an example of embedding-based clustering approaches). Actual title: 'Summaries as Centroids for Interpretable and Scalable Text Clustering'. Sole author: Jairo Diaz-Rodriguez. ICLR 2026.
-@misc{diaz2025llmmeans,
-  author         = {Jairo Diaz-Rodriguez},
-  title          = {Summaries as Centroids for Interpretable and Scalable Text Clustering},
-  year           = {2025},
-  eprint         = {2502.09667},
+% source: acl:P19-1005
+% claim : k-means clustering of sentence embeddings with inertia as a diversity metric. Cited by Tevet and Berant (2021, §2) as a canonical embedding-clustering approach to NLG diversity.
+@inproceedings{du2019boosting,
+    title = "Boosting Dialog Response Generation",
+    author = "Du, Wenchao  and
+      Black, Alan W",
+    editor = "Korhonen, Anna  and
+      Traum, David  and
+      M{\`a}rquez, Llu{\'i}s",
+    booktitle = "Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2019",
+    address = "Florence, Italy",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P19-1005/",
+    doi = "10.18653/v1/P19-1005",
+    pages = "38--43"
+}
+
+% source: arxiv:2003.08529
+% claim : Volume induced by embedded sentences as a diversity metric (also defines density and homogeneity). Cited by Tevet and Berant (2021, §2) alongside Du and Black (2019) as the two canonical embedding-based approaches to NLG diversity. Authors: Yi-An Lai, Xuan Zhu, Yi Zhang, Mona Diab.
+@misc{lai2020diversity,
+  author         = {Yi-An Lai and Xuan Zhu and Yi Zhang and Mona Diab},
+  title          = {Diversity, Density, and Homogeneity: Quantitative Characteristic Metrics for Text Collections},
+  year           = {2020},
+  eprint         = {2003.08529},
   archivePrefix  = {arXiv},
   primaryClass   = {cs.CL},
-  url            = {http://arxiv.org/abs/2502.09667v5}
+  url            = {http://arxiv.org/abs/2003.08529v1}
 }
 
 % source: arxiv:2101.00027
@@ -77,7 +96,7 @@
 
 % source: doi:10.1063/1.1530990
 % claim : Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 48). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 13, 25-54, 2003).
-@article{crutchfield2003regularities, title={Regularities unseen, randomness observed: Levels of entropy convergence}, volume={13}, ISSN={1089-7682}, url={http://dx.doi.org/10.1063/1.1530990}, DOI={10.1063/1.1530990}, number={1}, journal={Chaos: An Interdisciplinary Journal of Nonlinear Science}, publisher={AIP Publishing}, author={Crutchfield, James P. and Feldman, David P.}, year={2003}, month=mar, pages={25–54} }
+@article{crutchfield2003regularities, title={Regularities unseen, randomness observed: Levels of entropy convergence}, volume={13}, ISSN={1089-7682}, url={http://dx.doi.org/10.1063/1.1530990}, DOI={10.1063/1.1530990}, number={1}, journal={Chaos: An Interdisciplinary Journal of Nonlinear Science}, publisher={AIP Publishing}, author={Crutchfield, James P. and Feldman, David P.}, year={2003}, month=Mar, pages={25–54} }
 
 % source: arxiv:1904.09751
 % claim : Canonical decoding-time diversity reference using self-BLEU and distinct-n (§4). Introduced nucleus/top-p sampling (ICLR 2020). Replaces the earlier zhang2024writingprompts citation, which measured Shannon entropy instead of self-BLEU/n-gram overlap.
