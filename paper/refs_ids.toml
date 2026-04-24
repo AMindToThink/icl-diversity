@@ -97,3 +97,8 @@ claim = "Theoretically shows feedback-free self-improvement = coherence optimiza
 key   = "wen2025unsupervised"
 arxiv = "2506.10139"
 claim = "Internal Coherence Maximization (ICM). Algorithm 1 in §2.3. Paper's own framing uses 'concepts/skills/capabilities'; 'latent knowledge' is inherited from Burns et al. 2022 (CCS)."
+
+[[cite]]
+key   = "wang2025ragen"
+arxiv = "2504.20073"
+claim = "RAGEN / StarPO: multi-turn RL training framework for LLM agents. Observes 'Echo Trap' collapse pattern (diverse-then-deterministic) during training; uses within-prompt reward standard deviation as an early-warning signal for collapse; also tracks rollout-level output entropy. Finding 1 (Echo Trap); Finding 2 / §3 (StarPO-S uncertainty-based trajectory filtering by reward std). Example of work that observes LLM output-distribution collapse but measures it via task-outcome variance rather than a principled text-level diversity metric."
