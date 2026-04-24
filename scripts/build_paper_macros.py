@@ -498,6 +498,56 @@ def qwen3_macros() -> dict[str, str]:
     return macros
 
 
+def tevet_dataset_size_macros() -> dict[str, str]:
+    """Sec 7.5 dataset sizes: exact CSV row counts (= set counts) across all
+    three NLG tasks (promptGen/respGen/storyGen)."""
+    macros: dict[str, str] = {}
+    data_root = PROJECT_ROOT / "diversity-eval" / "data" / "raw"
+    specs = [
+        # (macro suffix, subdir, filename pattern)
+        ("McDiv", "McDiv", ["mcdiv_all_no_hds_prompt_gen.csv", "mcdiv_all_no_hds_resp_gen.csv", "mcdiv_all_no_hds_story_gen.csv"]),
+        ("McDivNug", "McDiv_nuggets", ["mcdiv_nuggets_no_hds_prompt_gen.csv", "mcdiv_nuggets_no_hds_resp_gen.csv", "mcdiv_nuggets_no_hds_story_gen.csv"]),
+        ("DecTest", "decTest", ["dec_test_1000_no_hds_prompt_gen.csv", "dec_test_1000_no_hds_resp_gen.csv", "dec_test_1000_no_hds_story_gen.csv"]),
+        ("ConTest", "conTest", ["con_test_200_with_hds_prompt_gen.csv", "con_test_200_with_hds_resp_gen.csv", "con_test_200_with_hds_story_gen.csv"]),
+    ]
+    for suffix, subdir, files in specs:
+        total = 0
+        for fn in files:
+            path = data_root / subdir / fn
+            with path.open() as f:
+                # Row count excluding header.
+                total += sum(1 for _ in f) - 1
+        macros[f"tevet{suffix}SetCount"] = f"{total}"
+    return macros
+
+
+def mode_count_config_macros() -> dict[str, str]:
+    """Sec 8.3 experiment config: pool size, n_responses, n_draws, max m."""
+    macros: dict[str, str] = {}
+    # Mode pool size from the source of truth.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "mode_count_scenarios",
+        PROJECT_ROOT / "src" / "icl_diversity" / "mode_count_scenarios.py",
+    )
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    macros["modeCountPoolSize"] = f"{len(mod.MODE_NAMES)}"
+
+    # n_responses and n_draws from the committed experiment JSON.
+    with (RESULTS / "mode_count" / "qwen2.5-3b_1k_draws.json").open() as f:
+        d = json.load(f)
+    macros["modeCountNResponses"] = f"{d['n_responses']}"
+    macros["modeCountNDraws"] = f"{d['n_draws']}"
+
+    # Max m (we sweep 1..10).
+    ms = sorted({r["m"] for r in d["runs"]})
+    macros["modeCountMMax"] = f"{ms[-1]}"
+    return macros
+
+
 def permutation_sensitivity_macros() -> dict[str, str]:
     """Sec 8.6 permutation-sensitivity claim.
 
@@ -608,6 +658,8 @@ def main() -> None:
     all_macros.update(qwen3_macros())
     all_macros.update(mode_count_extrema())
     all_macros.update(permutation_sensitivity_macros())
+    all_macros.update(tevet_dataset_size_macros())
+    all_macros.update(mode_count_config_macros())
     write_output(all_macros)
 
 

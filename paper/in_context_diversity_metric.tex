@@ -384,12 +384,12 @@ $C$ consistently improves with model strength (Qwen2.5-32B assigns higher cohere
 
 \subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
 
-To test whether the metric reflects the number of distinct modes, we construct response sets with $m \in \{1, \ldots, 10\}$ modes drawn from a pool of 50 format-based generators (haiku, code, recipe, legal disclaimer, etc.), all responding to the same prompt (``Write a short piece about rain''). For Qwen2.5-3B: $n=20$ responses, 1000 random draws of mode assignments, averaged over permutations.
+To test whether the metric reflects the number of distinct modes, we construct response sets with $m \in \{1, \ldots, \modeCountMMax\}$ modes drawn from a pool of \modeCountPoolSize{} format-based generators (haiku, code, recipe, legal disclaimer, etc.), all responding to the same prompt (``Write a short piece about rain''). For Qwen2.5-3B: $n=\modeCountNResponses$ responses, \modeCountNDraws{} random draws of mode assignments, averaged over permutations.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
-\caption{Mode count scaling on Qwen2.5-3B ($n=20$, 1000 draws). The $a_k$ curves fan out with increasing $m$: higher floors, slower convergence. All curves are exponential (no sigmoidal plateau), even at $m=10$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).}
+\caption{Mode count scaling on Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws). The $a_k$ curves fan out with increasing $m$: higher floors, slower convergence. All curves are exponential (no sigmoidal plateau), even at $m=\modeCountMMax$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).}
 \label{fig:mode-count}
 \end{figure}
 
@@ -511,7 +511,7 @@ Figure~\ref{fig:row-vs-col} compares the two models. Qwen shows a tighter row--c
 
 \subsection{External Validation}\label{sec:tevet}
 
-We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which comprises two diagnostic tests (decTest, conTest) and the McDiv dataset (including the McDiv\_nuggets subset), totalling roughly 6K McDiv sets, 3K McDiv\_nuggets sets, 3K decTest sets, and 670 conTest sets\footnote{The 670 figure is the released CSV row count summed across the three NLG tasks (promptGen/respGen/storyGen = 200/220/250); Tevet and Berant's prose nominally specifies 200 sets per task.} (Tevet and Berant \S6.3--6.4):
+We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which comprises two diagnostic tests (decTest, conTest) and the McDiv dataset (including the McDiv\_nuggets subset), totalling \tevetMcDivSetCount{} McDiv sets, \tevetMcDivNugSetCount{} McDiv\_nuggets sets, \tevetDecTestSetCount{} decTest sets, and \tevetConTestSetCount{} conTest sets\footnote{Set counts are CSV row totals summed across the three NLG tasks (promptGen/respGen/storyGen) in the released no\_hds splits (with\_hds for conTest, the only split released), which deviate from Tevet and Berant's nominal per-task counts; e.g., conTest shows 200/220/250 rather than a flat 200 per task.} (Tevet and Berant \S6.3--6.4):
 \begin{itemize}[nosep]
     \item \textbf{McDiv\_nuggets}: 5 responses per set, binary labels (high/low content diversity).
     \item \textbf{ConTest}: 5 responses per set, binary labels.
@@ -886,7 +886,7 @@ In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), 
 
 \begin{table}[h]
 \centering
-\caption{Mode count scaling metrics for Qwen2.5-3B ($n=20$, 1000 draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=20$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}
+\caption{Mode count scaling metrics for Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=\modeCountNResponses$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point. Confidence intervals are 95\% bootstrap.}
 \label{tab:mode-count}
 \small
 \input{../results/tables/mode_count_scaling.tex}
@@ -895,7 +895,7 @@ In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
-\caption{Summary metrics vs.\ mode count $m$ (Qwen2.5-3B, $n=20$, 1000 draws). $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
+\caption{Summary metrics vs.\ mode count $m$ (Qwen2.5-3B, $n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
 \label{fig:metrics-vs-m}
 \end{figure}
 
