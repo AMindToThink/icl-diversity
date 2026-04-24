@@ -108,7 +108,7 @@ Shared synthetic response sets for the 5 validation scenarios (pure noise, multi
 
 Reads `responses.jsonl` grouped by (scale, prompt_idx), runs `compute_icl_diversity_metrics` per group, writes JSON output. The `**metrics` dict is spread directly into each result entry, so new keys added to `compute_icl_diversity_metrics` flow through automatically.
 
-## Paper Tables and Figures
+## Paper Tables, Figures, and Inline Numbers
 
 Paper tables are **machine-generated** by `scripts/analyze_c_ainf.py` and `\input{}`'d by the paper — no hand-transcribed numbers.
 
@@ -116,7 +116,14 @@ Paper tables are **machine-generated** by `scripts/analyze_c_ainf.py` and `\inpu
 - **Full metric summary (19 variants):** `figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt`
 - **Regenerate all:** `uv run python scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --output-dir figures/tevet_validation/c_ainf_analysis_v3 --skip-fit`
 
-When reading, citing, or discussing table numbers, always read the `.tex` or `.txt` files directly. Cross-check any hand-written inline numbers in the paper prose against the generated tables.
+**Inline scalars** (individual numbers cited in prose: abstract, captions, body text) are **also machine-generated**: every such number resolves through a `\newcommand` macro defined in `results/tables/paper_macros.tex`, produced by `scripts/build_paper_macros.py`. The paper `\input`s this file near the top and writes e.g. `\crossmodeQwenDiagMean` rather than `60.5`. Never hand-type a number into prose.
+
+- **Generated:** `results/tables/paper_macros.tex` (101 macros; do NOT hand-edit)
+- **Source:** reads pairwise JSONs under `investigations/cross_mode_surprise_drop/figures/`, `scaling_summary.json`, `results/mode_count/*.json`, Tevet sidecars, and parses `contest_rho_oca.tex` / `dectest_rho.tex` / `qwen3_comparison.tex` / `summary_table.txt`.
+- **Regenerate:** `uv run python scripts/build_paper_macros.py`
+- **Unit tests:** `uv run pytest tests/test_paper_macros.py` (6 tests; no network; asserts the script runs, every paper-referenced macro resolves, and forbidden hand-typed substrings are absent).
+
+When reading, citing, or discussing table numbers, always read the `.tex` or `.txt` files directly. Cross-check any number that appears in the paper prose against the generating script's output — if it doesn't come from a macro or a `\input`'d table, it's a bug.
 
 All figures referenced by the paper are also script-generated (in `figures/`). The paper compiles from the `paper/` directory (`cd paper && latexmk -pdf`).
 
