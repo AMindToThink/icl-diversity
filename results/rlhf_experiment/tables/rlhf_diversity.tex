@@ -1,0 +1,39 @@
+\begin{tabular}{lrrr}
+\toprule
+Stage & $D = C \cdot a_n$ mean & std & $n$ \\
+\midrule
+Base & 0.469 & 0.049 & 200 \\
+SFT & 0.320 & 0.075 & 200 \\
+DPO & 0.288 & 0.064 & 200 \\
+Instruct (RLVR) & 0.283 & 0.065 & 200 \\
+\midrule
+\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\
+Base$>$ SFT & $\Delta=0.148$ & $d_z=1.778$ & $p=$<$0.001$ \\
+SFT$>$ DPO & $\Delta=0.032$ & $d_z=0.638$ & $p=$<$0.001$ \\
+Base$>$ Instruct (RLVR) & $\Delta=0.186$ & $d_z=2.387$ & $p=$<$0.001$ \\
+\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\
+DPO $\neq$ Instruct & $\Delta=0.005$ & $d_z=0.272$ & $p=$<$0.001$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+
+\begin{tabular}{lrrr}
+\toprule
+Stage & $D = C \cdot a_n$ mean & std & $n$ \\
+\midrule
+Base & 0.485 & 0.032 & 100 \\
+SFT & 0.330 & 0.087 & 100 \\
+DPO & 0.299 & 0.075 & 100 \\
+Instruct (RLVR) & 0.283 & 0.073 & 100 \\
+\midrule
+\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\
+Base$>$ SFT & $\Delta=0.155$ & $d_z=1.640$ & $p=$<$0.001$ \\
+SFT$>$ DPO & $\Delta=0.031$ & $d_z=0.442$ & $p=$<$0.001$ \\
+Base$>$ Instruct (RLVR) & $\Delta=0.202$ & $d_z=2.607$ & $p=$<$0.001$ \\
+\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\
+DPO $\neq$ Instruct & $\Delta=0.016$ & $d_z=0.478$ & $p=$<$0.001$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
