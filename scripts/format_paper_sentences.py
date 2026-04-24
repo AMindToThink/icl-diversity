@@ -70,6 +70,15 @@ def find_skip_regions(text: str) -> list[tuple[int, int]]:
     while i < n:
         c = text[i]
 
+        # Escaped backslash `\\` (LaTeX linebreak) — skip both chars so
+        # the second backslash isn't misread as the start of `\(`, `\[`,
+        # or a control word. Without this, `\date{...\\[1em]...}` mis-
+        # interprets `\[1em]` as display math and creates a runaway
+        # skip region until the next real `\]` later in the file.
+        if c == "\\" and i + 1 < n and text[i + 1] == "\\":
+            i += 2
+            continue
+
         # Comment: `%` to end of line (unless escaped as `\%`).
         if c == "%" and (i == 0 or text[i - 1] != "\\"):
             j = text.find("\n", i)

@@ -34,20 +34,45 @@
 \maketitle
 
 \begin{abstract}
-Measuring the diversity of language-model outputs is central to evaluating mode collapse from post-training, comparing decoding strategies, and quantifying creative behavior. Existing diversity metrics rely on embedding-space distances or surface-level $n$-gram statistics, both of which can conflate genuine content diversity with lexical or representational artifacts. We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte). Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses). We validate the metric on four fronts. Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators. On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics. A cross-model scaling study shows that larger base models extract more cross-mode information from the same outputs. On the OLMo-2-7B post-training pipeline, the metric detects diversity loss across the base–SFT–DPO–RLVR stages. Together, these results show that progressive conditional surprise is a principled complement to embedding- and $n$-gram-based diversity metrics, particularly for diagnosing mode collapse from post-training.
+Measuring the diversity of language-model outputs is central to evaluating mode collapse from post-training, comparing decoding strategies, and quantifying creative behavior.
+Existing diversity metrics rely on embedding-space distances or surface-level $n$-gram statistics, both of which can conflate genuine content diversity with lexical or representational artifacts.
+We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses.
+This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities.
+We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
+Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
+We validate the metric on four fronts.
+Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
+On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics.
+A cross-model scaling study shows that larger base models extract more cross-mode information from the same outputs.
+On the OLMo-2-7B post-training pipeline, the metric detects diversity loss across the base–SFT–DPO–RLVR stages.
+Together, these results show that progressive conditional surprise is a principled complement to embedding- and $n$-gram-based diversity metrics, particularly for diagnosing mode collapse from post-training.
 \end{abstract}
 
 \section{Motivation}
 
-Consider evaluating the diversity of outputs from a language model policy $\pi$. This is useful for comparing any generation process: RLHF-trained or finetuned models, different prompting strategies, decoding parameters, representation-engineering interventions, or even human writers. Existing approaches typically measure diversity via embedding-based metrics \citep{du2019boosting} or surface-level $n$-gram statistics. A complementary line of work applies information theory directly \citep{li2016diversity, zhang2018aim}, but uses pairwise mutual information between input and response as a training or decoding objective rather than as an evaluation-time diagnostic (contrasted in Section~\ref{sec:pairwise-mi}). These existing approaches have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
+Consider evaluating the diversity of outputs from a language model policy $\pi$.
+This is useful for comparing any generation process: RLHF-trained or finetuned models, different prompting strategies, decoding parameters, representation-engineering interventions, or even human writers.
+Existing approaches typically measure diversity via embedding-based metrics \citep{du2019boosting} or surface-level $n$-gram statistics.
+A complementary line of work applies information theory directly \citep{li2016diversity, zhang2018aim}, but uses pairwise mutual information between input and response as a training or decoding objective rather than as an evaluation-time diagnostic (contrasted in Section~\ref{sec:pairwise-mi}).
+These existing approaches have known limitations: embedding distances may not align with semantically meaningful differences, and $n$-gram metrics conflate lexical variation with genuine content diversity.
 
-We propose an alternative grounded in information theory: use a trusted base model $\theta$ with per-token logprob access to assess how much information responses from $\pi$ share with one another. The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another. If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
+We propose an alternative grounded in information theory: use a trusted base model $\theta$ with per-token logprob access to assess how much information responses from $\pi$ share with one another.
+The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another.
+If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
 
-\paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs. A post-trained model may assign high probability to all its (narrowed) outputs, masking the loss of diversity. Using an independent $\theta$ provides an external reference frame.
+\paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs.
+A post-trained model may assign high probability to all its (narrowed) outputs, masking the loss of diversity.
+Using an independent $\theta$ provides an external reference frame.
 
-\paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses. All quantities derived below (the progressive conditional surprise curve, the asymptotic floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}. If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity. Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy. The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$. As base models continue to improve at in-context learning, this gap narrows.
+\paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses.
+All quantities derived below (the progressive conditional surprise curve, the asymptotic floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}.
+If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity.
+Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy.
+The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$.
+As base models continue to improve at in-context learning, this gap narrows.
 
-Figure~\ref{fig:pipeline} sketches the full pipeline. The remainder of the paper formalizes each step and validates the resulting metric.
+Figure~\ref{fig:pipeline} sketches the full pipeline.
+The remainder of the paper formalizes each step and validates the resulting metric.
 
 \begin{figure}[tbp]
 \centering

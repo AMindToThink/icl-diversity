@@ -194,6 +194,35 @@ def test_paragraph_with_mixed_content() -> None:
     assert reflow(src) == expected
 
 
+def test_escaped_backslash_does_not_open_math() -> None:
+    # `\\[1em]` in a \date{...} argument is the LaTeX linebreak command
+    # plus an optional spacing arg — NOT the start of `\[ ... \]` display
+    # math. A buggy formatter treats the second `\` as opening display
+    # math and creates a runaway skip region until the next real `\]`,
+    # which causes downstream prose to be skipped.
+    src = (
+        r"\date{\today\\[1em]\small $^1$ERA Cambridge}"
+        + "\n\n"
+        + r"\begin{abstract}"
+        + "\n"
+        + r"First sentence. Second sentence."
+        + "\n"
+        + r"\end{abstract}"
+    )
+    expected = (
+        r"\date{\today\\[1em]\small $^1$ERA Cambridge}"
+        + "\n\n"
+        + r"\begin{abstract}"
+        + "\n"
+        + r"First sentence."
+        + "\n"
+        + r"Second sentence."
+        + "\n"
+        + r"\end{abstract}"
+    )
+    assert reflow(src) == expected
+
+
 def test_no_break_inside_cite() -> None:
     src = r"As shown by \citep{smith2020a. b} this works. Next."
     expected = r"As shown by \citep{smith2020a. b} this works." + "\n" + r"Next."
