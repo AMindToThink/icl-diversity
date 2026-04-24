@@ -351,6 +351,9 @@ def tevet_macros() -> dict[str, str]:
     macros["tevetMcDivPromptGenAUC"] = auc_for(
         "McDiv (full, continuous labels)", "prompt_gen (no_hds)", "C×a_n (pb)"
     )
+    macros["tevetConTestPromptGenCxAnAUC"] = auc_for(
+        "ConTest (binary content diversity)", "prompt_gen (with_hds)", "C×a_n (pb)"
+    )
 
     # DecTest: pick a_n rho on prompt_gen (no_hds) — the paper claims +0.92.
     dec = (TABLES_DIR / "dectest_rho.tex").read_text()
