@@ -34,7 +34,7 @@
 \maketitle
 
 \begin{abstract}
-We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte). Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses). We validate on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-32B), on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics), and on a cross-model scaling study showing that larger base models extract more cross-mode information.
+We develop a diversity metric for language model outputs that uses a trusted base model's token-level probabilities rather than embedding-space or $n$-gram approaches. The metric is grounded in information theory: we measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses. This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities. We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte). Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses). We validate on synthetic scenarios across two base models (GPT-2 124M and Qwen2.5-3B), on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics), and on a cross-model scaling study showing that larger base models extract more cross-mode information.
 \end{abstract}
 
 \section{Motivation}
@@ -344,7 +344,7 @@ The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$. 
 
 \subsection{Experimental Setup}\label{sec:exp-setup}
 
-We evaluate the metric using two base models: GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} and Qwen2.5-32B (32B parameters, 128K-token context window) \citep{yang2024qwen25}. For mode-count scaling and cross-mode learning experiments, we additionally use Qwen2.5-3B to enable larger-scale sampling within reasonable compute budgets.
+We evaluate the metric primarily using Qwen2.5-3B (3B parameters, 128K-token context window) \citep{yang2024qwen25}, with GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} as a smaller-model comparison point for scenario validation. Qwen2.5-3B is used for mode-count scaling, cross-mode learning, and external validation (Sections~\ref{sec:mode-count-scaling}, \ref{sec:cross-mode-learning}, \ref{sec:tevet}). The cross-model scaling study (Section~\ref{sec:exp-discussion}) additionally uses the full Llama 3 family for comparison.
 
 All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}). Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments. Responses are formatted as described in Section~\ref{sec:cost}. All code is publicly available.\footnote{\url{https://github.com/AMindToThink/icl-diversity}}
 
@@ -373,14 +373,14 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{comparison_v2/comparison_ak_curves_all.png}
-\caption{Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-32B (right). Shaded regions show $\pm 1$ standard deviation across 100 permutations. Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}
+\includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{comparison_v3/comparison_ak_curves_all.png}
+\caption{Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-3B (right). Shaded regions show $\pm 1$ standard deviation across 100 permutations. Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}
 \label{fig:scenario-curves}
 \end{figure}
 
 The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise. The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
 
-$C$ consistently improves with model strength (Qwen2.5-32B assigns higher coherence to genuinely coherent text). $D_{a_\infty}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
+$C$ consistently improves with model strength (Qwen2.5-3B assigns higher coherence to genuinely coherent text than GPT-2). $D_{a_\infty}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
 
 \subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
 
@@ -401,15 +401,19 @@ The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an ini
 
 \paragraph{Pairwise cross-mode surprise matrix.} For 15 modes, we compute a $15 \times 15$ matrix $M_{ij}$: the surprise reduction (in bits) when a response from mode $j$ is in the context and mode $i$ is the target. Diagonal entries measure same-mode learning; off-diagonal entries measure cross-mode information transfer. Each entry averages over 5 context--target samples (using different samples for context and target to avoid self-prediction inflation).
 
-\begin{figure}[t]
+\begin{figure}[p]
 \centering
-\begin{subfigure}[t]{0.48\textwidth}
+\begin{subfigure}{\textwidth}
+    \centering
     \includegraphics[width=\textwidth]{pairwise_matrix_heatmap.png}
     \caption{Qwen2.5-3B: positive off-diagonal.}
     \label{fig:pairwise-qwen}
 \end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\textwidth}
+
+\vspace{1.5em}
+
+\begin{subfigure}{\textwidth}
+    \centering
     \includegraphics[width=\textwidth]{gpt2/pairwise_matrix_heatmap.png}
     \caption{GPT-2: negative off-diagonal.}
     \label{fig:pairwise-gpt2}
@@ -430,41 +434,7 @@ The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwis
     \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions. At $m=10$, the expected first-step net drop under the additive independent-mode model is only $\crossmodeGPTFirstStepDrop$ bits (the \crossmodeGPTDiagGainMten{}-bit diagonal gain from the $1/m$ same-mode chance is largely offset by the $\crossmodeGPTCrossDamageMten$-bit cross-mode damage from the $(m{-}1)/m$ different-mode chance), producing a flat plateau until same-mode repetitions accumulate, the predicted sigmoid.
 \end{itemize}
 
-\paragraph{The independent model fails.} If cross-mode contributions were independent, summing pairwise contributions should predict the observed $a_k$ curve. Figure~\ref{fig:predicted-observed} compares the predicted and observed cumulative drops at $m=10$: the independent model overpredicts by $\crossmodeAddOverpredRatioMten\times$ (\crossmodeAddOverpredMten{} bits predicted vs.\ \crossmodeObsDropMtenOneDec{} bits observed). The first few responses provide most of the format/topic calibration; subsequent responses have rapidly diminishing marginal value.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.6\textwidth]{predicted_vs_observed_m10.png}
-\caption{Predicted (from pairwise matrix, assuming independence) vs.\ observed cumulative surprise drop at $m=10$. The independent model overpredicts by $\crossmodeAddOverpredRatioMten\times$, demonstrating that pairwise contributions are not additive: information saturates rapidly with context length.}
-\label{fig:predicted-observed}
-\end{figure}
-
-\paragraph{A fractional model gets the shape right but not the scale.} The additive model's failure suggests a different framing: each response should resolve a \emph{fraction} of remaining uncertainty rather than a fixed number of bits. The pairwise matrix gives us these fractions: $r_{\mathrm{off}} = \bar{M}_{\mathrm{off}} / a_1 = \crossmodeROff\%$ (cross-mode) and $r_{\mathrm{diag}} = \bar{M}_{\mathrm{diag}} / a_1 = \crossmodeRDiag\%$ (same-mode). With an irreducible floor $a_\infty = \crossmodeAinfFloor$ bits (estimated independently from the $m=1$ asymptote), the recurrence is:
-\begin{equation}
-    a_{k+1} = a_\infty + (a_k - a_\infty)(1 - r_k), \quad r_k = r_{\mathrm{off}} + p_{\mathrm{rep}}(k) \cdot (r_{\mathrm{diag}} - r_{\mathrm{off}})
-\end{equation}
-where $p_{\mathrm{rep}}(k)$ is the probability that position $k{+}1$ shares a mode with some position in $1 \ldots k$.
-
-This model produces exponentially decaying marginals (matching observations) rather than the additive model's increasing marginals. At $m=1$, it is nearly exact ($\crossmodeFracRatioMone\times$ ratio). However, it predicts approximately the same total drop (${\sim}\crossmodeFracTotalDrop$ bits) for all $m$ values (Figure~\ref{fig:multiplicative-total-drop}), while the observed total drop ranges from \crossmodeObsDropMone{} bits ($m=1$) to \crossmodeObsDropMten{} bits ($m=10$), an overprediction of $\crossmodeFracOverpredMten\times$ at $m=10$.
-
-The core limitation is that the pairwise matrix measures \emph{single-encounter} information transfer. Real $a_k$ curves involve repeated encounters with overlapping information, where each subsequent encounter has diminishing marginal returns. A complete model would need to account for information overlap between responses, structure that the pairwise matrix does not capture. What the pairwise matrix \emph{does} successfully explain is: (1) the first step at each $m$, (2) why Qwen drops and GPT-2 doesn't (the sign of the off-diagonal), and (3) the qualitative exponential shape.
-
-\begin{figure}[t]
-\centering
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{predicted_vs_observed_all_m.png}
-    \caption{Fractional model vs.\ observed $a_k$ curves across $m=1$--$10$. The model matches the first few steps but decays too fast at high $m$.}
-    \label{fig:fractional-curves}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{multiplicative_total_drop.png}
-    \caption{Total drop $a_1 - a_{20}$: the fractional model predicts ${\sim}130$ bits regardless of $m$, while the observed drop decreases with $m$.}
-    \label{fig:multiplicative-total-drop}
-\end{subfigure}
-\caption{The fractional (multiplicative) model gets the qualitative shape right but cannot distinguish mode counts. This reveals the fundamental limitation of predicting multi-step learning dynamics from pairwise measurements alone.}
-\label{fig:fractional-model}
-\end{figure}
+\paragraph{From pairwise matrix to full curve.} The sign-of-off-diagonal calculation above recovers the qualitative shape difference between Qwen and GPT-2 from pairwise measurements alone. Extending to the full $a_k$ curve at $m>1$ requires modeling information overlap across repeated encounters --- structure that pairwise (single-encounter) measurements do not capture. Additive and fractional decompositions of the pairwise matrix both fail in instructive ways but neither is load-bearing for our thesis; we omit the details.
 
 \paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is \crossmodeAsymmetryMean{} bits ($\crossmodeAsymmetryRatio\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}). This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
 
@@ -565,7 +535,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \subsection{Practical Findings}\label{sec:practical-findings}
 
-\paragraph{Permutation sensitivity.} The per-byte $a_k$ curve depends on the response ordering. Comparing the $D_{a_\infty}$ ranking of the \permSensNumScenarios{} validation scenarios from Section~\ref{sec:scenario-validation} between \permSensLowPerm{}- and \permSensHighPerm{}-permutation runs: on GPT-2, \permSensGPTMisranked{} of \permSensNumScenarios{} scenarios shift rank between the two settings; on Qwen2.5-32B, \permSensQwenMisranked{} of \permSensNumScenarios{}. The most severe flip in both cases is \texttt{multi\_incoherent}, whose $D_{a_\infty}$ is near zero at \permSensLowPerm{} permutations but ranks second-highest at \permSensHighPerm{}. We use \permSensHighPerm{} permutations throughout for scenario-level experiments; we have not swept intermediate values, so we cannot pinpoint a minimum that is both cheap and reliable. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
+\paragraph{Permutation sensitivity.} The per-byte $a_k$ curve depends on the response ordering. Comparing the $D_{a_\infty}$ ranking of the \permSensNumScenarios{} validation scenarios from Section~\ref{sec:scenario-validation} between \permSensLowPerm{}- and \permSensHighPerm{}-permutation runs: on GPT-2, \permSensGPTMisranked{} of \permSensNumScenarios{} scenarios shift rank between the two settings; on Qwen2.5-3B, \permSensQwenMisranked{} of \permSensNumScenarios{}. The most severe flip on Qwen is \texttt{multi\_incoherent}, whose $D_{a_\infty}$ swings from strongly negative at \permSensLowPerm{} permutations to strongly positive at \permSensHighPerm{}. We use \permSensHighPerm{} permutations throughout for scenario-level experiments; we have not swept intermediate values, so we cannot pinpoint a minimum that is both cheap and reliable. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
 
 \paragraph{Boundary handling.} When a tokenizer produces a single token spanning a response and the following separator (e.g., Qwen's \texttt{.\textbackslash n\textbackslash n}), our boundary detector attributes the merged token to the separator; the response's trailing character contributes to its byte count but not to its cross-entropy. Boundary correctness is verified by \texttt{tests/test\_response\_boundaries.py}.
 
