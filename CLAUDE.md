@@ -152,3 +152,24 @@ When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, th
 - **Conditioning format**: Responses are formatted as `"Response A: ...\n\nResponse B: ..."` in the context window (see `format_conditioning_context`).
 - The `__init__.py` re-exports from `core.py` are intentional public API — ruff warns about unused imports but they are re-exports.
 - **Fail fast, never silently skip**: Never use `continue` to hide errors. If input would cause a failure (e.g., exceeding context length), raise an error upfront rather than producing partial results. Crashing early is preferable to silently skipping bad configurations.
+
+## Ongoing cleanup: the `diversity_score_D` → `C × a_n` naming migration
+
+**The problem.** Historically, `compute_icl_diversity_metrics` in `src/icl_diversity/core.py` returned a dict key named `diversity_score_D` whose value is `coherence_C × excess_entropy_E` — the **Appendix-E alternative** scalar, **not** the paper's primary `D = C × a_n` defined in §6.3. This is a well-established naming trap: every new contributor (and Claude) reaches for `metrics["diversity_score_D"]` thinking it's the paper's headline D, and gets the wrong scalar. It actually caused a real bug on the RLHF-diversity experiment (commit `3848fe5`) where the stage ordering came out inverted until we caught it, and caused a separate leak in §8.6's permutation-sensitivity macros (commit `c2767df`) where the "D-ranking" was secretly a C·E ranking.
+
+**The interim convention (as of 2026-04-24).** `core.py` now exposes the two scalars under unambiguous formula-in-name keys:
+
+- `diversity_score_D_C_an` — the paper's primary **D = C × a_n** (per-byte, §6.3). **Prefer this in all new code.**
+- `a_n_per_byte`, `a_n_total` — convenience extracts of the last point of the per-byte / total-bits `a_k_curve`.
+- `diversity_score_D_C_E`, `diversity_score_D_C_E_rate` — the explicit C·E variant from Appendix E, for when you actually want that.
+- `diversity_score_D`, `diversity_score_D_rate` — **deprecated aliases** of the C·E variants. Retained so that ~24 pre-existing script / test references keep working. Do not use in new code.
+
+**The rule for contributors.**
+
+1. **New code must never write `metrics["diversity_score_D"]`.** If you see this in a diff review — even in a log message — flag it. Use `metrics["diversity_score_D_C_an"]` (paper's primary) or `metrics["diversity_score_D_C_E"]` (alternative) depending on which formula you actually want.
+2. **When touching existing code that reads `diversity_score_D`**, migrate it to the formula-in-name key that matches what the *surrounding context* intends. A table labelled "D" in a paper figure almost always wants `C × a_n`; a `C × E` column wants `diversity_score_D_C_E`. If it's not obvious which the context wants, re-read the surrounding prose before renaming.
+3. **Do not delete the bare `diversity_score_D` alias yet.** It's the only thing keeping the pre-migration scripts and tests running. Removal is the endpoint of the full overhaul (see below), not a drive-by change.
+
+**The endpoint (full overhaul, separate PR when someone has a quiet week).** Rename every existing reader of `metrics["diversity_score_D"]` to one of the unambiguous keys, update every test that asserts on it (a few literally check `result["diversity_score_D"] == pytest.approx(C × E_value)` — those should move to the `_C_E` key to preserve their assertion semantics), then delete the bare `diversity_score_D` and `diversity_score_D_rate` aliases from `core.py`. Blast radius was surveyed on 2026-04-24: 54 occurrences across 20 files. Use a word-boundary regex: `rg -l '\bdiversity_score_D\b' src/ scripts/ tests/ | xargs sed -i -E 's/\bdiversity_score_D\b/diversity_score_D_C_E/g'`, but *read every test assertion* before committing — some expect specific numeric values, and the rename must preserve those. Run `uv run python -m pytest` + regenerate `results/tables/paper_macros.tex` and diff vs. the prior build to confirm zero numeric drift.
+
+**Why document rather than do.** The bare-key alias is the cheap side; the full overhaul is surgical work across tests with specific numeric assertions. Doing it under time pressure re-introduces the exact bug class this migration is designed to prevent. Treat the rename as its own dedicated cleanup PR.
