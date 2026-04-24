@@ -1,4 +1,21 @@
-"""Quantify the single-pass vs multi-pass distortion caused by BPE merges.
+"""FLAG (2026-04-24): this script's "distortion" framing is WRONG. Kept for
+historical reference only; it no longer runs because the multi-pass function
+it imports has been deleted from src/icl_diversity/core.py.
+
+In a causal LM, pass n of any multi-pass sequence contains all the information
+of passes 1..n-1 for free (causal attention), so there is no "multi-pass ground
+truth" to compare single-pass against. The quantity this script measured is
+the magnitude of a token-attribution CONVENTION DIFFERENCE driven by BPE
+merges at response boundaries — not a bias.
+
+See ../REPORT.md and ~/.claude/CLAUDE.md (entry on "multi-pass is a confusion,
+not an alternative") for the corrected framing. The paper's Sec 8.6 now
+describes our boundary-handling design directly rather than as a deviation
+from some alternative.
+
+Original docstring follows:
+---
+Quantify the single-pass vs multi-pass distortion caused by BPE merges.
 
 Runs both single-pass and multi-pass surprise curves on the same responses
 and compares per-position and aggregate differences.  This measures the actual

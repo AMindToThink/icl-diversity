@@ -150,6 +150,12 @@ def test_paper_has_no_forgotten_hand_typed_numbers_in_edited_clusters() -> None:
         # was not backed by data between 3 and 100 perms. Keep it softened.
         "We recommend $n_{\\mathrm{permutations}} \\geq 50$.",
         "At 3 permutations, scenario rankings are unreliable; at 100 permutations, rankings stabilize.",
+        # Sec 8.6 BPE: the old paragraph framed the single-pass/multi-pass
+        # difference as "bias". There is no "multi-pass ground truth" — see
+        # the global CLAUDE.md entry. Keep the replacement "Boundary handling"
+        # wording instead.
+        "Single-pass computation introduces a small systematic bias",
+        "residual effect is small relative to the total curve decline",
         # Sec 8.4 / 8.7 hand-typed numbers we replaced.
         "only $+0.9$ bits",
         "overpredicts by $10.6\\times$ (622 bits predicted",

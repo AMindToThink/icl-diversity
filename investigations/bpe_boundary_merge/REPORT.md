@@ -1,3 +1,25 @@
+> **⚠ FLAG (2026-04-24):** The "distortion" framing below is **wrong** and kept for
+> historical record only. In a causal LM, pass $n$ of a "multi-pass" sequence
+> already contains all the information of passes $1..n-1$ via causal attention,
+> so there is nothing to compare against: single-pass **is** the metric. The
+> quantity measured here (SP − MP) is the magnitude of a *token-attribution
+> convention difference* driven by BPE merges at response boundaries, not a
+> bias relative to any ground truth. The "retained as a ground-truth reference"
+> statement in "Resolution" is incorrect and the multi-pass function itself
+> (`compute_progressive_surprise_curve`) has been deleted from the source tree.
+>
+> **Corrected framing:** BPE-merged boundary tokens (e.g., Qwen's `.\n\n`) are
+> attributed to the separator by our boundary detector. The affected response's
+> trailing character contributes to its byte count but not its cross-entropy.
+> This is a design choice, not a bias; see `tests/test_response_boundaries.py`
+> and the "Boundary handling" paragraph in the paper (Sec 8.6). See also the
+> global `~/.claude/CLAUDE.md` entry on why "multi-pass" is a confusion, not
+> an alternative.
+>
+> The remainder of this document is preserved for archaeology.
+>
+> ---
+
 # Investigation: BPE Boundary Merge in Single-Pass Computation
 
 ## Question
