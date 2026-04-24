@@ -50,7 +50,7 @@ On the OLMo-2-7B post-training pipeline, the metric detects diversity loss acros
 Together, these results show that progressive conditional surprise is a principled complement to embedding- and $n$-gram-based diversity metrics, particularly for diagnosing mode collapse from post-training.
 \end{abstract}
 
-\section{Motivation}
+\section{Motivation}\label{sec:motivation}
 
 Consider evaluating the diversity of outputs from a language model policy $\pi$.
 This is useful for comparing any generation process: RLHF-trained or finetuned models, different prompting strategies, decoding parameters, representation-engineering interventions, or even human writers.
@@ -777,6 +777,32 @@ Note also that we did not attempt to optimize the prompt structure used to elici
 Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
 Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
 We have not explored this space systematically; we focus on $D_{a_\infty}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
+
+\section{Limitations}\label{sec:limitations}
+
+We collect the main limitations of the framework and of our $D = C \times a_n$ choice in one place so readers can calibrate how strongly to update on the results above.
+Several points below recap caveats already made in their natural context and cross-reference those for detail.
+
+\paragraph{$D = C \times a_n$ is a pragmatic choice, not a theoretically derived one.}
+The product form was selected because it captures the properties we wanted a diversity score to have---residual surprise remains after the base model has seen previous responses, low-coherence outputs are penalised, and the result stays on a bits-per-byte scale---not because it is derived from an axiomatic information-theoretic setup.
+Other scalars respecting the same constraints---weighted integrals of $a_k - a_\infty$, slope-based scores, or coherence applied at a different point on the curve---could equally be defended (see ``The framework admits other metrics'' in Section~\ref{sec:exp-discussion}).
+We adopt $D_{a_\infty}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
+
+\paragraph{Measurement is relative to $\theta$'s perception.}
+The metric evaluates diversity \emph{as perceived by the base model $\theta$}: if $\pi$'s outputs differ only in ways $\theta$ cannot distinguish from context, the metric underestimates diversity, and if $\theta$ hallucinates structure, it overestimates redundancy (Section~\ref{sec:motivation}, ``Important caveat'').
+
+\paragraph{Cross-mode learning is model-dependent.}
+The off-diagonal sign of the pairwise surprise-reduction matrix changes with $\theta$'s scale (Section~\ref{sec:cross-mode-learning}): $a_k$ curves for the same response set are not directly comparable across different choices of $\theta$, and the $k_0 \propto m$ sigmoid prediction (Appendix~\ref{app:k0-derivation}) only holds when modes appear approximately independent to $\theta$.
+
+\paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.}
+Coherence spread measures heterogeneity across outputs, not content diversity; it is reported alongside $D$ only to flag mixed-coherence situations (Section~\ref{sec:exp-discussion}).
+
+\paragraph{External benchmark performance is competitive, not dominant.}
+On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% OCA across the nine binary tasks (Section~\ref{sec:tevet}); scaling the base model to Qwen3-30B-A3B-Base did not close the gap (Appendix~\ref{app:qwen3-comparison}).
+We position $C \times a_n$ as a principled complement to embedding-based metrics, not a replacement.
+
+\paragraph{Prompt format is fixed.}
+We use a neutral ``Response A: \ldots, Response B: \ldots'' template throughout and have not attempted prompt optimisation; targeted prompt engineering could plausibly improve discriminative power, especially for larger base models (Section~\ref{sec:exp-discussion}).
 
 \section{Future Work}
 
