@@ -1,0 +1,20 @@
+\begin{tabular}{lccc}
+\toprule
+Model & $D = C \times a_n$ mean & std & $n$ \\
+\midrule
+\multicolumn{4}{l}{\textit{OLMo-2-1124-7B post-training stages}} \\
+\quad OLMo-2-1124-7B (base) & 0.485 & 0.032 & 100 \\
+\quad OLMo-2-1124-7B-SFT & 0.330 & 0.087 & 100 \\
+\quad OLMo-2-1124-7B-DPO & 0.299 & 0.075 & 100 \\
+\quad OLMo-2-1124-7B-Instruct (RLVR) & 0.283 & 0.073 & 100 \\
+\midrule
+\multicolumn{4}{l}{\textit{External instruct / frontier models (released generations, truncated to 100 words)}} \\
+\quad Qwen-4B-Instruct & 0.241 & 0.084 & 100 \\
+\quad Qwen-8B-Instruct & 0.210 & 0.028 & 100 \\
+\quad Qwen-235B-A22B & 0.209 & 0.093 & 100 \\
+\quad Llama-3.3-70B-Instruct & 0.169 & 0.071 & 100 \\
+\quad GPT-5 nano & 0.260 & 0.082 & 100 \\
+\quad GPT-5 & 0.262 & 0.103 & 100 \\
+\quad Claude Sonnet 4.5 & 0.171 & 0.096 & 100 \\
+\bottomrule
+\end{tabular}
