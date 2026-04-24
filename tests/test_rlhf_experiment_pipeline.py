@@ -126,7 +126,7 @@ def test_analyze_no_data_graceful() -> None:
     assert "alpacaeval" in out
     assert "nbcurated" in out
     # Stage means should have all stages with NaN
-    means = out["alpacaeval"]["stage_means"]["diversity_score_D"]
+    means = out["alpacaeval"]["stage_means"]["D_Can"]
     for s in ["base", "sft", "dpo", "instruct"]:
         assert s in means
         assert means[s]["n"] == 0
@@ -150,13 +150,13 @@ def test_paper_macro_emission(tmp_path: Path) -> None:
     for pset in ["alpacaeval", "nbcurated"]:
         synth[pset] = {
             "stage_means": {
-                "diversity_score_D": {
+                "D_Can": {
                     s: {"mean": 0.1 + 0.05 * i, "std": 0.01, "n": 10}
                     for i, s in enumerate(["base", "sft", "dpo", "instruct"])
                 },
             },
             "tests": {
-                "diversity_score_D": {
+                "D_Can": {
                     name: {
                         "a": a,
                         "b": b,
@@ -166,14 +166,14 @@ def test_paper_macro_emission(tmp_path: Path) -> None:
                         "p_bonferroni": 0.03,
                     }
                     for name, a, b, _ in [
-                        ("H1a", "base", "sft", "greater"),
-                        ("H1b", "sft", "dpo", "greater"),
-                        ("H1c", "base", "instruct", "greater"),
+                        ("HoneA", "base", "sft", "greater"),
+                        ("HoneB", "sft", "dpo", "greater"),
+                        ("HoneC", "base", "instruct", "greater"),
                     ]
                 },
             },
         }
-        synth[pset]["tests"]["diversity_score_D"]["H1pa"] = {
+        synth[pset]["tests"]["D_Can"]["Hpa"] = {
             "a": "dpo",
             "b": "instruct",
             "mean_diff": 0.02,
