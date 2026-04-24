@@ -498,6 +498,45 @@ def qwen3_macros() -> dict[str, str]:
     return macros
 
 
+def permutation_sensitivity_macros() -> dict[str, str]:
+    """Sec 8.6 permutation-sensitivity claim.
+
+    Compares scenario rankings (by mean D across prompts) between the 3-perm
+    and 100-perm scenario-metrics files for both GPT-2 and Qwen2.5-32B.
+    Emits: number of scenarios mis-ranked at 3 perms on each model, total.
+    """
+    macros: dict[str, str] = {}
+    pairs = [
+        ("GPT", "scenario_metrics_v2_3perm.json", "scenario_metrics_v2_100perm.json"),
+        ("Qwen", "scenario_metrics_v2_qwen_3perm.json", "scenario_metrics_v2_qwen_100perm.json"),
+    ]
+    n_scenarios = None
+    for model, f3, f100 in pairs:
+        with (RESULTS / f3).open() as f:
+            d3 = json.load(f)
+        with (RESULTS / f100).open() as f:
+            d100 = json.load(f)
+
+        def rank(d: dict) -> dict[str, int]:
+            scores = {
+                name: float(np.mean([e["diversity_score_D"] for e in entries]))
+                for name, entries in d["scenarios"].items()
+            }
+            ordered = sorted(scores.items(), key=lambda kv: -kv[1])
+            return {name: i + 1 for i, (name, _) in enumerate(ordered)}
+
+        r3 = rank(d3)
+        r100 = rank(d100)
+        if n_scenarios is None:
+            n_scenarios = len(r100)
+        misranked = sum(1 for s in r100 if r3[s] != r100[s])
+        macros[f"permSens{model}Misranked"] = f"{misranked}"
+    macros["permSensNumScenarios"] = f"{n_scenarios}"
+    macros["permSensLowPerm"] = "3"
+    macros["permSensHighPerm"] = "100"
+    return macros
+
+
 def mode_count_extrema() -> dict[str, str]:
     """Sec 8.3 text claims 'a_n increases from 9.3 bits at m=1 to 77.8 bits at m=10'."""
     macros: dict[str, str] = {}
@@ -535,6 +574,9 @@ def write_output(all_macros: dict[str, str]) -> None:
         "Mode count (Sec 8.3)": [
             "modeCount",
         ],
+        "Permutation sensitivity (Sec 8.6)": [
+            "permSens",
+        ],
     }
     used = set()
     for title, prefixes in groups.items():
@@ -565,6 +607,7 @@ def main() -> None:
     all_macros.update(tevet_macros())
     all_macros.update(qwen3_macros())
     all_macros.update(mode_count_extrema())
+    all_macros.update(permutation_sensitivity_macros())
     write_output(all_macros)
 
 
