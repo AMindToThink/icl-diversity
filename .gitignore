@@ -39,3 +39,7 @@ paper/*.txt
 # (HTTP traffic + progress bars; kept locally if the user wants to scroll back,
 # not worth committing)
 compute_v*.log
+
+# Claude Code session state (plans, worktree metadata, etc.) — entirely
+# local to this machine; should not be tracked.
+.claude/
