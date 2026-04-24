@@ -26,6 +26,11 @@ paper/*.log
 paper/*.out
 paper/*.synctex.gz
 
+# Preview PDF built by `latexmk paper/rlhf_experiment_preview.tex` — it's
+# purely a build artifact for verifying the standalone RLHF section
+# compiles; keep the final committed PDF only for the main paper.
+paper/rlhf_experiment_preview.pdf
+
 # pdftotext-style plaintext dumps of the paper (stale the moment they're
 # written; regenerable with `pdftotext paper/in_context_diversity_metric.pdf`)
 paper/*.txt

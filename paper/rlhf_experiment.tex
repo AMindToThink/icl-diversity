@@ -38,11 +38,16 @@ The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$
 \caption{Per-prompt $D = C \times a_n$ by OLMo-2-7B stage, with pre-registered paired tests.}
 \label{tab:rlhf-diversity}
 \small
-\input{../results/rlhf_experiment/tables/rlhf_diversity.tex}
+\IfFileExists{../results/rlhf_experiment/tables/rlhf_diversity.tex}{%
+  \input{../results/rlhf_experiment/tables/rlhf_diversity.tex}%
+}{%
+  \texttt{[table will appear here after \texttt{5\_analyze\_and\_figures.py} runs]}%
+}
 \end{table}
 
 Table~\ref{tab:rlhf-diversity} reports per-stage means, the pre-registered contrasts, and the exploratory DPO$\,\neq\,$RLVR test. On AlpacaEval, $D$ drops from \olmoAlpacaBaseDMean{} (base) to \olmoAlpacaSftDMean{} (SFT) to \olmoAlpacaDpoDMean{} (DPO) to \olmoAlpacaInstructDMean{} (Instruct/RLVR); the full-pipeline drop base$\,\rightarrow\,$RLVR has effect size $d_z = \olmoAlpacaHoneCDz$ and $p_\mathrm{Bonf} = \olmoAlpacaHoneCPbonf$. On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \olmoNbCuratedSftDMean / \olmoNbCuratedDpoDMean / \olmoNbCuratedInstructDMean with $d_z = \olmoNbCuratedHoneCDz$ and $p_\mathrm{Bonf} = \olmoNbCuratedHoneCPbonf$.
 
+\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}{%
 \begin{figure}[h]
 \centering
 \begin{subfigure}[t]{0.48\textwidth}
@@ -56,13 +61,16 @@ Table~\ref{tab:rlhf-diversity} reports per-stage means, the pre-registered contr
 \caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on AlpacaEval. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D$ distribution shifts toward lower values as the pipeline advances.}
 \label{fig:rlhf-ak-violin}
 \end{figure}
+}{}
 
+\IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval.pdf}{%
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.8\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval.pdf}
 \caption{Per-prompt $D = C \times a_n$ versus EAD (left) and SentBERT-similarity diversity (right) on AlpacaEval, coloured by stage. The signs and stage-ordering agree across metrics; $D$ tracks the same diversity-loss direction that EAD and SentBERT detect.}
 \label{fig:rlhf-metric-scatter}
 \end{figure}
+}{}
 
 \paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function. Cross-metric agreement with EAD and SentBERT (H2, Figure~\ref{fig:rlhf-metric-scatter}) confirms $C \times a_n$ responds to the same signal lexical and semantic baselines detect. The DPO vs RLVR exploratory contrast is reported without pre-registered direction because RLVR's verifiable-rewards objective breaks the typicality-bias mechanism that narrows preference-trained policies; we observe $\Delta = \olmoAlpacaHpaDiff$ with $d_z = \olmoAlpacaHpaDz$.
 
