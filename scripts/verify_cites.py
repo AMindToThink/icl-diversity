@@ -28,6 +28,8 @@ DEFAULT_BIB = PROJECT_ROOT / "paper" / "refs.bib"
 
 # natbib commands: \cite, \citep, \citet, \citealp, \citealt, \citeauthor, \citeyear, ...
 CITE_RE = re.compile(r"\\cite[a-zA-Z]*\*?(?:\[[^\]]*\])?(?:\[[^\]]*\])?\{([^}]+)\}")
+# \input{foo} or \include{foo}; LaTeX allows omitting the .tex extension.
+INPUT_RE = re.compile(r"\\(?:input|include)\{([^}]+)\}")
 ENTRY_HEAD_RE = re.compile(r"^\s*@\w+\s*\{\s*([^,\s}]+)", re.MULTILINE)
 
 
@@ -54,18 +56,42 @@ def _find_default_tex() -> Path:
     return paper_dir / "main.tex"
 
 
-def extract_cite_keys(tex_path: Path) -> set[str]:
+def extract_cite_keys(tex_path: Path, _seen: set[Path] | None = None) -> set[str]:
+    """Collect every \\cite key transitively reachable from `tex_path`.
+
+    Follows \\input{...} and \\include{...} directives relative to the
+    including file's directory, with cycle protection. Without this, any
+    \\cite inside an \\input'd subfile is silently ignored and its bib
+    entries look "unused".
+    """
     if not tex_path.exists():
         sys.exit(f"ERROR: {tex_path} not found")
+    if _seen is None:
+        _seen = set()
+    resolved = tex_path.resolve()
+    if resolved in _seen:
+        return set()
+    _seen.add(resolved)
+
     text = tex_path.read_text(encoding="utf-8")
     # Strip LaTeX comments (lines starting with % or %-prefixed tail).
     text = re.sub(r"(?<!\\)%.*", "", text)
+
     keys: set[str] = set()
     for m in CITE_RE.finditer(text):
         for k in m.group(1).split(","):
             k = k.strip()
             if k:
                 keys.add(k)
+
+    for m in INPUT_RE.finditer(text):
+        inc = m.group(1).strip()
+        # LaTeX allows the .tex extension to be omitted; try both.
+        for cand in (tex_path.parent / inc, tex_path.parent / f"{inc}.tex"):
+            if cand.is_file():
+                keys |= extract_cite_keys(cand, _seen)
+                break
+
     return keys
 
 
