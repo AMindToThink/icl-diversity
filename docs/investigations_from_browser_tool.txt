@@ -1,0 +1,7 @@
+The mysterious jump at k=5 is especially strong and among low diversity responses marked as high diversity. This is a high priority to fix.
+
+An increase in surprise at k=2 is very common. I don't blame the model for thinking "it will be the same thing again, oh wait it isn't." Maybe by prompting, we can decrease this effect? Explicitly saying "the following are multiple ways of completing the same piece of text" or similar.
+
+Test to see if the k=5 jump happens in other models.
+
+Check if Tinker provides API access to logprobs.
