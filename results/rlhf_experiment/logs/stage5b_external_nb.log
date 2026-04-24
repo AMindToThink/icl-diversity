@@ -1,0 +1,76 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[ext] loading Qwen/Qwen2.5-3B fp16 on cuda:0 (physical GPU 1)
+Loading weights:   0%|          | 0/434 [00:00<?, ?it/s]Loading weights:   0%|          | 1/434 [00:00<01:13,  5.90it/s]Loading weights:  23%|██▎       | 101/434 [00:00<00:00, 456.81it/s]Loading weights:  37%|███▋      | 160/434 [00:00<00:00, 461.14it/s]Loading weights:  49%|████▉     | 213/434 [00:00<00:00, 450.11it/s]Loading weights:  61%|██████    | 263/434 [00:00<00:00, 461.23it/s]Loading weights:  73%|███████▎  | 316/434 [00:00<00:00, 474.51it/s]Loading weights:  84%|████████▍ | 366/434 [00:00<00:00, 459.47it/s]Loading weights:  97%|█████████▋| 423/434 [00:00<00:00, 490.64it/s]Loading weights: 100%|██████████| 434/434 [00:00<00:00, 457.08it/s]
+[ext] 0 external (model, prompt) keys already scored
+[ext] === qwen-4b ===
+  permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:02<00:05,  3.35it/s]  permutations:  64%|██████▍   | 16/25 [00:04<00:02,  3.36it/s]  permutations:  96%|█████████▌| 24/25 [00:07<00:00,  3.37it/s]  permutations: 100%|██████████| 25/25 [00:07<00:00,  3.36it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:02<00:04,  3.46it/s]  permutations:  64%|██████▍   | 16/25 [00:04<00:02,  3.44it/s]  permutations:  96%|█████████▌| 24/25 [00:06<00:00,  3.44it/s]  permutations: 100%|██████████| 25/25 [00:07<00:00,  3.42it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:03<00:06,  2.61it/s]  permutations:  64%|██████▍   | 16/25 [00:06<00:03,  2.61it/s]  permutations:  96%|█████████▌| 24/25 [00:09<00:00,  2.61it/s]  permutations: 100%|██████████| 25/25 [00:09<00:00,  2.60it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:01<00:02,  7.15it/s]  permutations:  64%|██████▍   | 16/25 [00:02<00:01,  7.14it/s]  permutations:  96%|█████████▌| 24/25 [00:03<00:00,  7.13it/s]  permutations: 100%|██████████| 25/25 [00:03<00:00,  7.05it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:00<00:00, 18.86it/s]  permutations:  64%|██████▍   | 16/25 [00:00<00:00, 18.77it/s]  permutations:  96%|█████████▌| 24/25 [00:01<00:00, 18.75it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:00<00:00, 17.46it/s]  permutations:  64%|██████▍   | 16/25 [00:00<00:00, 17.40it/s]  permutations:  96%|█████████▌| 24/25 [00:01<00:00, 15.12it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:06<00:13,  1.28it/s]  permutations:  64%|██████▍   | 16/25 [00:12<00:07,  1.28it/s]  permutations:  96%|█████████▌| 24/25 [00:32<00:01,  1.59s/it]  permutations: 100%|██████████| 25/25 [00:35<00:00,  1.66s/it]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:07<00:15,  1.11it/s]  permutations:  64%|██████▍   | 16/25 [00:14<00:08,  1.11it/s]  permutations:  96%|█████████▌| 24/25 [00:21<00:00,  1.11it/s]  permutations: 100%|██████████| 25/25 [00:22<00:00,  1.11it/s]                                                                 permutations:   0%|          | 0/25 [00:00<?, ?it/s]  permutations:  32%|███▏      | 8/25 [00:08<00:18,  1.09s/it]  permutations:  64%|██████▍   | 16/25 [00:16<00:09,  1.05s/it]Traceback (most recent call last):
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/scripts/rlhf_experiment/5b_score_external_nb.py", line 179, in <module>
+    main()
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/scripts/rlhf_experiment/5b_score_external_nb.py", line 129, in main
+    metrics = compute_icl_diversity_metrics(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/src/icl_diversity/core.py", line 1185, in compute_icl_diversity_metrics
+    return _compute_single_temperature(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/src/icl_diversity/core.py", line 1246, in _compute_single_temperature
+    perm_results = _compute_permutation_curves_batched(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/src/icl_diversity/core.py", line 877, in _compute_permutation_curves_batched
+    log_probs = _forward_log_probs(
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/src/icl_diversity/core.py", line 212, in _forward_log_probs
+    logits = model(ids, attention_mask=mask, use_cache=False).logits
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 887, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 462, in forward
+    outputs: BaseModelOutputWithPast = self.model(
+                                       ^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 963, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 399, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 293, in forward
+    hidden_states, _ = self.self_attn(
+                       ^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 231, in forward
+    attn_output, attn_weights = attention_interface(
+                                ^^^^^^^^^^^^^^^^^^^^
+  File "/home/cs29824/matthew/icl-diversity/.claude/worktrees/rlhf-diversity/.venv/lib/python3.12/site-packages/transformers/integrations/sdpa_attention.py", line 92, in sdpa_attention_forward
+    attn_output = torch.nn.functional.scaled_dot_product_attention(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 14.98 GiB. GPU 0 has a total capacity of 44.29 GiB of which 9.54 GiB is free. Including non-PyTorch memory, this process has 34.74 GiB memory in use. Of the allocated memory 22.97 GiB is allocated by PyTorch, and 11.57 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+                                                               

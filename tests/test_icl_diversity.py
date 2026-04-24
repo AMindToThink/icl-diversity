@@ -599,6 +599,14 @@ class TestWithMockModel:
             "excess_entropy_E_rate",
             "coherence_C",
             "coherence_spread_sigma",
+            # Paper's primary D = C * a_n (per-byte; §6.3) and convenience extracts
+            "diversity_score_D_C_an",
+            "a_n_per_byte",
+            "a_n_total",
+            # Explicit C * E variants (Appendix E)
+            "diversity_score_D_C_E",
+            "diversity_score_D_C_E_rate",
+            # Legacy bare names; aliases of the C * E variants above
             "diversity_score_D",
             "diversity_score_D_rate",
             "mean_byte_length",

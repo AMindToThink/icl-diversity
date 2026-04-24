@@ -5,11 +5,13 @@ description = "ICL diversity metric: measures LLM output diversity via progressi
 requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.13.0",
+    "datasets>=4.8.4",
     "matplotlib>=3.10.8",
     "numpy>=1.24",
     "python-dotenv>=1.2.2",
     "requests>=2.32.5",
     "scipy>=1.15.3",
+    "sentence-transformers>=5.4.1",
     "tinker>=0.16.1",
     "torch>=2.0",
     "transformers>=4.30",
@@ -27,6 +29,9 @@ test = [
 dev = [
     "dash>=4.1.0",
     "plotly>=6.6.0",
+]
+sampling = [
+    "vllm>=0.6.0",
 ]
 
 [project.scripts]

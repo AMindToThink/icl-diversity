@@ -533,6 +533,12 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 
 \paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = \modeCountCxAnPearsonGPT{}$) and Qwen2.5-3B ($r = \modeCountCxAnPearsonQwen{}$). The excess-entropy-based alternatives are compared in Appendix~\ref{app:excess-entropy}.
 
+% ---- Model-to-model comparison subsection (generated from
+%      paper/rlhf_experiment.tex; regenerate macros and table via
+%      scripts/rlhf_experiment/5_analyze_and_figures.py and
+%      scripts/rlhf_experiment/5c_cross_model_table.py) ----
+\input{rlhf_experiment}
+
 \subsection{Practical Findings}\label{sec:practical-findings}
 
 \paragraph{Permutation sensitivity.} The per-byte $a_k$ curve depends on the response ordering. Comparing the $D_{a_\infty}$ ranking of the \permSensNumScenarios{} validation scenarios from Section~\ref{sec:scenario-validation} between \permSensLowPerm{}- and \permSensHighPerm{}-permutation runs: on GPT-2, \permSensGPTMisranked{} of \permSensNumScenarios{} scenarios shift rank between the two settings; on Qwen2.5-3B, \permSensQwenMisranked{} of \permSensNumScenarios{}. Where scenarios do shift rank, it is between adjacent scenarios with similar $D_{a_\infty}$ values rather than dramatic reorderings. We use \permSensHighPerm{} permutations throughout for scenario-level experiments; we have not swept intermediate values, so we cannot pinpoint a minimum that is both cheap and reliable. The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
@@ -563,8 +569,6 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 \section{Future Work}
 
 Several directions remain unexplored.
-
-\paragraph{Model-to-model comparison.} Our experiments evaluate diversity of fixed response sets (human-written or synthetically constructed). A natural next step is to sample from two or more models on the same prompts and compare their $D_{a_\infty}$ scores directly, validating the aggregation machinery of Appendix~\ref{app:aggregation}.
 
 \paragraph{Dimension-specific prompt structures.} The neutral ``Response A/B/C'' formatting lets $\theta$ attend to whatever inter-response structure it finds most salient. An alternative is to use \emph{dimension-specific} framing (e.g., ``Here are several stories in different genres'') that primes $\theta$ to attend to a particular axis of variation. Computing diversity scores under multiple framings would yield a \textbf{diversity profile}: a vector of per-dimension scores for the same response set, potentially revealing that an intervention collapses topic diversity while preserving stylistic diversity.
 

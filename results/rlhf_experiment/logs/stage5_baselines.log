@@ -1,0 +1,11 @@
+[baselines] loading sentence-transformers/all-MiniLM-L6-v2
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2130.68it/s]
+[baselines] 0 keys already scored
+[baselines] stage=base set=alpacaeval: 200/200 prompts to score
+[baselines] stage=base set=nbcurated: 100/100 prompts to score
+[baselines] stage=sft set=alpacaeval: 200/200 prompts to score
+[baselines] stage=sft set=nbcurated: 100/100 prompts to score
+[baselines] stage=dpo set=alpacaeval: 200/200 prompts to score
+[baselines] stage=dpo set=nbcurated: 100/100 prompts to score
+[baselines] stage=instruct set=alpacaeval: 200/200 prompts to score
+[baselines] stage=instruct set=nbcurated: 100/100 prompts to score

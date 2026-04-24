@@ -962,11 +962,21 @@ def _compute_metrics_from_curves(
     # E_rate stored from caller
     excess_entropy_E_rate = e_rate
 
-    # Eq 12: diversity score D = C * E (bits)
-    diversity_score_D = coherence_C * excess_entropy_E
+    # The historical key `diversity_score_D` returned by this function is
+    # `C * E` (Appendix-E variant of the diversity score), NOT the paper's
+    # primary `D = C * a_n` (§6.3). Both are exposed in the return dict
+    # under unambiguous formula-in-name aliases. New code should prefer:
+    #   diversity_score_D_C_an   — paper's primary, per-byte (§6.3)
+    #   diversity_score_D_C_E    — the C * E alternative (Appendix E)
+    # The bare `diversity_score_D` and `diversity_score_D_rate` keys are
+    # retained as backward-compatibility aliases for the C * E variants.
+    diversity_score_D_C_E = coherence_C * excess_entropy_E
+    diversity_score_D_C_E_rate = coherence_C * excess_entropy_E_rate
 
-    # Eq 13: diversity score rate D_rate = C * E_rate (bits/byte)
-    diversity_score_D_rate = coherence_C * excess_entropy_E_rate
+    # Paper's primary scalar D = C * a_n (per-byte; §6.3, Eq. 17).
+    a_n_per_byte = a_k_curve_per_byte[-1]
+    a_n_total = a_k_curve_total_bits[-1]
+    diversity_score_D_C_an = coherence_C * a_n_per_byte
 
     # Mean byte length
     byte_lengths = [len(r.encode("utf-8")) for r in responses]
@@ -992,8 +1002,16 @@ def _compute_metrics_from_curves(
         "excess_entropy_E_rate": excess_entropy_E_rate,
         "coherence_C": coherence_C,
         "coherence_spread_sigma": coherence_spread_sigma,
-        "diversity_score_D": diversity_score_D,
-        "diversity_score_D_rate": diversity_score_D_rate,
+        # Paper's primary D = C * a_n (per-byte; §6.3). Prefer in new code.
+        "diversity_score_D_C_an": diversity_score_D_C_an,
+        "a_n_per_byte": a_n_per_byte,
+        "a_n_total": a_n_total,
+        # C * E variants (Appendix E). The bare names below are
+        # retained as backward-compatibility aliases of these.
+        "diversity_score_D_C_E": diversity_score_D_C_E,
+        "diversity_score_D_C_E_rate": diversity_score_D_C_E_rate,
+        "diversity_score_D": diversity_score_D_C_E,         # alias of C*E
+        "diversity_score_D_rate": diversity_score_D_C_E_rate,  # alias of C*E_rate
         "mean_byte_length": mean_byte_length,
         "D_plus": D_plus,
         "D_minus": D_minus,
@@ -1166,7 +1184,22 @@ def compute_icl_diversity_metrics(
 
     Returns:
         When ``temperature`` is a float: dict with standard metric keys
-        (a_k_curve, excess_entropy_E, diversity_score_D, temperature, etc.).
+        (``a_k_curve``, ``a_k_curve_per_byte``, ``coherence_C``,
+        ``excess_entropy_E``, ``temperature``, etc.).
+
+        Two diversity scalars are exposed under unambiguous formula-in-name
+        keys; **prefer these in new code**:
+
+        * ``diversity_score_D_C_an`` — paper's primary
+          :math:`D = C \\times a_n` (per-byte; §6.3, Eq. 17).
+        * ``diversity_score_D_C_E`` — the alternative
+          :math:`D = C \\times E` from Appendix E.
+
+        For backward compatibility, the historical bare keys
+        ``diversity_score_D`` and ``diversity_score_D_rate`` are retained
+        as aliases of the C·E variants. They predate the C·a_n score and
+        are kept so existing scripts keep working; they DO NOT return the
+        paper's primary metric.
 
         When ``temperature`` is a list: dict with a single key
         ``"temperatures"`` mapping ``{T: metrics_dict}`` for each T.
