@@ -21,7 +21,7 @@ Prior sections validated $D = C \times a_n$ on synthetic response sets and on Te
 
 \paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint. On two prompt sets --- \olmoAlpacaN{} AlpacaEval prompts (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench} --- we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$). Base runs raw; SFT / DPO / Instruct receive the prompt through their own chat template. Prompts come from \citet{dubois2024alpacafarm}'s released AlpacaEval set. We score each (stage, prompt) group with $D = C \times a_n$ using Qwen2.5-3B as $\theta$ and 25 permutations (a 5-prompt spot check at 50 permutations confirmed per-prompt rank stability). For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and SentBERT similarity-to-diversity \citep{reimers2019sbert}.
 
-\paragraph{Hypotheses.} Following Dror et al.'s 2018 NLP significance-testing guide \citep{dror2018hitchhiker}, we pre-register three one-sided paired Wilcoxon signed-rank tests with Bonferroni correction ($\alpha = 0.05/3$):
+\paragraph{Hypotheses.} We pre-register three one-sided paired Wilcoxon signed-rank tests \citep{dror2018hitchhiker} with family-wise Bonferroni correction across the three contrasts \citep{dror2017replicability} ($\alpha = 0.05/3$):
 
 \begin{itemize}[nosep]
     \item \textbf{H1a} $D_{\mathrm{base}} > D_{\mathrm{SFT}}$ --- SFT narrows toward the helpful-assistant style.
@@ -29,7 +29,7 @@ Prior sections validated $D = C \times a_n$ on synthetic response sets and on Te
     \item \textbf{H1c} $D_{\mathrm{base}} > D_{\mathrm{RLVR}}$ --- cumulative effect of the full post-training pipeline.
 \end{itemize}
 
-The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$'$): RLVR uses \emph{verifiable} rewards (math / code / instruction-following) rather than human preferences, so the typicality-bias argument that motivates H1b does not obviously apply to it, and the effect direction is genuinely open.
+The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$'$): RLVR uses \emph{verifiable} rewards (for OLMo~2, math and instruction-following \citep{olmo2024olmo2}) rather than human preferences, so the typicality-bias mechanism that motivates H1b does not obviously apply to it. \citet{zhang2025verbalizedsampling} do empirically observe diversity loss at the RLVR stage in their T\"ulu-3 ablation (their \S5.3), but they do not extend their typicality-bias mechanism to verifiable rewards. The effect direction at this stage is therefore genuinely open.
 
 \paragraph{Results.}
 
