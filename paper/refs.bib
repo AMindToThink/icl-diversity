@@ -11,7 +11,7 @@
 % NOT edit refs.bib -- edit refs_ids.toml and re-run the script.
 
 % source: acl:P19-1005
-% claim : k-means clustering of sentence embeddings with inertia as a diversity metric. Cited by Tevet and Berant (2021, §2) as a canonical embedding-clustering approach to NLG diversity.
+% claim : Earliest unambiguous instance of a scalar sentence-embedding-based diversity metric for generated text: §4.1 computes k-means over word-averaged (Arora 2017 SIF) sentence embeddings of dialog responses and reports cluster inertia as the diversity score (Figure 1(d)). Tevet and Berant (2021, §2) treat them as the canonical originator and cite no earlier source. Per subagent literature archaeology 2026-04-24: ~10 earlier candidates checked (Li 2015/2016, Serban 2017, Cao-Clark 2017, Zhao-Zhao-Eskenazi 2017, Forgues 2014, Gimpel 2013, Texygen 2018, Ippolito 2019, Larson 2019), none use embedding-based diversity on generated text as a scalar metric; they use n-gram diversity or embedding-based quality/recall, not embedding-based diversity.
 @inproceedings{du2019boosting,
     title = "Boosting Dialog Response Generation",
     author = "Du, Wenchao  and
@@ -27,18 +27,6 @@
     url = "https://aclanthology.org/P19-1005/",
     doi = "10.18653/v1/P19-1005",
     pages = "38--43"
-}
-
-% source: arxiv:2003.08529
-% claim : Diversity metric (Eq. 3, §3.1) is the geometric mean of per-axis standard deviations of embedded text, i.e., the H-th root of the ellipsoid volume spanned by the embedded sentences. The paper also defines density (§3.2) and homogeneity (§3.3) metrics. Cited by Tevet and Berant (2021, §2) alongside Du and Black (2019) as the two canonical embedding-based approaches to NLG diversity. Authors: Yi-An Lai, Xuan Zhu, Yi Zhang, Mona Diab.
-@misc{lai2020diversity,
-  author         = {Yi-An Lai and Xuan Zhu and Yi Zhang and Mona Diab},
-  title          = {Diversity, Density, and Homogeneity: Quantitative Characteristic Metrics for Text Collections},
-  year           = {2020},
-  eprint         = {2003.08529},
-  archivePrefix  = {arXiv},
-  primaryClass   = {cs.CL},
-  url            = {http://arxiv.org/abs/2003.08529v1}
 }
 
 % source: arxiv:2101.00027

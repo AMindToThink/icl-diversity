@@ -26,12 +26,7 @@
 [[cite]]
 key   = "du2019boosting"
 acl   = "P19-1005"
-claim = "k-means clustering of sentence embeddings with inertia as a diversity metric. Cited by Tevet and Berant (2021, §2) as a canonical embedding-clustering approach to NLG diversity."
-
-[[cite]]
-key   = "lai2020diversity"
-arxiv = "2003.08529"
-claim = "Diversity metric (Eq. 3, §3.1) is the geometric mean of per-axis standard deviations of embedded text, i.e., the H-th root of the ellipsoid volume spanned by the embedded sentences. The paper also defines density (§3.2) and homogeneity (§3.3) metrics. Cited by Tevet and Berant (2021, §2) alongside Du and Black (2019) as the two canonical embedding-based approaches to NLG diversity. Authors: Yi-An Lai, Xuan Zhu, Yi Zhang, Mona Diab."
+claim = "Earliest unambiguous instance of a scalar sentence-embedding-based diversity metric for generated text: §4.1 computes k-means over word-averaged (Arora 2017 SIF) sentence embeddings of dialog responses and reports cluster inertia as the diversity score (Figure 1(d)). Tevet and Berant (2021, §2) treat them as the canonical originator and cite no earlier source. Per subagent literature archaeology 2026-04-24: ~10 earlier candidates checked (Li 2015/2016, Serban 2017, Cao-Clark 2017, Zhao-Zhao-Eskenazi 2017, Forgues 2014, Gimpel 2013, Texygen 2018, Ippolito 2019, Larson 2019), none use embedding-based diversity on generated text as a scalar metric; they use n-gram diversity or embedding-based quality/recall, not embedding-based diversity."
 
 [[cite]]
 key   = "gao2020pile"
