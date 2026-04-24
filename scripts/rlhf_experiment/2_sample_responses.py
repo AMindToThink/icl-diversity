@@ -112,10 +112,11 @@ def sample_stage(stage: str, max_new_tokens: int, seed: int) -> None:
     # Tokeniser is needed for chat templating on the non-base stages.
     tokenizer = AutoTokenizer.from_pretrained(hf_path)
 
-    # vLLM engine
+    # vLLM engine.
+    # Quadro RTX 8000 is compute-capability 7.5 → no bf16 support; use fp16.
     llm = LLM(
         model=hf_path,
-        dtype="bfloat16",
+        dtype="float16",
         trust_remote_code=True,
         gpu_memory_utilization=0.85,
         max_model_len=2048,
