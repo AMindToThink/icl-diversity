@@ -26,3 +26,8 @@ paper/*.blg
 # pdftotext-style plaintext dumps of the paper (stale the moment they're
 # written; regenerable with `pdftotext paper/in_context_diversity_metric.pdf`)
 paper/*.txt
+
+# stdout captures from `uv run python scripts/compute_icl_metrics_for_tevet.py`
+# (HTTP traffic + progress bars; kept locally if the user wants to scroll back,
+# not worth committing)
+compute_v*.log

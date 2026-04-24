@@ -123,7 +123,7 @@ We define the \textbf{cross-entropy} (total surprise) of a response $r$ under $\
 \begin{equation}\label{eq:total-xent}
     -\log_2 \theta(r \mid p) = \sum_{t=1}^{|r|_{\mathrm{tok}}} -\log_2 \theta(r^t \mid r^{<t}, p)
 \end{equation}
-where $r^t$ is the $t$-th token and $r^{<t}$ the preceding tokens. Units: bits. This is the total surprise of the response, a property of the string itself, independent of $\theta$'s tokenizer (since the chain rule yields the same total regardless of how the sequence is factored).
+where $r^t$ is the $t$-th token and $r^{<t}$ the preceding tokens. Units: bits.\footnote{Throughout, ``bits'' refers to self-information in $\log_2$ units, identical to the ``shannon'' (Sh) of IEC 80000-13. We use ``bits'' to match standard usage in the information-theory literature.} This is the total surprise of the response, a property of the string itself, independent of $\theta$'s tokenizer (since the chain rule yields the same total regardless of how the sequence is factored).
 
 Similarly, the \textbf{conditional cross-entropy} given previous responses $r_{<k} = (r_1, \ldots, r_{k-1})$ is $-\log_2 \theta(r_k \mid r_{<k}, p)$ (bits).
 
@@ -601,6 +601,8 @@ Several directions remain unexplored.
 \paragraph{Prompt format optimization.} We use a fixed prompt template throughout and do not attempt to optimize it for ICL elicitation. Targeted prompt engineering could improve the metric's discriminative power, particularly for larger base models whose ICL capabilities are more sensitive to formatting.
 
 \paragraph{Ensembling base models.} A single base model $\theta$ may produce non-monotone $a_k$ curves when pushed out of distribution by long contexts. Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure. Our codebase supports token-level ensembling, but we have not yet validated it experimentally.
+
+\paragraph{Explicit framing of multi-response contexts.} We observe a characteristic increase in conditional surprise from $k=1$ to $k=2$ in many settings: after seeing the first response, $\theta$ appears to expect the second to continue on the same theme, so a genuinely alternative response is extra-surprising. Explicit framing---e.g., prefixing the context with ``the following are several different completions of the same prompt''---could shift this prior and reduce the $k=2$ bump, improving the metric's sensitivity in the few-draws regime.
 
 \section{Related Concepts}
 
