@@ -15,7 +15,7 @@ from icl_diversity import (
     compute_cross_entropy,
     compute_icl_diversity_metrics,
     compute_per_byte_cross_entropy,
-    compute_progressive_surprise_curve,
+    compute_progressive_surprise_curve_single_pass,
     compute_unconditional_surprises,
     _compute_metrics_from_curves,
     format_conditioning_context,
@@ -565,7 +565,7 @@ class TestWithMockModel:
         """Curve length should match number of responses."""
         model, tokenizer = _make_mock_model_and_tokenizer(uniform=True)
         responses = ["resp1", "resp2", "resp3"]
-        curve, byte_counts = compute_progressive_surprise_curve(
+        curve, byte_counts = compute_progressive_surprise_curve_single_pass(
             model, tokenizer, "prompt", responses
         )
         assert len(curve) == 3

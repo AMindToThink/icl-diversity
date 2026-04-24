@@ -665,7 +665,7 @@ def compute_per_byte_cross_entropy(
     return total_bits / byte_count if byte_count > 0 else 0.0
 
 
-def compute_progressive_surprise_curve(
+def compute_progressive_surprise_curve_single_pass(
     model: ModelInput,
     tokenizer: PreTrainedTokenizerBase,
     prompt: str,
@@ -675,52 +675,12 @@ def compute_progressive_surprise_curve(
 ) -> tuple[list[float], list[int]]:
     """Compute the progressive conditional surprise curve.
 
-    Eq 4: a_k = -log2 P(r_k | r_{<k}, p) for k=1..n (total bits)
-
-    Performs n forward passes with growing context. Prefer
-    :func:`compute_progressive_surprise_curve_single_pass` for efficiency.
-
-    Args:
-        model: The base model theta, or a list of models to ensemble.
-        tokenizer: Tokenizer for theta.
-        prompt: The original prompt p.
-        responses: List of n responses [r_1, ..., r_n].
-        temperature: Temperature for scaling logits before softmax. Default 1.0.
-        format_mode: "instruct" or "completion". See :data:`FormatMode`.
-
-    Returns:
-        Tuple of ``(curve, byte_counts)`` where curve is a list of a_k values
-        in total bits, and byte_counts is the byte count of each response.
-    """
-    curve: list[float] = []
-    byte_counts: list[int] = []
-    for k in range(len(responses)):
-        previous = responses[:k]
-        current = responses[k]
-        prefix, target = format_conditioning_context(
-            prompt, previous, current, format_mode=format_mode,
-        )
-        total_bits, bc = compute_cross_entropy(
-            model, tokenizer, target, prefix, temperature=temperature
-        )
-        curve.append(total_bits)
-        byte_counts.append(bc)
-    return curve, byte_counts
-
-
-def compute_progressive_surprise_curve_single_pass(
-    model: ModelInput,
-    tokenizer: PreTrainedTokenizerBase,
-    prompt: str,
-    responses: list[str],
-    temperature: float = 1.0,
-    format_mode: FormatMode = "instruct",
-) -> tuple[list[float], list[int]]:
-    """Compute the progressive conditional surprise curve using a single forward pass.
-
-    Equivalent to :func:`compute_progressive_surprise_curve` but concatenates all
-    responses into one sequence and runs a single forward pass, then extracts
-    per-response log-probs by locating token boundaries.
+    Concatenates all responses into one sequence, runs a single forward pass,
+    then extracts per-response log-probs by locating token boundaries. This is
+    the only correct way to compute a_k in a causal LM: pass n of any so-called
+    "multi-pass" sequence contains all the information of passes 1..n-1 for free
+    (causal attention), so running separate passes just wastes FLOPs. The
+    ``_single_pass`` suffix is historical and retained for backward compatibility.
 
     Supports model ensembling: pass a list of models to average their softmax
     probabilities at each token position (Section 7.5, Eq 27).

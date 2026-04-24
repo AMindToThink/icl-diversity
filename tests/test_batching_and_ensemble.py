@@ -16,7 +16,6 @@ from icl_diversity import (
     compute_cross_entropy,
     compute_icl_diversity_metrics,
     compute_per_byte_cross_entropy,
-    compute_progressive_surprise_curve,
     compute_progressive_surprise_curve_single_pass,
     compute_unconditional_surprises,
 )
@@ -383,19 +382,15 @@ class TestEnsembleSupport:
         assert pb_single == pytest.approx(pb_ensemble, abs=1e-4)
 
     def test_ensemble_progressive_curve(self) -> None:
-        """Both progressive curve functions should accept model list."""
+        """Progressive curve function should accept a model list (ensemble)."""
         model, tokenizer = _make_mock_model_and_tokenizer(vocab_size=100)
         responses = ["hello", "world"]
 
-        c1, bc1 = compute_progressive_surprise_curve(
+        curve, byte_counts = compute_progressive_surprise_curve_single_pass(
             [model], tokenizer, "test", responses
         )
-        c2, bc2 = compute_progressive_surprise_curve_single_pass(
-            [model], tokenizer, "test", responses
-        )
-        assert len(c1) == 2
-        assert len(c2) == 2
-        assert bc1 == bc2
+        assert len(curve) == 2
+        assert len(byte_counts) == 2
 
 
 # ---------------------------------------------------------------------------

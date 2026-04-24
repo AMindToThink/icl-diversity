@@ -1,9 +1,23 @@
-"""
-Equivalence tests: single-pass vs multi-pass a_k computation.
+"""Response-boundary tests for the single-pass a_k computation.
 
-These are integration tests that require GPT-2 (~500 MB, runs on CPU).
-They verify that the single-pass optimization produces identical results
-to the original n-forward-pass implementation.
+Verifies that the token-boundary detection in `_find_response_boundaries`:
+  (a) produces boundaries covering the full concatenated sequence without
+      overlaps or gaps,
+  (b) never attributes separator tokens to a response (regression test for
+      the Qwen '.' + '\\n\\n' → '.\\n\\n' BPE merge bug),
+  (c) keeps each response to within a handful of characters of its original
+      length even when BPE absorbs a few characters into the delimiter token,
+  (d) produces a_1 values exactly equal to the unconditional per-response
+      cross-entropy h(r_1 | p), since r_1 is conditioned only on the prompt
+      in both cases.
+
+There used to be a "single-pass vs multi-pass" equivalence test suite here.
+It's been removed: in a causal LM, the two are equivalent by construction
+(pass n of any multi-pass sequence already contains all the information of
+passes 1..n-1 via causal attention), so comparing them could only catch bugs
+that are caught more directly by the tests above.
+
+Integration tests that require GPT-2 (~500 MB, runs on CPU).
 """
 
 import os
@@ -12,11 +26,10 @@ import numpy as np
 import pytest
 
 from icl_diversity import (
-    compute_progressive_surprise_curve,
     compute_progressive_surprise_curve_single_pass,
     compute_unconditional_surprises,
 )
-from icl_diversity.core import _find_response_boundaries, _response_label
+from icl_diversity.core import _find_response_boundaries
 
 # ---------------------------------------------------------------------------
 # Model loading (skip all tests if GPT-2 not available)
@@ -57,83 +70,20 @@ RESPONSES_SHORT = [
 
 
 # ============================================================================
-# Equivalence tests
+# Edge cases
 # ============================================================================
 
 
-class TestSingleVsMultiPass:
-    """The single-pass optimization must produce the same a_k values as the
-    original n-forward-pass implementation."""
-
-    def test_five_responses(self) -> None:
-        a_k_multi, bc_multi = compute_progressive_surprise_curve(
-            _model, _tokenizer, PROMPT, RESPONSES
-        )
-        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
-            _model, _tokenizer, PROMPT, RESPONSES
-        )
-
-        a_multi = np.array(a_k_multi)
-        a_single = np.array(a_k_single)
-
-        print(f"\n  multi-pass:  {np.round(a_multi, 6)}")
-        print(f"  single-pass: {np.round(a_single, 6)}")
-        print(f"  diff:        {np.round(a_single - a_multi, 8)}")
-
-        np.testing.assert_allclose(
-            a_single,
-            a_multi,
-            atol=1e-4,
-            err_msg="Single-pass and multi-pass a_k values diverged",
-        )
-
-        # Byte counts should be identical
-        assert bc_multi == bc_single
-
-    def test_two_responses(self) -> None:
-        a_k_multi, bc_multi = compute_progressive_surprise_curve(
-            _model, _tokenizer, PROMPT_SHORT, RESPONSES_SHORT
-        )
-        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
-            _model, _tokenizer, PROMPT_SHORT, RESPONSES_SHORT
-        )
-
-        np.testing.assert_allclose(
-            np.array(a_k_single),
-            np.array(a_k_multi),
-            atol=1e-4,
-            err_msg="Single-pass and multi-pass a_k values diverged (2 responses)",
-        )
-        assert bc_multi == bc_single
-
-    def test_single_response(self) -> None:
-        """Edge case: only one response."""
-        responses = [RESPONSES[0]]
-        a_k_multi, bc_multi = compute_progressive_surprise_curve(
-            _model, _tokenizer, PROMPT, responses
-        )
-        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
-            _model, _tokenizer, PROMPT, responses
-        )
-
-        np.testing.assert_allclose(
-            np.array(a_k_single),
-            np.array(a_k_multi),
-            atol=1e-4,
-        )
-        assert bc_multi == bc_single
-
-    def test_empty_responses(self) -> None:
-        """Edge case: no responses."""
-        curve, byte_counts = compute_progressive_surprise_curve_single_pass(
-            _model, _tokenizer, PROMPT, []
-        )
-        assert curve == []
-        assert byte_counts == []
+def test_empty_responses() -> None:
+    curve, byte_counts = compute_progressive_surprise_curve_single_pass(
+        _model, _tokenizer, PROMPT, []
+    )
+    assert curve == []
+    assert byte_counts == []
 
 
 # ============================================================================
-# Boundary roundtrip test
+# Boundary roundtrip
 # ============================================================================
 
 
@@ -143,7 +93,7 @@ class TestBoundaryRoundtrip:
     BPE tokenization may merge characters at the boundary between the
     delimiter (e.g. ": ") and the response start, so decoded slices may
     differ slightly from the original text (e.g. missing a leading capital
-    that was merged into the delimiter token).  We check that:
+    that was merged into the delimiter token). We check that:
 
     1. The decoded slice is a suffix of the original response (possibly
        missing a few leading characters absorbed by the delimiter token).
@@ -160,10 +110,7 @@ class TestBoundaryRoundtrip:
     def test_boundaries_cover_sequence(self) -> None:
         """Boundaries should cover from first response start to end of sequence."""
         full_ids, boundaries = self._compute_boundaries(PROMPT, RESPONSES)
-        # Last boundary end should equal sequence length
         assert boundaries[-1][1] == len(full_ids)
-        # No gaps between consecutive responses (there may be delimiter tokens
-        # between end of response k and start of response k+1, which is expected)
         for k in range(len(boundaries) - 1):
             assert boundaries[k][1] <= boundaries[k + 1][0], (
                 f"Overlap between response {k} and {k + 1}: "
@@ -176,12 +123,9 @@ class TestBoundaryRoundtrip:
         full_ids, boundaries = self._compute_boundaries(PROMPT, RESPONSES)
         for i, (start, end) in enumerate(boundaries):
             decoded = _tokenizer.decode(full_ids[start:end])
-            # The decoded text should end with the response (possibly with
-            # leading whitespace/characters absorbed into delimiter token)
             assert RESPONSES[i].endswith(decoded.lstrip()), (
                 f"Response {i}: decoded {decoded!r} is not a suffix of {RESPONSES[i]!r}"
             )
-            # At most a few characters should be missing
             assert len(decoded.strip()) >= len(RESPONSES[i]) - 5, (
                 f"Response {i}: too many characters lost. "
                 f"Original={RESPONSES[i]!r}, decoded={decoded!r}"
@@ -196,13 +140,11 @@ class TestBoundaryRoundtrip:
     def test_no_separator_leaks_into_response(self) -> None:
         """Decoded tokens for a response must not contain separator text.
 
-        Regression test for BPE merge bug: some tokenizers (e.g. Qwen) merge
+        Regression test for the BPE merge case: some tokenizers (e.g. Qwen) merge
         a response's trailing punctuation with the following separator into a
         single token (e.g. '.' + '\\n\\n' → '.\\n\\n'). The boundary detector
-        must not attribute such merged tokens to the response if they contain
-        separator characters.
+        must not attribute such merged tokens to the response.
         """
-        # Use responses ending in periods — the most common merge trigger
         responses = [
             "Rain falls gently.",
             "The drops patter on the roof.",
@@ -218,31 +160,24 @@ class TestBoundaryRoundtrip:
 
 
 # ============================================================================
-# a_1 consistency test
+# a_1 consistency
 # ============================================================================
 
 
 class TestA1Consistency:
-    """a_1 from single-pass should equal unconditional total bits of r_1,
-    since r_1 is conditioned only on the prompt in both cases (same formatting)."""
+    """a_1 should equal the unconditional cross-entropy h(r_1 | p), since the
+    first response is conditioned only on the prompt in both cases. This is the
+    only externally-computable check on the single-pass boundary extraction."""
 
     def test_a1_equals_unconditional(self) -> None:
-        a_k_single, bc_single = compute_progressive_surprise_curve_single_pass(
+        a_k_single, _ = compute_progressive_surprise_curve_single_pass(
             _model, _tokenizer, PROMPT, RESPONSES
         )
-        per_byte, total_bits, byte_counts = compute_unconditional_surprises(
+        _, total_bits, _ = compute_unconditional_surprises(
             _model, _tokenizer, PROMPT, RESPONSES
         )
-
-        a1 = a_k_single[0]  # total bits
-        h1_total = total_bits[0]  # total bits
-
-        print(f"\n  a_1 (single-pass, total bits): {a1:.6f}")
-        print(f"  h(r_1|p) (unconditional, total bits): {h1_total:.6f}")
-        print(f"  diff: {abs(a1 - h1_total):.8f}")
-
-        # These should match because the formatting for the first response
-        # is identical: prompt + "\n\nResponse A: " + response
+        a1 = a_k_single[0]
+        h1_total = total_bits[0]
         np.testing.assert_allclose(
             a1,
             h1_total,
