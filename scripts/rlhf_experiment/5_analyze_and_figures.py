@@ -40,13 +40,15 @@ TABLE_DIR = RESULTS_DIR / "tables"
 STAGES = ["base", "sft", "dpo", "instruct"]
 STAGE_LABELS = {"base": "Base", "sft": "SFT", "dpo": "DPO", "instruct": "Instruct (RLVR)"}
 
-# Pre-registered H1 contrasts: (a, b, direction) meaning H: D_a > D_b (one-sided)
+# Pre-registered H1 contrasts: (a, b, direction) meaning H: D_a > D_b (one-sided).
+# Names use only letters (no digits) so they're valid LaTeX \newcommand identifiers.
+# HoneA = H1a (base > SFT), HoneB = H1b (SFT > DPO), HoneC = H1c (base > RLVR).
 H1_CONTRASTS = [
-    ("H1a", "base", "sft",    "greater"),
-    ("H1b", "sft",  "dpo",    "greater"),
-    ("H1c", "base", "instruct", "greater"),
+    ("HoneA", "base", "sft",    "greater"),
+    ("HoneB", "sft",  "dpo",    "greater"),
+    ("HoneC", "base", "instruct", "greater"),
 ]
-H1_PRIME = ("H1pa", "dpo", "instruct", "two-sided")
+H1_PRIME = ("Hpa", "dpo", "instruct", "two-sided")
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -326,10 +328,12 @@ def safe_num(x: float | None) -> str:
 
 
 def format_p(p: float | None) -> str:
+    """Format a p-value for use *inside* an existing math-mode wrapper
+    like `$p={...}$`. Must therefore not introduce its own `$..$`."""
     if p is None or (isinstance(p, float) and math.isnan(p)):
-        return "---"
+        return "\\text{---}"
     if p < 0.001:
-        return "$<$0.001"
+        return "<0.001"
     return f"{p:.3f}"
 
 
@@ -361,7 +365,7 @@ def write_results_table(analysis: dict, out_path: Path) -> None:
                 f"$d_z={safe_num(t['cohen_dz'])}$ & "
                 f"$p={format_p(t['p_bonferroni'])}$ \\\\"
             )
-        t = tests["H1pa"]
+        t = tests["Hpa"]
         lines.append(
             r"\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\"
         )
@@ -396,7 +400,7 @@ def write_paper_macros(analysis: dict, out_path: Path) -> None:
             lines.append(f"\\newcommand{{{stem}Pbonf}}{{{safe_num(t['p_bonferroni'])}}}")
             lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")
             lines.append(f"\\newcommand{{{stem}Diff}}{{{safe_num(t['mean_diff'])}}}")
-        t = tests["H1pa"]
+        t = tests["Hpa"]
         stem = f"\\olmo{tag}Hpa"
         lines.append(f"\\newcommand{{{stem}P}}{{{safe_num(t['p_raw'])}}}")
         lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")

@@ -158,7 +158,7 @@
     },
     "tests": {
       "D_Can": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -171,7 +171,7 @@
           "mean_diff": 0.1483632167187891,
           "cohen_dz": 1.7780747454530597
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -184,7 +184,7 @@
           "mean_diff": 0.03184104155741032,
           "cohen_dz": 0.6379166823675015
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -197,7 +197,7 @@
           "mean_diff": 0.18554930594191338,
           "cohen_dz": 2.3871272852410743
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -212,7 +212,7 @@
         }
       },
       "a_n_per_byte": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -225,7 +225,7 @@
           "mean_diff": 0.55435768560384,
           "cohen_dz": 2.462569148953043
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -238,7 +238,7 @@
           "mean_diff": 0.07136892797487489,
           "cohen_dz": 0.5989586905774976
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -251,7 +251,7 @@
           "mean_diff": 0.6337332594349393,
           "cohen_dz": 3.022485403734456
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -266,7 +266,7 @@
         }
       },
       "coherence_C": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -279,7 +279,7 @@
           "mean_diff": -0.2400108238346231,
           "cohen_dz": -2.473422388202386
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -292,7 +292,7 @@
           "mean_diff": -0.027716553268414993,
           "cohen_dz": -0.49630359675738484
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -305,7 +305,7 @@
           "mean_diff": -0.2716408636648283,
           "cohen_dz": -3.0360266821256667
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -320,7 +320,7 @@
         }
       },
       "diversity_score_D_rate": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -333,7 +333,7 @@
           "mean_diff": -0.05795931415038317,
           "cohen_dz": -0.13208707963926802
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -346,7 +346,7 @@
           "mean_diff": -0.05691073607174336,
           "cohen_dz": -0.1601864699480009
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -359,7 +359,7 @@
           "mean_diff": -0.117897997576533,
           "cohen_dz": -0.3026064706415079
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -374,7 +374,7 @@
         }
       },
       "ead": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -387,7 +387,7 @@
           "mean_diff": 0.11165323750405998,
           "cohen_dz": 1.3692342885720257
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -400,7 +400,7 @@
           "mean_diff": 0.0226477027010031,
           "cohen_dz": 0.36831456511832655
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -413,7 +413,7 @@
           "mean_diff": 0.14394734680209667,
           "cohen_dz": 1.647546624112907
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -428,7 +428,7 @@
         }
       },
       "distinct_n": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -441,7 +441,7 @@
           "mean_diff": 0.11094519914725903,
           "cohen_dz": 1.3682220250170578
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -454,7 +454,7 @@
           "mean_diff": 0.023004042349964542,
           "cohen_dz": 0.3762299215473136
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -467,7 +467,7 @@
           "mean_diff": 0.14347386710548984,
           "cohen_dz": 1.650994333509499
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -482,7 +482,7 @@
         }
       },
       "sentbert_diversity": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -495,7 +495,7 @@
           "mean_diff": 0.4109049874544144,
           "cohen_dz": 2.440654359233523
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -508,7 +508,7 @@
           "mean_diff": 0.07413563489913941,
           "cohen_dz": 0.858999677014769
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -521,7 +521,7 @@
           "mean_diff": 0.4896350336074829,
           "cohen_dz": 3.4285098080402845
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -696,7 +696,7 @@
     },
     "tests": {
       "D_Can": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -709,7 +709,7 @@
           "mean_diff": 0.15496459804228851,
           "cohen_dz": 1.639726113445645
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -722,7 +722,7 @@
           "mean_diff": 0.031183010069047667,
           "cohen_dz": 0.44248602890906386
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -735,7 +735,7 @@
           "mean_diff": 0.2023973983464126,
           "cohen_dz": 2.607363978935913
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -750,7 +750,7 @@
         }
       },
       "a_n_per_byte": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -763,7 +763,7 @@
           "mean_diff": 0.5067010060485689,
           "cohen_dz": 2.2391644352906708
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -776,7 +776,7 @@
           "mean_diff": 0.10649737695892464,
           "cohen_dz": 0.47799062743641807
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -789,7 +789,7 @@
           "mean_diff": 0.5990367726996351,
           "cohen_dz": 1.6545942781141432
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -804,7 +804,7 @@
         }
       },
       "coherence_C": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -817,7 +817,7 @@
           "mean_diff": -0.15520673690579107,
           "cohen_dz": -0.9523461937513195
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -830,7 +830,7 @@
           "mean_diff": -0.07629978981201689,
           "cohen_dz": -0.7554082195084768
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -843,7 +843,7 @@
           "mean_diff": -0.21615048683316465,
           "cohen_dz": -1.2678439385400921
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -858,7 +858,7 @@
         }
       },
       "diversity_score_D_rate": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -871,7 +871,7 @@
           "mean_diff": -0.13443709838582935,
           "cohen_dz": -0.24954857472862493
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -884,7 +884,7 @@
           "mean_diff": -0.009170099860998258,
           "cohen_dz": -0.019541944796498935
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -897,7 +897,7 @@
           "mean_diff": -0.16519462058946663,
           "cohen_dz": -0.4450611241006176
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -912,7 +912,7 @@
         }
       },
       "ead": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -925,7 +925,7 @@
           "mean_diff": 0.0647044637339927,
           "cohen_dz": 0.9358493717960278
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -938,7 +938,7 @@
           "mean_diff": 0.042248271295174764,
           "cohen_dz": 0.5254789564579311
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -951,7 +951,7 @@
           "mean_diff": 0.12293879039721357,
           "cohen_dz": 0.9933030048572823
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -966,7 +966,7 @@
         }
       },
       "distinct_n": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -979,7 +979,7 @@
           "mean_diff": 0.06197177210124608,
           "cohen_dz": 0.8952401505208657
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -992,7 +992,7 @@
           "mean_diff": 0.04380736508192605,
           "cohen_dz": 0.5470149348878675
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -1005,7 +1005,7 @@
           "mean_diff": 0.1213531156557737,
           "cohen_dz": 0.9833899653180214
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
@@ -1020,7 +1020,7 @@
         }
       },
       "sentbert_diversity": {
-        "H1a": {
+        "HoneA": {
           "a": "base",
           "b": "sft",
           "alternative": "greater",
@@ -1033,7 +1033,7 @@
           "mean_diff": 0.2714420086145401,
           "cohen_dz": 1.4041715119359839
         },
-        "H1b": {
+        "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
@@ -1046,7 +1046,7 @@
           "mean_diff": 0.14258877873420717,
           "cohen_dz": 1.215474026888732
         },
-        "H1c": {
+        "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
@@ -1059,7 +1059,7 @@
           "mean_diff": 0.4003236961364746,
           "cohen_dz": 1.9909402385485864
         },
-        "H1pa": {
+        "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
