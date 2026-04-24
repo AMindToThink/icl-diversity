@@ -29,8 +29,13 @@ RESULTS_DIR = REPO_ROOT / "results" / "rlhf_experiment"
 
 SCORER_MODEL = "Qwen/Qwen2.5-3B"
 N_PERMUTATIONS = 25
-BATCH_SIZE = 8
+BATCH_SIZE = 1  # external responses can be long; attention-mem O(n²), so batch small
 SEED = 42
+# External NB responses include very long completions from frontier models
+# (GPT-5, Claude, etc.). Truncate each response to ~100-word ceiling to match
+# the OLMo-2-7B max_new_tokens=100 we used elsewhere and to keep the Qwen2.5-3B
+# forward pass within VRAM on a single 48 GB card.
+MAX_RESPONSE_WORDS = 100
 
 MODELS = [
     "qwen-4b",
@@ -122,6 +127,12 @@ def main() -> None:
                 if key in seen:
                     continue
                 responses = row["completions"]
+                # Truncate each response to `MAX_RESPONSE_WORDS` to match the
+                # OLMo-2-7B max_new_tokens=100 scale and keep the concatenated
+                # context within Qwen2.5-3B's attention-memory budget.
+                responses = [
+                    " ".join(r.split()[:MAX_RESPONSE_WORDS]) for r in responses
+                ]
                 if len(responses) < 2:
                     print(f"[ext] skipping {key} (only {len(responses)} completions)")
                     continue
