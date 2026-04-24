@@ -97,3 +97,42 @@ claim = "Theoretically shows feedback-free self-improvement = coherence optimiza
 key   = "wen2025unsupervised"
 arxiv = "2506.10139"
 claim = "Internal Coherence Maximization (ICM). Algorithm 1 in §2.3. Paper's own framing uses 'concepts/skills/capabilities'; 'latent knowledge' is inherited from Burns et al. 2022 (CCS)."
+
+# --- Added 2026-04-24 for the RLHF-diversity experiment section
+# (paper/rlhf_experiment.tex). Identifiers verified during planning;
+# double-check via build_bib.py + verify-citation-claims after resolution.
+
+[[cite]]
+key   = "kirk2023rlhf"
+arxiv = "2310.06452"
+claim = "Original SFT-vs-RLHF per-input diversity finding on TL;DR + AlpacaFarm using K=16 samples per prompt + EAD / distinct-n / SentBERT / NLI metrics. We replicate the protocol on the OLMo-2-7B four-stage pipeline. Kirk et al. report means ± std across prompts; no formal significance tests — we upgrade to paired Wilcoxon per Dror et al. 2018."
+
+[[cite]]
+key   = "zhang2025verbalizedsampling"
+arxiv = "2510.01171"
+claim = "Attributes mode collapse in preference-trained LLMs to typicality bias in preference data, not algorithm choice. Verbalized sampling is their inference-time fix. We cite for the typicality-bias mechanism motivating H1b (SFT>DPO) and the absence of that mechanism in RLVR motivating H1' (DPO vs RLVR exploratory)."
+
+[[cite]]
+key   = "padmakumar2023writingreduces"
+arxiv = "2309.05196"
+claim = "GPT-3 vs InstructGPT on argumentative essays: InstructGPT reduces lexical and content diversity at group level; base GPT-3 does not. A clean instance of 'RLHF/Instruct narrows the distribution'. Cited alongside Kirk et al. for the post-training-reduces-diversity prior."
+
+[[cite]]
+key   = "olmo2024olmo2"
+arxiv = "2501.00656"
+claim = "OLMo 2 technical report. Covers post-training pipeline: pretrained base → SFT (on Tulu-3 derivative) → DPO → RLVR (verifiable rewards for math, code, IF). Weights released at all four stages for 7B, 13B, 32B. Our experiment uses the 7B variant."
+
+[[cite]]
+key   = "dubois2024alpacafarm"
+arxiv = "2305.14387"
+claim = "AlpacaFarm paper; released the AlpacaEval 805-prompt evaluation set (tatsu-lab/alpaca_eval on HF) that we subsample to 200 for the primary comparison."
+
+[[cite]]
+key   = "reimers2019sbert"
+arxiv = "1908.10084"
+claim = "SentenceBERT: siamese-BERT embeddings of sentences for semantic similarity. We use sentence-transformers/all-MiniLM-L6-v2 (a smaller SBERT variant) for the semantic-similarity baseline diversity metric, matching Kirk et al.'s 'sent_bert_from_sim' method."
+
+[[cite]]
+key   = "dror2018hitchhiker"
+acl   = "P18-1128"
+claim = "Hitchhiker's Guide to Testing Statistical Significance in NLP. Recommends paired nonparametric tests (Wilcoxon signed-rank) for paired NLP comparisons and multiple-comparison correction. We cite as the source of the paired-Wilcoxon-with-Bonferroni protocol; Kirk et al. themselves do not run formal tests, so this upgrade is ours not theirs."
