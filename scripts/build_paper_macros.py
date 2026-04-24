@@ -551,9 +551,16 @@ def mode_count_config_macros() -> dict[str, str]:
 def permutation_sensitivity_macros() -> dict[str, str]:
     """Sec 8.6 permutation-sensitivity claim.
 
-    Compares scenario rankings (by mean D across prompts) between the 3-perm
-    and 100-perm scenario-metrics files for both GPT-2 and Qwen2.5-32B.
-    Emits: number of scenarios mis-ranked at 3 perms on each model, total.
+    Compares scenario rankings (by mean $D_{a_\\infty} = C \\times a_n$
+    across prompts) between the 3-perm and 100-perm scenario-metrics
+    files for both GPT-2 and Qwen2.5-32B. Emits: number of scenarios
+    mis-ranked at 3 perms on each model.
+
+    Note: the legacy ``diversity_score_D`` key in those JSON files is
+    ``C * E`` (Appendix-E variant), NOT the paper's primary
+    $D_{a_\\infty} = C \\times a_n$ that §8.6 actually refers to. We
+    derive the right scalar from the per-prompt ``coherence_C`` and
+    ``a_k_curve_per_byte[-1]`` fields, which are present in those JSONs.
     """
     macros: dict[str, str] = {}
     pairs = [
@@ -567,9 +574,14 @@ def permutation_sensitivity_macros() -> dict[str, str]:
         with (RESULTS / f100).open() as f:
             d100 = json.load(f)
 
+        def _entry_d_can(entry: dict) -> float:
+            """Derive D = C * a_n (per-byte) for one prompt's entry."""
+            curve = entry["a_k_curve_per_byte"]
+            return float(entry["coherence_C"]) * float(curve[-1])
+
         def rank(d: dict) -> dict[str, int]:
             scores = {
-                name: float(np.mean([e["diversity_score_D"] for e in entries]))
+                name: float(np.mean([_entry_d_can(e) for e in entries]))
                 for name, entries in d["scenarios"].items()
             }
             ordered = sorted(scores.items(), key=lambda kv: -kv[1])
