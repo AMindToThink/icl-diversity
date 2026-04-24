@@ -20,7 +20,7 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from icl_diversity import APIModel, compute_icl_diversity_metrics
+from icl_diversity import compute_icl_diversity_metrics
 from icl_diversity.scenarios import (
     NOISE_PROMPTS,
     INCOHERENT_PROMPTS,
@@ -57,6 +57,7 @@ def compute_all_scenarios(
     base_model: str = "gpt2",
     n_permutations: int = N_PERMUTATIONS,
     temperature: float = 1.0,
+    scenarios_filter: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compute metrics for all eight scenarios."""
     result: dict[str, Any] = {
@@ -123,6 +124,9 @@ def compute_all_scenarios(
                 responses[:PROBLEM_SOLVING_N_RESPONSES],
             )
         )
+
+    if scenarios_filter is not None:
+        all_items = [it for it in all_items if it[0] in scenarios_filter]
 
     # Compute metrics with progress bar
     for scenario_name, prompt_label, prompt_text, responses in tqdm(
@@ -198,23 +202,26 @@ def main() -> None:
         action="store_true",
         help="Set HF_HUB_OFFLINE=1 to prevent downloads",
     )
+    parser.add_argument(
+        "--scenarios",
+        default=None,
+        help=(
+            "Comma-separated list of scenario names to run "
+            "(default: all). Options: pure_noise,multi_incoherent,multi_mode,"
+            "one_mode,mixed,high_diversity,open_creative,problem_solving"
+        ),
+    )
     args = parser.parse_args()
 
     if args.offline:
         os.environ["HF_HUB_OFFLINE"] = "1"
 
     if args.provider != "local":
-        from dotenv import load_dotenv
-
-        load_dotenv()
-        print(f"Using API model: {args.base_model} via {args.provider}")
-        model = APIModel(
-            model_name=args.base_model,
-            provider=args.provider,
-            api_key=args.api_key,
-            max_concurrent_requests=args.max_concurrent,
+        raise NotImplementedError(
+            "APIModel was removed in commit 600ce77 (replaced by TinkerModel for the "
+            "Tinker API only). Remote providers 'together' and 'fireworks' are no "
+            "longer supported by this script. Use --provider local."
         )
-        tokenizer = model.tokenizer
     else:
         # Resolve dtype
         torch_dtype = None
@@ -249,14 +256,20 @@ def main() -> None:
             model = model.to(args.device)
         model.eval()
 
+    scenarios_filter = (
+        [s.strip() for s in args.scenarios.split(",")] if args.scenarios else None
+    )
     print("Computing metrics for all scenarios...")
     print(f"n_permutations={args.n_permutations}")
+    if scenarios_filter:
+        print(f"scenarios_filter={scenarios_filter}")
     results = compute_all_scenarios(
         model,
         tokenizer,
         base_model=args.base_model,
         n_permutations=args.n_permutations,
         temperature=args.temperature,
+        scenarios_filter=scenarios_filter,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

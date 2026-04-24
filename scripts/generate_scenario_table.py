@@ -1,8 +1,8 @@
 """Generate the scenario validation table for the paper.
 
-Reads results/scenario_metrics_v2_100perm.json (GPT-2) and
-results/scenario_metrics_v2_qwen_100perm.json (Qwen2.5-32B),
-computes mean +/- std across 5 prompts for each scenario,
+Reads results/scenario_metrics_v3_gpt2_100perm.json (GPT-2) and
+results/scenario_metrics_v3_qwen3b_100perm.json (Qwen2.5-3B),
+computes mean across 5 prompts for each scenario,
 and writes results/tables/scenario_validation.tex (tabular body only).
 
 Usage:
@@ -17,8 +17,9 @@ from pathlib import Path
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-GPT2_PATH = PROJECT_ROOT / "results/scenario_metrics_v2_100perm.json"
-QWEN_PATH = PROJECT_ROOT / "results/scenario_metrics_v2_qwen_100perm.json"
+GPT2_PATH = PROJECT_ROOT / "results/scenario_metrics_v3_gpt2_100perm.json"
+QWEN_PATH = PROJECT_ROOT / "results/scenario_metrics_v3_qwen3b_100perm.json"
+QWEN_MODEL_LABEL = "Qwen2.5-3B"
 OUT_PATH = PROJECT_ROOT / "results/tables/scenario_validation.tex"
 
 SCENARIO_ORDER = ["pure_noise", "multi_incoherent", "multi_mode", "one_mode", "mixed"]
@@ -53,7 +54,9 @@ def main() -> None:
     lines.append(r"\begin{tabular}{@{}l rrrrrrr rrrrrrr@{}}")
     lines.append(r"\toprule")
     lines.append(
-        r"& \multicolumn{7}{c}{\textbf{GPT-2 (124M)}} & \multicolumn{7}{c}{\textbf{Qwen2.5-32B}} \\"
+        r"& \multicolumn{7}{c}{\textbf{GPT-2 (124M)}} & \multicolumn{7}{c}{\textbf{"
+        + QWEN_MODEL_LABEL
+        + r"}} \\"
     )
     lines.append(r"\cmidrule(lr){2-8} \cmidrule(lr){9-15}")
     lines.append(
@@ -77,8 +80,10 @@ def main() -> None:
             d_ainf = [c * a for c, a in zip(cs, an_vals)]
             # E_rate (per-byte excess entropy)
             e_rates = [p["excess_entropy_E_rate"] for p in prompts]
-            # C x E_rate (the old D_rate, stored as diversity_score_D)
-            ds = [p["diversity_score_D"] for p in prompts]
+            # C x E_rate (per-byte). Note: `diversity_score_D` in the JSON is
+            # `C * excess_entropy_E` (total bits); `diversity_score_D_rate` is
+            # the per-byte form, which is what this table reports.
+            ds = [p["diversity_score_D_rate"] for p in prompts]
             sigmas = [p["coherence_spread_sigma"] for p in prompts]
 
             d_ainf_str = r"\textbf{" + fmt(np.mean(d_ainf)) + "}"
