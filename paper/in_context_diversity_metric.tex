@@ -39,7 +39,9 @@ Existing diversity metrics rely on embedding-space distances or surface-level $n
 We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses.
 This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities.
 We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
-Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte, that does not reward noise and works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
+Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
+It does not reward noise.
+It works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
 We validate the metric on four fronts.
 Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics.
@@ -71,6 +73,13 @@ Conversely, if $\theta$ hallucinates structure that is not present, it overestim
 The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$.
 As base models continue to improve at in-context learning, this gap narrows.
 
+\paragraph{Contributions.}
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item We define a \emph{progressive conditional surprise curve} $a_k$ for language-model outputs, computed by a single forward pass of a base model $\theta$ over the concatenated responses, whose shape characterizes the learnable structure among outputs (Section~\ref{sec:progressive-conditioning}).
+  \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the asymptotic curve value $a_\infty$ to yield a single plausibility-weighted diversity score $\mathbf{D_{a_\infty} = C \times a_\infty}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
+  \item We validate the metric on synthetic mode scenarios, on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ is competitive with embedding-based metrics), on a cross-model scaling study, and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:experiments}).
+\end{itemize}
+
 Figure~\ref{fig:pipeline} sketches the full pipeline.
 The remainder of the paper formalizes each step and validates the resulting metric.
 
@@ -89,8 +98,8 @@ The remainder of the paper formalizes each step and validates the resulting metr
 
 % --- INPUT + FORMAT (combined, top) ---
 \node[stage, text width=0.92\textwidth] (input) {
-    \textbf{Input:} prompt $p$, responses $r_1,\ldots,r_n$ from policy $\pi$.\quad
-    \textbf{Format:} \texttt{p\textbackslash n\textbackslash nResponse A: $r_{\sigma(1)}$\textbackslash n\textbackslash nResponse B: $r_{\sigma(2)}$\,\ldots}\quad
+    \textbf{Input:} prompt $p$, responses $r_1,\ldots,r_n$ from policy $\pi$.\\[2pt]
+    \textbf{Format:} \texttt{p\textbackslash n\textbackslash nResponse A: $r_{\sigma(1)}$\textbackslash n\textbackslash nResponse B: $r_{\sigma(2)}$\,\ldots}\\[2pt]
     \textbf{Tokenize:} $[\texttt{Resp}][\texttt{onse}][\texttt{ A}][\texttt{:}][\texttt{ Rain}][\texttt{ falls}]\cdots$
 };
 
@@ -132,7 +141,7 @@ The remainder of the paper formalizes each step and validates the resulting metr
 Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize.
 The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$.
 Its last point $a_n$ estimates the asymptotic floor $a_\infty$.
-The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte, and the geometric mean defines coherence $C$.
+The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte; the geometric mean of these surprises defines coherence $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity.
 The product $D_{a_\infty} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
 Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
 \label{fig:pipeline}
@@ -192,7 +201,7 @@ But there are two distinct ways to achieve independence:
 
 Both yield low pairwise MI.
 The distinguishing signal lies in the probability $\theta$ puts on the response without seeing other responses, $h_\theta(r \mid p)$, not in the pairwise structure.
-This motivates decomposing the metric into separate coherence and independence components.
+This motivates decomposing the metric into separate coherence and independence components.\footnote{\citet{tevet2020evaluating} report that in pilot experiments, NLP graduate students rated sets of high-diversity but low-quality responses as low-diversity; they label this a human bias and design their crowdsourcing protocol to suppress it, but we read the same observation as evidence that coherence is part of what ``diversity'' of a generated set actually means.}
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
@@ -787,7 +796,7 @@ Our codebase supports token-level ensembling, but we have not yet validated it e
 \paragraph{Explicit framing of multi-response contexts.} We observe a characteristic increase in conditional surprise from $k=1$ to $k=2$ in many settings: after seeing the first response, $\theta$ appears to expect the second to continue on the same theme, so a genuinely alternative response is extra-surprising.
 Explicit framing---e.g., prefixing the context with ``the following are several different completions of the same prompt''---could shift this prior and reduce the $k=2$ bump, improving the metric's sensitivity in the few-draws regime.
 
-\section{Related Concepts}
+\section{Related Concepts}\label{sec:related}
 
 \paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
 We found it empirically inferior to $D_{a_\infty}$ on external benchmarks.
