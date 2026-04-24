@@ -121,6 +121,54 @@ def build_staging_dir(root: Path, staging: Path) -> dict:
     return meta
 
 
+_CITATION_BLOCK = r"""## Citation
+
+This dataset is a re-execution of someone else's experimental design on someone
+else's model checkpoints. Cite in roughly this order of contribution:
+
+1. **AllenAI's OLMo-2 release** — the four-stage 7 B checkpoints these samples
+   came from. Without these weights the dataset does not exist.
+
+   ```bibtex
+   @article{olmo20242olmo2furious,
+     title         = {{2 OLMo 2 Furious}},
+     author        = {{Team OLMo} and others},
+     year          = {2024},
+     eprint        = {2501.00656},
+     archivePrefix = {arXiv}
+   }
+   ```
+
+2. **Kirk et al. 2023, "Understanding the Effects of RLHF on LLM Generalisation
+   and Diversity"** ([arXiv:2310.06452](https://arxiv.org/abs/2310.06452)) —
+   the K-samples-per-prompt × paired-stages experimental protocol that this
+   dataset operationalises. Their original code logged K=16 best-of-N
+   generations to a private W&B project; the gap this dataset fills is making
+   that kind of artifact public, but the experimental *design* is theirs.
+
+3. **The prompt sources:**
+   - [`tatsu-lab/alpaca_eval`](https://huggingface.co/datasets/tatsu-lab/alpaca_eval)
+     (AlpacaFarm; Dubois et al. 2023, [arXiv:2305.14387](https://arxiv.org/abs/2305.14387))
+   - [`yimingzhang/novelty-bench`](https://huggingface.co/datasets/yimingzhang/novelty-bench)
+     (NoveltyBench; Zhang et al. 2025, [arXiv:2504.05228](https://arxiv.org/abs/2504.05228))
+
+4. **The ICL diversity paper (Khoriaty, Williams-King, Feng — in preparation)**
+   — we ran the inference, picked the K=10 / T=1 / `max_new_tokens=100`
+   sampling config, and added the $C \times a_n$ scoring layer. Cite this if
+   you use the specific generations released here, or if you use the metric we
+   score them with. BibTeX will be added once the paper is on arXiv.
+
+In short: the experimental design is Kirk et al.'s, the model is AllenAI's, the
+prompts are tatsu-lab's and NoveltyBench's, and we just operated the pipeline
+and filled a missing-data gap. Please cite accordingly.
+
+## License
+
+CC-BY-NC 4.0 (matching Kirk et al.'s original rlhf-gen-div license — our
+experimental protocol derives from theirs).
+"""
+
+
 def write_readme(staging: Path, meta: dict, repo: str) -> None:
     total_rows = sum(v["n_rows"] for v in meta["files"].values())
     content = f"""---
@@ -202,16 +250,7 @@ from datasets import load_dataset
 ds = load_dataset("{repo}", data_files="alpacaeval/sft.jsonl")
 ```
 
-## Citation
-
-If you use these samples, please cite the ICL diversity paper (in preparation)
-and credit the AllenAI OLMo-2 team for the underlying checkpoints.
-
-## License
-
-CC-BY-NC 4.0 (matching Kirk et al.'s original rlhf-gen-div license — our
-experimental protocol derives from theirs).
-"""
+""" + _CITATION_BLOCK
     (staging / "README.md").write_text(content)
 
 
