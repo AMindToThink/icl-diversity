@@ -26,7 +26,27 @@
 [[cite]]
 key   = "du2019boosting"
 acl   = "P19-1005"
-claim = "Earliest unambiguous instance of a scalar sentence-embedding-based diversity metric for generated text: §4.1 computes k-means over word-averaged (Arora 2017 SIF) sentence embeddings of dialog responses and reports cluster inertia as the diversity score (Figure 1(d)). Tevet and Berant (2021, §2) treat them as the canonical originator and cite no earlier source. Per subagent literature archaeology 2026-04-24: ~10 earlier candidates checked (Li 2015/2016, Serban 2017, Cao-Clark 2017, Zhao-Zhao-Eskenazi 2017, Forgues 2014, Gimpel 2013, Texygen 2018, Ippolito 2019, Larson 2019), none use embedding-based diversity on generated text as a scalar metric; they use n-gram diversity or embedding-based quality/recall, not embedding-based diversity."
+claim = "Earliest unambiguous instance of a scalar sentence-embedding-based diversity metric for generated text: §4.1 computes k-means over word-averaged (Arora 2017 SIF) sentence embeddings of dialog responses and reports cluster inertia as the diversity score (Figure 1(d)). Tevet and Berant (2021, §2) treat them as the canonical originator and cite no earlier source. Per subagent literature archaeology 2026-04-24: ~10 earlier candidates checked (Li 2015/2016, Serban 2017, Cao-Clark 2017, Zhao-Zhao-Eskenazi 2017, Forgues 2014, Gimpel 2013, Texygen 2018, Ippolito 2019, Larson 2019), none use embedding-based diversity on generated text as a scalar metric; they use n-gram diversity or embedding-based quality/recall, not embedding-based diversity. Note: Du & Black's method also uses mutual-information decoding (Li et al. 2016 MMI) as one base learner in its boosting ensemble — i.e. they combine pairwise query-response MI (training-time) with an embedding-based diversity *evaluation*, both of which our work contrasts against."
+
+# --- Added 2026-04-24: prior work on MI-for-diversity in dialog generation.
+# Both treat MI between query and response as a training/decoding objective
+# to avoid generic responses, using pairwise MI (X,Y) where X is the input
+# message and Y is the response. Our paper uses MI in a different
+# construction: among responses from the same policy (chain-rule conditional
+# MI within a response set), as an evaluation-time diagnostic rather than a
+# training objective. Li 2016 is the canonical MMI-for-dialog paper that
+# Du & Black 2019 build on.
+
+[[cite]]
+key   = "li2016diversity"
+acl   = "N16-1014"
+arxiv = "1510.03055"
+claim = "Proposes Maximum Mutual Information (MMI) as the objective function for neural conversation models to promote diverse responses. General MMI definition log p(S,T)/(p(S)p(T)) is Eq. (8); the two operationalized variants are MMI-antiLM (Eq. 9, with tractable decoding form Eq. 14) and MMI-bidi (Eq. 10). These penalize responses with high prior P(Y), reducing 'I don't know'-type generic outputs (abstract + §1, footnote notes 0.45% of OpenSubtitles contain 'I don't know'). Paper's §3 explicitly calls MMI 'pairwise' between source S and target T; no set-level MI is discussed. Used as a decoding criterion (§4.2: 'used the MMI criterion only during testing'). Du & Black 2019 use MMI-decoding as one base learner in their boosting ensemble. Verified 2026-04-24 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/1510.03055."
+
+[[cite]]
+key   = "zhang2018aim"
+arxiv = "1809.05972"
+claim = "Adversarial Information Maximization (AIM) for dialog response generation: §2.1 defines the min-max AIM objective (Eq. 1) as a GAN-style loss plus a variational lower bound on pairwise mutual information I(S;T) between query S and response T, realized via a backward proposal network q_phi(S|T); §2.3 details the VIMO 'Information-promoting objective'. Title and abstract use the framing 'informativeness and diversity'. Published at NeurIPS 2018 (arXiv journal_ref = 'NIPS 2018', pre-rename). Like Li et al. 2016 MMI, treats MI as a training objective at the query-response boundary rather than as a diagnostic on the joint distribution of a policy's response set. Verified 2026-04-24 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/1809.05972."
 
 [[cite]]
 key   = "gao2020pile"
