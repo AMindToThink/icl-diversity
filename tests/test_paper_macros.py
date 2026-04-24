@@ -142,6 +142,10 @@ def test_paper_has_no_forgotten_hand_typed_numbers_in_edited_clusters() -> None:
         "is within 5--15\\% of SentBERT's OCA",
         "is 5--17\\% lower in OCA than",
         "(OCA near chance)",
+        # Misinterpretation: a_1's wrong sign was attributed to "residual signal"
+        # hypothesis, but it actually reflects the McDiv confound — same as C's
+        # positive correlation. Keep both explanations unified.
+        "confirming that the diversity signal is in the \\emph{residual} surprise",
         # Sec 8.4 / 8.7 hand-typed numbers we replaced.
         "only $+0.9$ bits",
         "overpredicts by $10.6\\times$ (622 bits predicted",

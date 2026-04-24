@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex in_context_diversity_metric"] 1776988813.93621 "in_context_diversity_metric.aux" "in_context_diversity_metric.bbl" "in_context_diversity_metric" 1776988819.9709 0
+["bibtex in_context_diversity_metric"] 1776988813.93621 "in_context_diversity_metric.aux" "in_context_diversity_metric.bbl" "in_context_diversity_metric" 1776989448.49751 0
   "./refs.bib" 1776987952.94726 10268 194292afd2a5361337f0f9e99f6df224 ""
   "/home/cs29824/.TinyTeX/texmf-dist/bibtex/bst/natbib/plainnat.bst" 1233624470 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "in_context_diversity_metric.aux" 1776988819.84338 39870 fa0ebc330bde560c9cbcbb80c89f6dd2 "pdflatex"
+  "in_context_diversity_metric.aux" 1776989448.36371 39870 fa0ebc330bde560c9cbcbb80c89f6dd2 "pdflatex"
   (generated)
   "in_context_diversity_metric.bbl"
   "in_context_diversity_metric.blg"
   (rewritten before read)
-["pdflatex"] 1776988813.9521 "in_context_diversity_metric.tex" "in_context_diversity_metric.pdf" "in_context_diversity_metric" 1776988819.97117 0
+["pdflatex"] 1776989442.3809 "in_context_diversity_metric.tex" "in_context_diversity_metric.pdf" "in_context_diversity_metric" 1776989448.49777 0
   "../figures/comparison_v2/comparison_ak_curves_all.png" 1773013371.34526 4073033 80b3626f3d75bd2ef463dbd8ad1bfcd6 ""
   "../figures/dataset_confound/a1_distributions.png" 1776809235.92946 78425 b07e3ad5261d79106f4fa649c5c06c6d ""
   "../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png" 1776809240.61883 103018 ac65181c5255b90e49e918d567872d19 ""
@@ -32,7 +32,7 @@
   "../results/tables/contest_rho_oca.tex" 1775666897.64226 1833 432f499a933778a3be4b2e3e62afa457 ""
   "../results/tables/dectest_rho.tex" 1775666897.73827 534 14758e0e86d63e301965a5b0e0fd8ac1 ""
   "../results/tables/mode_count_scaling.tex" 1776059467.2594 778 21831774cad11c2c47dc6f9f318f8eef ""
-  "../results/tables/paper_macros.tex" 1776988445.93727 4810 b1412a167c77cc1249568a089244f6c3 ""
+  "../results/tables/paper_macros.tex" 1776988895.5313 4810 b1412a167c77cc1249568a089244f6c3 ""
   "../results/tables/qwen3_comparison.tex" 1775667469.01912 1830 b70874d8bbb031a2398d7d4a340a5fe1 ""
   "../results/tables/scenario_validation.tex" 1776754950.54068 1227 4bafa4b6419fa69e5edf6a73ff1c5148 ""
   "/home/cs29824/.TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm" 1136768653 1536 02c06700a42be0f5a28664c7273f82e7 ""
@@ -289,10 +289,10 @@
   "/home/cs29824/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600pk" 1774908405.65457 12644 92536e3f467f9e97f75420dc231d7874 ""
   "/home/cs29824/.TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1774843831 2236153 2470f1947521f01bed5266798ac06511 ""
   "/home/cs29824/.TinyTeX/texmf.cnf" 1774843792 637 edd806fb06a89761a6034e1968af9017 ""
-  "in_context_diversity_metric.aux" 1776988819.84338 39870 fa0ebc330bde560c9cbcbb80c89f6dd2 "pdflatex"
+  "in_context_diversity_metric.aux" 1776989448.36371 39870 fa0ebc330bde560c9cbcbb80c89f6dd2 "pdflatex"
   "in_context_diversity_metric.bbl" 1776988813.94592 5665 55043eda79a88372f228dce40f9d7140 "bibtex in_context_diversity_metric"
-  "in_context_diversity_metric.out" 1776988819.84538 9755 71d2047eaaeed865f5266a0f67609806 "pdflatex"
-  "in_context_diversity_metric.tex" 1776988796.43655 104120 7fd91f0921929b625ab670d04d7cb8f9 ""
+  "in_context_diversity_metric.out" 1776989448.36571 9755 71d2047eaaeed865f5266a0f67609806 "pdflatex"
+  "in_context_diversity_metric.tex" 1776989439.43101 104123 bcaf6663f6f2779280c7d01f8199d0d7 ""
   (generated)
   "in_context_diversity_metric.aux"
   "in_context_diversity_metric.log"
