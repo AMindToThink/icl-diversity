@@ -1,0 +1,36 @@
+[truncate] loaded 8 files, 12000 records, 300 prompts
+
+[truncate] L_prompt (min UTF-8 bytes across the 40 responses) summary:
+  overall: n=300, min=0, p10=5, median=79, mean=125.2, max=444
+  alpacaeval  : n=200, min=0, p10=11, median=123, mean=157.5, max=444
+  nbcurated   : n=100, min=1, p10=4, median=35, mean=60.5, max=380
+
+[truncate] which stage drove L_prompt (min byte response):
+  alpacaeval  : base=136/200, sft=61/200, dpo=3/200
+  nbcurated   : sft=62/100, base=22/100, instruct=13/100, dpo=3/100
+
+[truncate] DROPPING 111 / 300 prompts with L_prompt < 50 bytes (length-matching would compare empty/near-empty fragments).
+  alpacaeval  : dropped 50/200, kept 150
+  nbcurated   : dropped 61/100, kept 39
+  worst 10 (smallest L_prompt) being dropped:
+    ('alpacaeval', 'alpacaeval-001') -> 0 bytes (min from base#2)
+    ('alpacaeval', 'alpacaeval-034') -> 0 bytes (min from base#2)
+    ('alpacaeval', 'alpacaeval-075') -> 0 bytes (min from base#0)
+    ('alpacaeval', 'alpacaeval-110') -> 0 bytes (min from base#0)
+    ('alpacaeval', 'alpacaeval-128') -> 0 bytes (min from base#2)
+    ('alpacaeval', 'alpacaeval-135') -> 0 bytes (min from base#0)
+    ('alpacaeval', 'alpacaeval-153') -> 0 bytes (min from base#1)
+    ('alpacaeval', 'alpacaeval-162') -> 1 bytes (min from base#4)
+    ('nbcurated', 'curated-87') -> 1 bytes (min from sft#0)
+    ('nbcurated', 'curated-97') -> 1 bytes (min from sft#0)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/base_alpacaeval.jsonl (1500 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/base_nbcurated.jsonl (390 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/sft_alpacaeval.jsonl (1500 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/sft_nbcurated.jsonl (390 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/dpo_alpacaeval.jsonl (1500 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/dpo_nbcurated.jsonl (390 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/instruct_alpacaeval.jsonl (1500 rows)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/instruct_nbcurated.jsonl (390 rows)
+
+[truncate] total: wrote 7560 records (dropped 4440 from below-floor prompts), 7364 truncated (97.4%)
+[truncate] wrote /home/cs29824/matthew/icl-diversity/results/rlhf_experiment/generations_length_matched/length_match_report.json

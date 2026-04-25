@@ -1,0 +1,1078 @@
+{
+  "alpacaeval": {
+    "stage_means": {
+      "D_Can": {
+        "base": {
+          "mean": 0.4805512890863234,
+          "std": 0.03777176284313034,
+          "n": 150
+        },
+        "sft": {
+          "mean": 0.3291706107029273,
+          "std": 0.08362322428531513,
+          "n": 150
+        },
+        "dpo": {
+          "mean": 0.2856697785608145,
+          "std": 0.07221946262488678,
+          "n": 150
+        },
+        "instruct": {
+          "mean": 0.28105903766369794,
+          "std": 0.07140032293401853,
+          "n": 150
+        }
+      },
+      "a_n_per_byte": {
+        "base": {
+          "mean": 1.1418037776442223,
+          "std": 0.2517086202511456,
+          "n": 150
+        },
+        "sft": {
+          "mean": 0.5124624154338614,
+          "std": 0.20744891460470702,
+          "n": 150
+        },
+        "dpo": {
+          "mean": 0.4269729291700927,
+          "std": 0.16204475975039964,
+          "n": 150
+        },
+        "instruct": {
+          "mean": 0.41921306950114207,
+          "std": 0.16391499808001997,
+          "n": 150
+        }
+      },
+      "coherence_C": {
+        "base": {
+          "mean": 0.4363642351906464,
+          "std": 0.07520586212057187,
+          "n": 150
+        },
+        "sft": {
+          "mean": 0.674445953782894,
+          "std": 0.08790056800137135,
+          "n": 150
+        },
+        "dpo": {
+          "mean": 0.6939859187588786,
+          "std": 0.07713492590761373,
+          "n": 150
+        },
+        "instruct": {
+          "mean": 0.6975408995673261,
+          "std": 0.07962877438088695,
+          "n": 150
+        }
+      },
+      "diversity_score_D_rate": {
+        "base": {
+          "mean": 0.0766598500623194,
+          "std": 0.24256943545013743,
+          "n": 150
+        },
+        "sft": {
+          "mean": 0.21799360331727116,
+          "std": 0.3303555423999918,
+          "n": 150
+        },
+        "dpo": {
+          "mean": 0.30263718437489917,
+          "std": 0.24943968743120218,
+          "n": 150
+        },
+        "instruct": {
+          "mean": 0.28377020238294515,
+          "std": 0.24549817900714055,
+          "n": 150
+        }
+      },
+      "ead": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      },
+      "distinct_n": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      },
+      "sentbert_diversity": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      }
+    },
+    "tests": {
+      "D_Can": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 11092.0,
+          "p_raw": 1.1327608737710058e-24,
+          "p_bonferroni": 3.398282621313017e-24,
+          "n": 150,
+          "mean_a": 0.4805512890863234,
+          "mean_b": 0.3291706107029273,
+          "mean_diff": 0.15138067838339608,
+          "cohen_dz": 1.6146055108115553
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 9621.0,
+          "p_raw": 5.55047468669022e-14,
+          "p_bonferroni": 1.665142406007066e-13,
+          "n": 150,
+          "mean_a": 0.3291706107029273,
+          "mean_b": 0.2856697785608145,
+          "mean_diff": 0.043500832142112776,
+          "cohen_dz": 0.6750576224796235
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 11305.0,
+          "p_raw": 1.717784759835213e-26,
+          "p_bonferroni": 5.1533542795056386e-26,
+          "n": 150,
+          "mean_a": 0.4805512890863234,
+          "mean_b": 0.28105903766369794,
+          "mean_diff": 0.19949225142262547,
+          "cohen_dz": 2.4249081465115516
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 3646.0,
+          "p_raw": 0.003578333168210458,
+          "p_bonferroni": null,
+          "n": 150,
+          "mean_a": 0.2856697785608145,
+          "mean_b": 0.28105903766369794,
+          "mean_diff": 0.004610740897116608,
+          "cohen_dz": 0.22693192625837819
+        }
+      },
+      "a_n_per_byte": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 11307.0,
+          "p_raw": 1.6502946672741776e-26,
+          "p_bonferroni": 4.950884001822533e-26,
+          "n": 150,
+          "mean_a": 1.1418037776442223,
+          "mean_b": 0.5124624154338614,
+          "mean_diff": 0.6293413622103607,
+          "cohen_dz": 2.1757378642414706
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 9501.0,
+          "p_raw": 2.9679767049274785e-13,
+          "p_bonferroni": 8.903930114782436e-13,
+          "n": 150,
+          "mean_a": 0.5124624154338614,
+          "mean_b": 0.4269729291700927,
+          "mean_diff": 0.08548948626376873,
+          "cohen_dz": 0.634182557808081
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 11324.0,
+          "p_raw": 1.1731540937657121e-26,
+          "p_bonferroni": 3.5194622812971363e-26,
+          "n": 150,
+          "mean_a": 1.1418037776442223,
+          "mean_b": 0.41921306950114207,
+          "mean_diff": 0.7225907081430801,
+          "cohen_dz": 2.6260696914570647
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 3788.0,
+          "p_raw": 0.008691674771554955,
+          "p_bonferroni": null,
+          "n": 150,
+          "mean_a": 0.4269729291700927,
+          "mean_b": 0.41921306950114207,
+          "mean_diff": 0.007759859668950706,
+          "cohen_dz": 0.2104729931001837
+        }
+      },
+      "coherence_C": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 1.0,
+          "p_raw": 1.0,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.4363642351906464,
+          "mean_b": 0.674445953782894,
+          "mean_diff": -0.23808171859224747,
+          "cohen_dz": -2.7259575671488445
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 3259.0,
+          "p_raw": 0.9999967516070768,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.674445953782894,
+          "mean_b": 0.6939859187588786,
+          "mean_diff": -0.019539964975984765,
+          "cohen_dz": -0.40893437364316926
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 0.0,
+          "p_raw": 1.0,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.4363642351906464,
+          "mean_b": 0.6975408995673261,
+          "mean_diff": -0.26117666437667975,
+          "cohen_dz": -3.19939704268466
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 3771.0,
+          "p_raw": 0.007847336589386314,
+          "p_bonferroni": null,
+          "n": 150,
+          "mean_a": 0.6939859187588786,
+          "mean_b": 0.6975408995673261,
+          "mean_diff": -0.003554980808447478,
+          "cohen_dz": -0.20353824044317934
+        }
+      },
+      "diversity_score_D_rate": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 3092.0,
+          "p_raw": 0.9999992924766845,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.0766598500623194,
+          "mean_b": 0.21799360331727116,
+          "mean_diff": -0.14133375325495176,
+          "cohen_dz": -0.3538878204378296
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 4437.0,
+          "p_raw": 0.9892569382545228,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.21799360331727116,
+          "mean_b": 0.30263718437489917,
+          "mean_diff": -0.08464358105762805,
+          "cohen_dz": -0.24381931770914106
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 2059.0,
+          "p_raw": 0.9999999999931493,
+          "p_bonferroni": 1.0,
+          "n": 150,
+          "mean_a": 0.0766598500623194,
+          "mean_b": 0.28377020238294515,
+          "mean_diff": -0.20711035232062575,
+          "cohen_dz": -0.6336938822637979
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 4101.0,
+          "p_raw": 0.0469729091505542,
+          "p_bonferroni": null,
+          "n": 150,
+          "mean_a": 0.30263718437489917,
+          "mean_b": 0.28377020238294515,
+          "mean_diff": 0.018866981991954055,
+          "cohen_dz": 0.14606843302180444
+        }
+      },
+      "ead": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      },
+      "distinct_n": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      },
+      "sentbert_diversity": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      }
+    }
+  },
+  "nbcurated": {
+    "stage_means": {
+      "D_Can": {
+        "base": {
+          "mean": 0.4812592579077233,
+          "std": 0.030321445910383004,
+          "n": 39
+        },
+        "sft": {
+          "mean": 0.36904644328568986,
+          "std": 0.08465020798783879,
+          "n": 39
+        },
+        "dpo": {
+          "mean": 0.3122381683693911,
+          "std": 0.08226668343885755,
+          "n": 39
+        },
+        "instruct": {
+          "mean": 0.302707391525847,
+          "std": 0.08596285221661142,
+          "n": 39
+        }
+      },
+      "a_n_per_byte": {
+        "base": {
+          "mean": 1.2574702832386278,
+          "std": 0.214310071672334,
+          "n": 39
+        },
+        "sft": {
+          "mean": 0.642177120908274,
+          "std": 0.24493879809771057,
+          "n": 39
+        },
+        "dpo": {
+          "mean": 0.5184265485827442,
+          "std": 0.24402732110108452,
+          "n": 39
+        },
+        "instruct": {
+          "mean": 0.5038041706152249,
+          "std": 0.24296160788142845,
+          "n": 39
+        }
+      },
+      "coherence_C": {
+        "base": {
+          "mean": 0.3914488680669545,
+          "std": 0.05718752222647203,
+          "n": 39
+        },
+        "sft": {
+          "mean": 0.6050968450622368,
+          "std": 0.0906404533819697,
+          "n": 39
+        },
+        "dpo": {
+          "mean": 0.6369084689915443,
+          "std": 0.08567030034041541,
+          "n": 39
+        },
+        "instruct": {
+          "mean": 0.6390351046573666,
+          "std": 0.09062006324609725,
+          "n": 39
+        }
+      },
+      "diversity_score_D_rate": {
+        "base": {
+          "mean": 0.14410551450803263,
+          "std": 0.25241469555709545,
+          "n": 39
+        },
+        "sft": {
+          "mean": 0.2592878497524379,
+          "std": 0.2994567383269913,
+          "n": 39
+        },
+        "dpo": {
+          "mean": 0.32141045199909124,
+          "std": 0.2690140773881018,
+          "n": 39
+        },
+        "instruct": {
+          "mean": 0.3686352408730649,
+          "std": 0.2632707968815466,
+          "n": 39
+        }
+      },
+      "ead": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      },
+      "distinct_n": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      },
+      "sentbert_diversity": {
+        "base": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "sft": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "dpo": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        },
+        "instruct": {
+          "mean": NaN,
+          "std": NaN,
+          "n": 0
+        }
+      }
+    },
+    "tests": {
+      "D_Can": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 741.0,
+          "p_raw": 1.3795215636491776e-08,
+          "p_bonferroni": 4.1385646909475327e-08,
+          "n": 39,
+          "mean_a": 0.4812592579077233,
+          "mean_b": 0.36904644328568986,
+          "mean_diff": 0.11221281462203346,
+          "cohen_dz": 1.2101953970828383
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 704.0,
+          "p_raw": 9.49332388699986e-07,
+          "p_bonferroni": 2.847997166099958e-06,
+          "n": 39,
+          "mean_a": 0.36904644328568986,
+          "mean_b": 0.3122381683693911,
+          "mean_diff": 0.05680827491629877,
+          "cohen_dz": 0.95769835499878
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 770.0,
+          "p_raw": 7.821654435247183e-11,
+          "p_bonferroni": 2.346496330574155e-10,
+          "n": 39,
+          "mean_a": 0.4812592579077233,
+          "mean_b": 0.302707391525847,
+          "mean_diff": 0.1785518663818763,
+          "cohen_dz": 1.8861557588927933
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 220.0,
+          "p_raw": 0.029065833387839263,
+          "p_bonferroni": null,
+          "n": 39,
+          "mean_a": 0.3122381683693911,
+          "mean_b": 0.302707391525847,
+          "mean_diff": 0.00953077684354408,
+          "cohen_dz": 0.3747562383012861
+        }
+      },
+      "a_n_per_byte": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 775.0,
+          "p_raw": 1.8189894035458565e-11,
+          "p_bonferroni": 5.4569682106375694e-11,
+          "n": 39,
+          "mean_a": 1.2574702832386278,
+          "mean_b": 0.642177120908274,
+          "mean_diff": 0.6152931623303538,
+          "cohen_dz": 2.186086725512669
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 700.0,
+          "p_raw": 1.3893695722799748e-06,
+          "p_bonferroni": 4.1681087168399245e-06,
+          "n": 39,
+          "mean_a": 0.642177120908274,
+          "mean_b": 0.5184265485827442,
+          "mean_diff": 0.12375057232552973,
+          "cohen_dz": 0.9164287533642876
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 779.0,
+          "p_raw": 3.637978807091713e-12,
+          "p_bonferroni": 1.0913936421275139e-11,
+          "n": 39,
+          "mean_a": 1.2574702832386278,
+          "mean_b": 0.5038041706152249,
+          "mean_diff": 0.7536661126234029,
+          "cohen_dz": 2.591114358837722
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 254.0,
+          "p_raw": 0.09112075750402694,
+          "p_bonferroni": null,
+          "n": 39,
+          "mean_a": 0.5184265485827442,
+          "mean_b": 0.5038041706152249,
+          "mean_diff": 0.01462237796751928,
+          "cohen_dz": 0.22121890742537928
+        }
+      },
+      "coherence_C": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 0.0,
+          "p_raw": 1.0,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.3914488680669545,
+          "mean_b": 0.6050968450622368,
+          "mean_diff": -0.21364797699528237,
+          "cohen_dz": -2.622367676545792
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 160.0,
+          "p_raw": 0.9995547383641679,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.6050968450622368,
+          "mean_b": 0.6369084689915443,
+          "mean_diff": -0.031811623929307475,
+          "cohen_dz": -0.5723875179369883
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 0.0,
+          "p_raw": 1.0,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.3914488680669545,
+          "mean_b": 0.6390351046573666,
+          "mean_diff": -0.24758623659041207,
+          "cohen_dz": -2.8636531086454617
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 294.0,
+          "p_raw": 0.26724727516181646,
+          "p_bonferroni": null,
+          "n": 39,
+          "mean_a": 0.6369084689915443,
+          "mean_b": 0.6390351046573666,
+          "mean_diff": -0.002126635665822224,
+          "cohen_dz": -0.09460585789348602
+        }
+      },
+      "diversity_score_D_rate": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": 286.0,
+          "p_raw": 0.9269259568482084,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.14410551450803263,
+          "mean_b": 0.2592878497524379,
+          "mean_diff": -0.11518233524440531,
+          "cohen_dz": -0.2624570983392692
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": 312.0,
+          "p_raw": 0.8616598837015772,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.2592878497524379,
+          "mean_b": 0.32141045199909124,
+          "mean_diff": -0.06212260224665331,
+          "cohen_dz": -0.20937356494310363
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": 142.0,
+          "p_raw": 0.9998489044864982,
+          "p_bonferroni": 1.0,
+          "n": 39,
+          "mean_a": 0.14410551450803263,
+          "mean_b": 0.3686352408730649,
+          "mean_diff": -0.22452972636503224,
+          "cohen_dz": -0.6236473413230089
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": 240.0,
+          "p_raw": 0.05841814092052771,
+          "p_bonferroni": null,
+          "n": 39,
+          "mean_a": 0.32141045199909124,
+          "mean_b": 0.3686352408730649,
+          "mean_diff": -0.0472247888739736,
+          "cohen_dz": -0.37187294277820915
+        }
+      },
+      "ead": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      },
+      "distinct_n": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      },
+      "sentbert_diversity": {
+        "HoneA": {
+          "a": "base",
+          "b": "sft",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneB": {
+          "a": "sft",
+          "b": "dpo",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "HoneC": {
+          "a": "base",
+          "b": "instruct",
+          "alternative": "greater",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": NaN,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        },
+        "Hpa": {
+          "a": "dpo",
+          "b": "instruct",
+          "alternative": "two-sided",
+          "stat": NaN,
+          "p_raw": NaN,
+          "p_bonferroni": null,
+          "n": 0,
+          "mean_a": NaN,
+          "mean_b": NaN,
+          "mean_diff": NaN,
+          "cohen_dz": NaN
+        }
+      }
+    }
+  }
+}
