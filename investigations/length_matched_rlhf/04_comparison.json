@@ -1,0 +1,144 @@
+{
+  "alpacaeval": {
+    "n_raw": 200,
+    "n_length_matched": 150,
+    "stage_means_raw": {
+      "base": 0.4685882943398749,
+      "sft": 0.3202250776210858,
+      "dpo": 0.2883840360636755,
+      "instruct": 0.2830389883979616
+    },
+    "stage_means_length_matched": {
+      "base": 0.4805512890863234,
+      "sft": 0.3291706107029273,
+      "dpo": 0.2856697785608145,
+      "instruct": 0.28105903766369794
+    },
+    "monotone_decrease_raw": true,
+    "monotone_decrease_length_matched": true,
+    "base_minus_instruct_raw": 0.18554930594191332,
+    "base_minus_instruct_length_matched": 0.19949225142262544,
+    "attenuation_pct": -0.07514415324774637,
+    "contrasts": [
+      {
+        "name": "HoneA",
+        "label": "H1a (Base > SFT)",
+        "raw": {
+          "cohen_dz": 1.7780747454530597,
+          "p_bonferroni": 7.228304515853965e-33,
+          "mean_diff": 0.1483632167187891,
+          "n": 200
+        },
+        "length_matched": {
+          "cohen_dz": 1.6146055108115553,
+          "p_bonferroni": 3.398282621313017e-24,
+          "mean_diff": 0.15138067838339608,
+          "n": 150
+        }
+      },
+      {
+        "name": "HoneB",
+        "label": "H1b (SFT > DPO)",
+        "raw": {
+          "cohen_dz": 0.6379166823675015,
+          "p_bonferroni": 2.4007827739474346e-15,
+          "mean_diff": 0.03184104155741032,
+          "n": 200
+        },
+        "length_matched": {
+          "cohen_dz": 0.6750576224796235,
+          "p_bonferroni": 1.665142406007066e-13,
+          "mean_diff": 0.043500832142112776,
+          "n": 150
+        }
+      },
+      {
+        "name": "HoneC",
+        "label": "H1c (Base > Instruct)",
+        "raw": {
+          "cohen_dz": 2.3871272852410743,
+          "p_bonferroni": 3.930150433311163e-34,
+          "mean_diff": 0.18554930594191338,
+          "n": 200
+        },
+        "length_matched": {
+          "cohen_dz": 2.4249081465115516,
+          "p_bonferroni": 5.1533542795056386e-26,
+          "mean_diff": 0.19949225142262547,
+          "n": 150
+        }
+      }
+    ]
+  },
+  "nbcurated": {
+    "n_raw": 100,
+    "n_length_matched": 39,
+    "stage_means_raw": {
+      "base": 0.48533636871220076,
+      "sft": 0.33037177066991225,
+      "dpo": 0.29918876060086463,
+      "instruct": 0.2829389703657882
+    },
+    "stage_means_length_matched": {
+      "base": 0.4812592579077233,
+      "sft": 0.36904644328568986,
+      "dpo": 0.3122381683693911,
+      "instruct": 0.302707391525847
+    },
+    "monotone_decrease_raw": true,
+    "monotone_decrease_length_matched": true,
+    "base_minus_instruct_raw": 0.20239739834641257,
+    "base_minus_instruct_length_matched": 0.17855186638187626,
+    "attenuation_pct": 0.11781540750698571,
+    "contrasts": [
+      {
+        "name": "HoneA",
+        "label": "H1a (Base > SFT)",
+        "raw": {
+          "cohen_dz": 1.639726113445645,
+          "p_bonferroni": 1.2778608814287833e-17,
+          "mean_diff": 0.15496459804228851,
+          "n": 100
+        },
+        "length_matched": {
+          "cohen_dz": 1.2101953970828383,
+          "p_bonferroni": 4.1385646909475327e-08,
+          "mean_diff": 0.11221281462203346,
+          "n": 39
+        }
+      },
+      {
+        "name": "HoneB",
+        "label": "H1b (SFT > DPO)",
+        "raw": {
+          "cohen_dz": 0.44248602890906386,
+          "p_bonferroni": 3.076599325815812e-06,
+          "mean_diff": 0.031183010069047667,
+          "n": 100
+        },
+        "length_matched": {
+          "cohen_dz": 0.95769835499878,
+          "p_bonferroni": 2.847997166099958e-06,
+          "mean_diff": 0.05680827491629877,
+          "n": 39
+        }
+      },
+      {
+        "name": "HoneC",
+        "label": "H1c (Base > Instruct)",
+        "raw": {
+          "cohen_dz": 2.607363978935913,
+          "p_bonferroni": 6.7977915916643195e-18,
+          "mean_diff": 0.2023973983464126,
+          "n": 100
+        },
+        "length_matched": {
+          "cohen_dz": 1.8861557588927933,
+          "p_bonferroni": 2.346496330574155e-10,
+          "mean_diff": 0.1785518663818763,
+          "n": 39
+        }
+      }
+    ]
+  }
+}

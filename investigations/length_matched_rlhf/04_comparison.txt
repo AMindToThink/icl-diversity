@@ -1,0 +1,51 @@
+Raw vs length-matched RLHF-diversity comparison
+================================================================================
+
+D = C * a_n (per-byte; paper's primary diversity scalar, sec 6.3)
+
+--- prompt_set = alpacaeval ---
+  n: raw=200, length-matched=150
+
+  stage        raw mean    raw std    lm mean     lm std   mean_diff
+  Base            0.469      0.049      0.481      0.038       0.012
+  SFT             0.320      0.075      0.329      0.084       0.009
+  DPO             0.288      0.064      0.286      0.072      -0.003
+  Instruct        0.283      0.065      0.281      0.071      -0.002
+  monotone decrease across stages: raw=True, length-matched=True
+
+  H1 contrasts (paired Wilcoxon, Bonferroni-corrected):
+    name                      raw d_z   raw p_bonf      lm d_z    lm p_bonf    lm Delta
+    H1a (Base > SFT)            1.778       <0.001       1.615       <0.001      0.151
+    H1b (SFT > DPO)             0.638       <0.001       0.675       <0.001      0.044
+    H1c (Base > Instruct)       2.387       <0.001       2.425       <0.001      0.199
+
+  H1' (DPO vs Instruct, two-sided uncorrected):
+    raw: d_z=  0.272 p=<0.001 Delta=  0.005
+    lm : d_z=  0.227 p=0.004 Delta=  0.005
+
+
+  Base->Instruct mean(D) drop: raw=+0.186, length-matched=+0.199 (attenuation under length-match: -7.5%)
+
+--- prompt_set = nbcurated ---
+  n: raw=100, length-matched=39
+
+  stage        raw mean    raw std    lm mean     lm std   mean_diff
+  Base            0.485      0.032      0.481      0.030      -0.004
+  SFT             0.330      0.087      0.369      0.085       0.039
+  DPO             0.299      0.075      0.312      0.082       0.013
+  Instruct        0.283      0.073      0.303      0.086       0.020
+  monotone decrease across stages: raw=True, length-matched=True
+
+  H1 contrasts (paired Wilcoxon, Bonferroni-corrected):
+    name                      raw d_z   raw p_bonf      lm d_z    lm p_bonf    lm Delta
+    H1a (Base > SFT)            1.640       <0.001       1.210       <0.001      0.112
+    H1b (SFT > DPO)             0.442       <0.001       0.958       <0.001      0.057
+    H1c (Base > Instruct)       2.607       <0.001       1.886       <0.001      0.179
+
+  H1' (DPO vs Instruct, two-sided uncorrected):
+    raw: d_z=  0.478 p=<0.001 Delta=  0.016
+    lm : d_z=  0.375 p=0.029 Delta=  0.010
+
+
+  Base->Instruct mean(D) drop: raw=+0.202, length-matched=+0.179 (attenuation under length-match: 11.8%)
+

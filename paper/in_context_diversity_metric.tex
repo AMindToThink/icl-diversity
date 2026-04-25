@@ -804,6 +804,15 @@ We position $C \times a_n$ as a principled complement to embedding-based metrics
 \paragraph{Prompt format is fixed.}
 We use a neutral ``Response A: \ldots, Response B: \ldots'' template throughout and have not attempted prompt optimisation; targeted prompt engineering could plausibly improve discriminative power, especially for larger base models (Section~\ref{sec:exp-discussion}).
 
+\paragraph{Length sensitivity of $D$ in the OLMo RLHF experiment.}
+$C$ and $a_n$ are both per-byte quantities, but neither is invariant to response length: in a causal LM, longer responses give $\theta$ more within-response context to predict later tokens, lowering per-byte surprise.
+On the OLMo-2-7B post-training experiment (Section~\ref{sec:experiments}) raw response length is not monotone across stages, so the monotone $D$ drop could in principle be driven partly by length rather than diversity per se.
+We tested this directly by re-running the experiment with every response truncated to a per-prompt common UTF-8 byte length (the minimum across all 40 responses for that prompt) before re-scoring with the same base $\theta$.
+The monotone $D$ drop survives length-matching on both prompt sets, with all three pre-registered H1 contrasts (H1a, H1b, H1c) remaining Bonferroni-significant at $p<0.001$ and effect sizes of the same order of magnitude as the raw analysis.
+The single qualification is that $111/300$ prompts had a per-prompt common length below 50 bytes --- driven by the base model on AlpacaEval (no instruction-following prior) and by SFT on NB-curated short-answer prompts --- and were dropped because length-matching them would compare essentially-empty fragments.
+The length-matched effect therefore conditions on prompts where length-matching is well-defined ($150/200$ AlpacaEval, $39/100$ NB-curated).
+Full numbers and reproduction commands are in \texttt{investigations/length\_matched\_rlhf/VERDICT.md}.
+
 \section{Future Work}
 
 Several directions remain unexplored.

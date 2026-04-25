@@ -28,7 +28,7 @@ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = REPO_ROOT / "results" / "rlhf_experiment"
-GEN_DIR = RESULTS_DIR / "generations"
+DEFAULT_GEN_DIR = RESULTS_DIR / "generations"
 
 SCORER_MODEL = "Qwen/Qwen2.5-3B"
 N_PERMUTATIONS = 25
@@ -80,6 +80,7 @@ def score_all(
     batch_size: int,
     out_path: Path,
     limit: int | None,
+    gen_dir: Path,
 ) -> None:
     from transformers import AutoModelForCausalLM, AutoTokenizer
     import torch
@@ -101,7 +102,7 @@ def score_all(
     n_todo_total = 0
     for stage in stages:
         for pset in prompt_sets:
-            gen_path = GEN_DIR / f"{stage}_{pset}.jsonl"
+            gen_path = gen_dir / f"{stage}_{pset}.jsonl"
             if not gen_path.exists():
                 print(f"[scorer] skipping missing {gen_path}", file=sys.stderr)
                 continue
@@ -200,6 +201,16 @@ def main() -> None:
         default=None,
         help="Optional: score only first N prompts per (stage,set). Useful for smoke tests.",
     )
+    ap.add_argument(
+        "--gen-dir",
+        type=Path,
+        default=DEFAULT_GEN_DIR,
+        help=(
+            "Directory containing {stage}_{set}.jsonl generation files. "
+            "Override to score the length-matched copy at "
+            "results/rlhf_experiment/generations_length_matched/."
+        ),
+    )
     args = ap.parse_args()
 
     score_all(
@@ -209,6 +220,7 @@ def main() -> None:
         batch_size=args.batch_size,
         out_path=args.out,
         limit=args.limit,
+        gen_dir=args.gen_dir,
     )
 
 
