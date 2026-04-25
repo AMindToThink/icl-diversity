@@ -1191,7 +1191,9 @@ Figure~\ref{fig:roc-curves} shows the ROC curves.
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
-\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations). $C \times a_n$ (orange dashed) consistently outperforms $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue solid) and $D_{\mathrm{disc}}$ (cyan dashed) across all tasks.}
+\caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations).
+Five per-byte metrics are overlaid per panel: $C \times a_n$ (red, solid), $a_n$ alone (orange, dashed), $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue, solid), $D_{\mathrm{disc}} = C \times \hat{E}_n$ (cyan, dashed), and $a_1$ (gray, dotted). Line style is redundant with color so the encoding remains legible under common color-vision deficiencies.
+$C \times a_n$ dominates the other four scores on every task; the $E$-based scores ($D_{\mathrm{fit}}, D_{\mathrm{disc}}$) hug or fall below the chance diagonal in this 5-response regime.}
 \label{fig:roc-curves}
 \end{figure}
 
