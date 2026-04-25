@@ -733,6 +733,7 @@ _TABLE5_METRICS: list[tuple[str, str | None, bool]] = [
     # None means read from CSV column instead
     (r"$C \!\times\! a_n$ (ours)", "C_a_n_pb", True),
     (r"$a_n$ (ours)", "a_n_pb", True),
+    (r"$C$ (ours)", "C", True),
     ("SentBERT", None, False),
     ("BERTsts", None, False),
     (r"distinct-$n$", None, True),
@@ -750,6 +751,7 @@ _BASELINE_CSV_COLS: dict[str, str] = {
 _TABLE6_METRICS: list[tuple[str, str | None]] = [
     (r"$C \!\times\! a_n$ (ours)", "C_a_n_pb"),
     (r"$a_n$ (ours)", "a_n_pb"),
+    (r"$C$ (ours)", "C"),
     (r"distinct-$n$", None),
     ("BERTScore", None),
     ("SentBERT", None),

@@ -54,7 +54,10 @@ The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$
 }
 \end{table}
 
-Table~\ref{tab:rlhf-diversity} reports per-stage means, the pre-registered contrasts, and the exploratory DPO$\,\neq\,$RLVR test. On AlpacaEval, $D$ drops from \olmoAlpacaBaseDMean{} (base) to \olmoAlpacaSftDMean{} (SFT) to \olmoAlpacaDpoDMean{} (DPO) to \olmoAlpacaInstructDMean{} (Instruct/RLVR); the full-pipeline drop base$\,\rightarrow\,$RLVR has effect size $d_z = \olmoAlpacaHoneCDz$ and $p_\mathrm{Bonf} = \olmoAlpacaHoneCPbonf$. On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \olmoNbCuratedSftDMean / \olmoNbCuratedDpoDMean / \olmoNbCuratedInstructDMean with $d_z = \olmoNbCuratedHoneCDz$ and $p_\mathrm{Bonf} = \olmoNbCuratedHoneCPbonf$.
+Table~\ref{tab:rlhf-diversity} reports per-stage means, the pre-registered contrasts, and the exploratory DPO$\,\neq\,$RLVR test.
+On AlpacaEval, $D$ drops from \olmoAlpacaBaseDMean{} (base) to \olmoAlpacaSftDMean{} (SFT) to \olmoAlpacaDpoDMean{} (DPO) to \olmoAlpacaInstructDMean{} (Instruct/RLVR).
+All three pre-registered contrasts are significant after Bonferroni correction: H1a (base$\,\rightarrow\,$SFT) has $d_z = \olmoAlpacaHoneADz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneAPbonf$; H1b (SFT$\,\rightarrow\,$DPO) has $d_z = \olmoAlpacaHoneBDz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneBPbonf$; H1c (base$\,\rightarrow\,$RLVR) has $d_z = \olmoAlpacaHoneCDz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneCPbonf$.
+On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \olmoNbCuratedSftDMean / \olmoNbCuratedDpoDMean / \olmoNbCuratedInstructDMean, with H1a $d_z = \olmoNbCuratedHoneADz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneAPbonf$), H1b $d_z = \olmoNbCuratedHoneBDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneBPbonf$), and H1c $d_z = \olmoNbCuratedHoneCDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneCPbonf$).
 
 \IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}{%
 \begin{figure}[h]
@@ -111,6 +114,10 @@ Three patterns in Table~\ref{tab:cross-model} deserve comment. First, the four O
 \providecommand{\olmoAlpacaSftDMean}{??}
 \providecommand{\olmoAlpacaDpoDMean}{??}
 \providecommand{\olmoAlpacaInstructDMean}{??}
+\providecommand{\olmoAlpacaHoneADz}{??}
+\providecommand{\olmoAlpacaHoneAPbonf}{??}
+\providecommand{\olmoAlpacaHoneBDz}{??}
+\providecommand{\olmoAlpacaHoneBPbonf}{??}
 \providecommand{\olmoAlpacaHoneCDz}{??}
 \providecommand{\olmoAlpacaHoneCPbonf}{??}
 \providecommand{\olmoAlpacaHpaDiff}{??}
@@ -119,6 +126,10 @@ Three patterns in Table~\ref{tab:cross-model} deserve comment. First, the four O
 \providecommand{\olmoNbCuratedSftDMean}{??}
 \providecommand{\olmoNbCuratedDpoDMean}{??}
 \providecommand{\olmoNbCuratedInstructDMean}{??}
+\providecommand{\olmoNbCuratedHoneADz}{??}
+\providecommand{\olmoNbCuratedHoneAPbonf}{??}
+\providecommand{\olmoNbCuratedHoneBDz}{??}
+\providecommand{\olmoNbCuratedHoneBPbonf}{??}
 \providecommand{\olmoNbCuratedHoneCDz}{??}
 \providecommand{\olmoNbCuratedHoneCPbonf}{??}
 

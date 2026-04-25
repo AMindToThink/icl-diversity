@@ -371,9 +371,9 @@ def tevet_macros() -> dict[str, str]:
     macros["tevetDecTestAnStoryGenRho"] = an_sg
     macros["tevetDecTestDistinctNPromptGenRho"] = dn_pg
 
-    # Compute min/max OCA gap vs SentBERT and vs a_n for binary tasks.
+    # Compute min/max OCA gap vs SentBERT, vs a_n, and vs C alone for binary tasks.
     # Parse all binary blocks: ConTest (200, with_hds), McDiv_nuggets (~1K, no_hds), McDiv (full, no_hds, ~2K).
-    def binary_gaps() -> tuple[float, float, float, float]:
+    def binary_gaps() -> tuple[float, float, float, float, float, float]:
         blocks = [
             r"ConTest (200, with\_hds)",
             r"McDiv\_nuggets ($\sim$1K, no\_hds)",
@@ -381,23 +381,29 @@ def tevet_macros() -> dict[str, str]:
         ]
         gaps_sb = []  # SentBERT OCA - C×a_n OCA, as % of SentBERT OCA
         gaps_an = []  # C×a_n OCA - a_n OCA, as % of C×a_n OCA
+        gaps_c = []  # C×a_n OCA - C OCA, as % of C×a_n OCA
         for b in blocks:
             for col in range(3):  # prompt, resp, story
                 _, oca_cx = parse_row(r"$C \!\times\! a_n$ (ours)", b, col)
                 _, oca_an = parse_row(r"$a_n$ (ours)", b, col)
+                _, oca_c = parse_row(r"$C$ (ours)", b, col)
                 _, oca_sbe = parse_row("SentBERT", b, col)
                 oca_cx_v = float(clean(oca_cx))
                 oca_an_v = float(clean(oca_an))
+                oca_c_v = float(clean(oca_c))
                 oca_sb_v = float(clean(oca_sbe))
                 gaps_sb.append((oca_sb_v - oca_cx_v) / oca_sb_v * 100)
                 gaps_an.append((oca_cx_v - oca_an_v) / oca_cx_v * 100)
-        return min(gaps_sb), max(gaps_sb), min(gaps_an), max(gaps_an)
+                gaps_c.append((oca_cx_v - oca_c_v) / oca_cx_v * 100)
+        return min(gaps_sb), max(gaps_sb), min(gaps_an), max(gaps_an), min(gaps_c), max(gaps_c)
 
-    sb_min, sb_max, an_min, an_max = binary_gaps()
+    sb_min, sb_max, an_min, an_max, c_min, c_max = binary_gaps()
     macros["tevetCxAnVsSentBertOCAMinPct"] = _fmt(sb_min, 1)
     macros["tevetCxAnVsSentBertOCAMaxPct"] = _fmt(sb_max, 1)
     macros["tevetAnVsCxAnOCAMinPct"] = _fmt(an_min, 1)
     macros["tevetAnVsCxAnOCAMaxPct"] = _fmt(an_max, 1)
+    macros["tevetCVsCxAnOCAMinPct"] = _fmt(c_min, 1)
+    macros["tevetCVsCxAnOCAMaxPct"] = _fmt(c_max, 1)
 
     # Last-position uptick percentage (a_5 > a_4 across McDiv_nuggets per-byte).
     base = RESULTS / "tevet" / "qwen25_completion_v3" / "McDiv_nuggets"

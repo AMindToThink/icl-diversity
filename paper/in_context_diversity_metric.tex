@@ -43,10 +43,10 @@ Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausib
 It does not reward noise.
 It works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
 We validate the metric on four fronts.
-Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics.
-A cross-model scaling study shows that larger base models extract more cross-mode information from the same outputs.
+Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
 On the OLMo-2-7B post-training pipeline, the metric detects diversity loss across the base–SFT–DPO–RLVR stages.
+A cross-model scaling study shows that larger base models extract more cross-mode information from the same outputs.
 Together, these results show that progressive conditional surprise is a principled complement to embedding- and $n$-gram-based diversity metrics, particularly for diagnosing mode collapse from post-training.
 \end{abstract}
 
@@ -79,6 +79,18 @@ As base models continue to improve at in-context learning, this gap narrows.
   \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the asymptotic curve value $a_\infty$ to yield a single plausibility-weighted diversity score $\mathbf{D_{a_\infty} = C \times a_\infty}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
   \item We validate the metric on synthetic mode scenarios, on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ is competitive with embedding-based metrics), on a cross-model scaling study, and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:experiments}).
 \end{itemize}
+
+\paragraph{Evidence preview.}
+On Tevet and Berant's binary model-comparison test, $C \times a_n$ reaches ROC AUC $= \tevetMcDivPromptGenAUC{}$ on McDiv prompt\_gen, competitive with sentence-embedding metrics (Section~\ref{sec:tevet}).
+In synthetic mode-count experiments, $C \times a_n$ (aggregated over \modeCountNDraws{} draws per mode count) increases monotonically with mode count $m$ for both GPT-2 (Pearson $r = \modeCountCxAnPearsonGPT{}$) and Qwen2.5-3B ($r = \modeCountCxAnPearsonQwen{}$) (Section~\ref{sec:mode-count-scaling}).
+A cross-model scaling study across \scalingNumLlamaModels{} Llama sizes and an OLMo-2-7B post-training pipeline (base~$\to$~SFT~$\to$~DPO~$\to$~RLVR) provide further corroboration.
+
+\paragraph{Who should care.}
+The metric applies to anyone comparing output diversity across generation processes --- post-trained models, prompting or decoding strategies, representation-engineering interventions, or human writers --- given a base model $\theta$ with per-token logprob access.
+It requires only a single forward pass of $\theta$ over the responses; no trained embedding model, reference corpus, or human labels are needed.
+Practitioners diagnosing post-training diversity collapse (e.g., in RLHF or DPO) can use $C \times a_n$ alongside existing embedding- or $n$-gram-based diagnostics.
+Researchers evaluating model-steering interventions (activation steering, representation engineering, SAE-based feature steering) can similarly quantify how a steering strength trades off against output diversity.
+Because the metric measures diversity relative to $\theta$'s in-context learning capability, it also strengthens automatically as base models improve.
 
 Figure~\ref{fig:pipeline} sketches the full pipeline.
 The remainder of the paper formalizes each step and validates the resulting metric.
@@ -149,7 +161,7 @@ Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-cond
 
 \section{Setup and Notation}\label{sec:setup-notation}
 
-Let:
+We use the following notation:
 \begin{itemize}[nosep]
     \item $p$ be a prompt,
     \item $\pi$ be the policy under evaluation,
@@ -654,7 +666,8 @@ We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020
     \item \textbf{DecTest}: 10 responses generated at varying temperatures, labeled by temperature.
 \end{itemize}
 We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format.
-For binary datasets we report ROC AUC (the natural evaluation for binary classification); for DecTest we report Spearman $\rho$ with temperature.
+For the binary datasets we follow \citet{tevet2020evaluating} in reporting Spearman $\rho$ and OCA (\emph{optimal classification accuracy}: the best accuracy achievable by a one-dimensional threshold separating low- and high-diversity sets), and additionally report ROC AUC (the natural metric for binary classification).
+For DecTest we report Spearman $\rho$ with the labeled temperature.
 
 \paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest), well below the 20+ responses needed for $E$ (Appendix~\ref{app:excess-entropy}) to converge.
 Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
@@ -701,7 +714,7 @@ SentBERT is generally the strongest baseline, though not always (BERTsts edges i
 Its OCA lag behind SentBERT ranges from \tevetCxAnVsSentBertOCAMinPct\% to \tevetCxAnVsSentBertOCAMaxPct\% across the nine binary tasks.
 On decTest (Table~\ref{tab:dectest}), raw $a_n$ achieves $\rho = \tevetDecTestAnPromptGenRho{}$ on prompt\_gen and $\rho = \tevetDecTestAnRespGenRho{}$ on resp\_gen, matching or exceeding all baselines including distinct-$n$ ($\rho = \tevetDecTestDistinctNPromptGenRho{}$ on prompt\_gen).
 
-\paragraph{Alternative scalars.} The $C$ weighting consistently helps: raw $a_n$ OCA is \tevetAnVsCxAnOCAMinPct\%--\tevetAnVsCxAnOCAMaxPct\% lower than $C \times a_n$ OCA across the nine binary tasks.
+\paragraph{Alternative scalars.} Both factors of $D = C \times a_n$ contribute: ablating either one degrades OCA across the nine binary tasks. Raw $a_n$ OCA is \tevetAnVsCxAnOCAMinPct\%--\tevetAnVsCxAnOCAMaxPct\% lower than $C \times a_n$ OCA, and raw $C$ OCA is \tevetCVsCxAnOCAMinPct\%--\tevetCVsCxAnOCAMaxPct\% lower (the negative end of the $C$ range reflects a single McDiv\_nuggets task where $C$ alone narrowly beats the product, consistent with the construction confound discussed below).
 We also tested an alternative score based on the excess entropy $E$ (a measure of total learnable structure in the $a_k$ curve); it failed entirely in this few-draws regime, where the curve stays flat regardless of diversity.
 See Appendix~\ref{app:excess-entropy} for the definition, ROC curves, and a detailed comparison.
 Two ``surprising'' patterns emerge on these binary tasks that have a common explanation rather than a profound one: unconditional surprise $a_1$ has the wrong sign (negative Spearman $\rho$ against the diversity label on every binary task), and raw $C$ alone correlates positively with human diversity labels.
@@ -797,12 +810,26 @@ The off-diagonal sign of the pairwise surprise-reduction matrix changes with $\t
 \paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.}
 Coherence spread measures heterogeneity across outputs, not content diversity; it is reported alongside $D$ only to flag mixed-coherence situations (Section~\ref{sec:exp-discussion}).
 
+\paragraph{Metric selection saw the full Tevet benchmark.}
+We chose $C \times a_n$ (rather than alternative summaries such as $C \times E$; Appendix~\ref{app:excess-entropy}) after observing its performance on the full Tevet diversity-eval benchmark, without holding out a validation split.
+The Tevet numbers in Section~\ref{sec:tevet} may therefore be optimistically biased: the scalar form was selected with visibility into those results.
+The OLMo-2-7B post-training experiment (Section~\ref{sec:experiments}) was scored after the metric form was fixed and provides independent validation; the synthetic mode-count experiments (Section~\ref{sec:mode-count-scaling}) informally influenced the choice --- had they failed, we would likely have revised the metric --- and so are not strictly independent.
+
 \paragraph{External benchmark performance is competitive, not dominant.}
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% OCA across the nine binary tasks (Section~\ref{sec:tevet}); scaling the base model to Qwen3-30B-A3B-Base did not close the gap (Appendix~\ref{app:qwen3-comparison}).
 We position $C \times a_n$ as a principled complement to embedding-based metrics, not a replacement.
 
 \paragraph{Prompt format is fixed.}
 We use a neutral ``Response A: \ldots, Response B: \ldots'' template throughout and have not attempted prompt optimisation; targeted prompt engineering could plausibly improve discriminative power, especially for larger base models (Section~\ref{sec:exp-discussion}).
+
+\paragraph{Length sensitivity of $D$ in the OLMo RLHF experiment.}
+$C$ and $a_n$ are both per-byte quantities, but neither is invariant to response length: in a causal LM, longer responses give $\theta$ more within-response context to predict later tokens, lowering per-byte surprise.
+On the OLMo-2-7B post-training experiment (Section~\ref{sec:experiments}) raw response length is not monotone across stages, so the monotone $D$ drop could in principle be driven partly by length rather than diversity per se.
+We tested this directly by re-running the experiment with every response truncated to a per-prompt common UTF-8 byte length (the minimum across all 40 responses for that prompt) before re-scoring with the same base $\theta$.
+The monotone $D$ drop survives length-matching on both prompt sets, with all three pre-registered H1 contrasts (H1a, H1b, H1c) remaining Bonferroni-significant at $p<0.001$ and effect sizes of the same order of magnitude as the raw analysis.
+The single qualification is that $111/300$ prompts had a per-prompt common length below 50 bytes --- driven by the base model on AlpacaEval (no instruction-following prior) and by SFT on NB-curated short-answer prompts --- and were dropped because length-matching them would compare essentially-empty fragments.
+The length-matched effect therefore conditions on prompts where length-matching is well-defined ($150/200$ AlpacaEval, $39/100$ NB-curated).
+Full numbers and reproduction commands are in \texttt{investigations/length\_matched\_rlhf/VERDICT.md}.
 
 \section{Future Work}
 
@@ -1256,6 +1283,7 @@ The gap persists after binning by response length (Table~\ref{tab:confound-lengt
 \subsection{Illustrative Examples}\label{sec:mcdiv-examples}
 
 Figures~\ref{fig:confound-high} and~\ref{fig:confound-low} show per-token surprise (in bits) for the first response of a high-diversity and low-diversity sample, respectively.
+Samples are drawn by ranking each label group by per-byte $a_1$ (ascending for high-diversity, descending for low-diversity) and taking the sample at the $\lfloor N/4 \rfloor$ position, chosen to be representative of the expected confound direction rather than an extreme outlier; the specific pinned IDs (\texttt{sa\_00698}, \texttt{sa-b\_00279}) are fixed in \texttt{scripts/dataset\_confound\_analysis.py} for reproducibility.
 Red bars are measured response tokens; grey bars are masked context tokens.
 
 \paragraph{High diversity} (Figure~\ref{fig:confound-high}).
