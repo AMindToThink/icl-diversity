@@ -3,7 +3,7 @@
 \subsection{Why Not Pairwise MI?}\label{sec:pairwise-mi}
 
 A natural starting point is pairwise mutual information: measure how much seeing one response helps $\theta$ predict another.
-This pairwise framing is also the one used by prior information-theoretic work on dialog diversity — Maximum Mutual Information (MMI) decoding \citep{li2016diversity} and Adversarial Information Maximization \citep{zhang2018aim} both optimize $I(X;Y)$ between input $X$ and a single response $Y$ at training or decoding time, to discourage generic replies.
+This pairwise framing is also the one used by prior information-theoretic work on dialog diversity: Maximum Mutual Information (MMI) decoding \citep{li2016diversity} and Adversarial Information Maximization \citep{zhang2018aim} both optimize $I(X;Y)$ between input $X$ and a single response $Y$ at training or decoding time, to discourage generic replies.
 Our construction differs from theirs in two further respects: we apply MI \emph{among responses from the same policy} rather than across the query–response boundary, and as a post-hoc evaluation diagnostic rather than a training objective.
 
 Even setting those differences aside, pairwise MI among responses cannot detect a key failure mode of low diversity: when one response is a blend or interpolation of two others.

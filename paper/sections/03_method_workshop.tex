@@ -65,6 +65,6 @@ Coherent paraphrases         & high        & low    & low (via $a_n$) \\
 
 The score depends on $p$, $\pi$'s responses, and $\theta$.
 Diversity is therefore a property of (responses, prompt, scoring model), not of the policy in isolation: the same response set can score differently under a stronger or weaker $\theta$.
-This is by design --- $\theta$'s in-context learning capability is the lens through which diversity is measured, and the score sharpens automatically as base models improve.
+This is by design: $\theta$'s in-context learning capability is the lens through which diversity is measured, and the score sharpens automatically as base models improve.
 When comparing policies across a prompt suite, $D_{Ca_n}$ can be averaged over prompts or differenced; see Appendix~\ref{app:aggregation}.
 

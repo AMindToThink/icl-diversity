@@ -34,7 +34,7 @@ In synthetic mode-count experiments, $C \times a_n$ (aggregated over \modeCountN
 A cross-model scaling study across \scalingNumLlamaModels{} Llama sizes and an OLMo-2-7B post-training pipeline (base~$\to$~SFT~$\to$~DPO~$\to$~RLVR) provide further corroboration.
 
 \paragraph{Who should care.}
-The metric applies to anyone comparing output diversity across generation processes --- post-trained models, prompting or decoding strategies, representation-engineering interventions, or human writers --- given a base model $\theta$ with per-token logprob access.
+The metric applies to anyone comparing output diversity across generation processes (post-trained models, prompting or decoding strategies, representation-engineering interventions, or human writers) given a base model $\theta$ with per-token logprob access.
 It requires only a single forward pass of $\theta$ over the responses; no trained embedding model, reference corpus, or human labels are needed.
 Practitioners diagnosing post-training diversity collapse (e.g., in RLHF or DPO) can use $C \times a_n$ alongside existing embedding- or $n$-gram-based diagnostics.
 Researchers evaluating model-steering interventions (activation steering, representation engineering, SAE-based feature steering) can similarly quantify how a steering strength trades off against output diversity.
