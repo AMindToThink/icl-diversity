@@ -30,7 +30,7 @@ This section closes the loop on the AI side: sample from real policies at four p
 Because the same pipeline scores both human-written and AI-generated response sets, this and the previous section read as two halves of the same evaluation: the metric is policy-agnostic, and the evidence we present matches both halves of the workshop's ``Human-AI'' framing.
 
 \paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint.
-On two prompt sets --- \olmoAlpacaN{} AlpacaEval prompts (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench} --- we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
+On two prompt sets --- \olmoAlpacaN{} AlpacaEval prompts \citep{dubois2024alpacafarm} (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench} --- we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
 Base runs raw; SFT / DPO / Instruct receive the prompt through their own chat template.
 We score each (stage, prompt) group with $D_{Ca_n}$ using Qwen2.5-3B as $\theta$ and 25 permutations.
 For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and SentBERT similarity-to-diversity \citep{reimers2019sbert}.
