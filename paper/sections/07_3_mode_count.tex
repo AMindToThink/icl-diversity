@@ -3,14 +3,14 @@
 To test whether the metric reflects the number of distinct modes, we construct response sets with $m \in \{1, \ldots, \modeCountMMax\}$ modes drawn from a pool of \modeCountPoolSize{} format-based generators (haiku, code, recipe, legal disclaimer, etc.), all responding to the same prompt (``Write a short piece about rain'').
 For Qwen2.5-3B: $n=\modeCountNResponses$ responses, \modeCountNDraws{} random draws of mode assignments, averaged over permutations.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
 \caption{Mode count scaling on Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws).
 The $a_k$ curves fan out with increasing $m$: higher floors, slower convergence.
 All curves are exponential (no sigmoidal plateau), even at $m=\modeCountMMax$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).}
 \label{fig:mode-count}
-\end{figure}
+\end{figure*}
 
 \paragraph{Key findings.} Figure~\ref{fig:mode-count} shows the $a_k$ curves.
 The floor $a_n$ increases monotonically with $m$ (\modeCountAnMone{} bits at $m=1$ to \modeCountAnMten{} bits at $m=10$; see Table~\ref{tab:mode-count}), reflecting more irreducible entropy remaining after full conditioning.

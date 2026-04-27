@@ -9,7 +9,7 @@ This section investigates the discrepancy through systematic pairwise analysis.
 Diagonal entries measure same-mode learning; off-diagonal entries measure cross-mode information transfer.
 Each entry averages over 5 context--target samples (using different samples for context and target to avoid self-prediction inflation).
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
 \begin{subfigure}{\textwidth}
     \centering
@@ -30,7 +30,7 @@ Each entry averages over 5 context--target samples (using different samples for 
 Each cell $(i,j)$ shows how many bits of surprise reduction mode $i$ (target) receives from seeing mode $j$ (context).
 Qwen shows diagonal dominance with pervasive positive off-diagonal (\crossmodeQwenOffMean{} bits mean); GPT-2 shows diagonal dominance with negative off-diagonal (\crossmodeGPTOffMean{} bits mean).}
 \label{fig:pairwise-matrices}
-\end{figure}
+\end{figure*}
 
 \paragraph{Results.} (Cell standard deviations are the mean within-cell sampling std across the \crossmodeNumModes{} diagonal or \crossmodeNumOffPairs{} off-diagonal matrix cells, each estimated from 5 context-target sample pairs.)
 \begin{itemize}[nosep]
@@ -53,14 +53,14 @@ Additive and fractional decompositions of the pairwise matrix both fail in instr
 \paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is \crossmodeAsymmetryMean{} bits ($\crossmodeAsymmetryRatio\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}).
 This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{pairwise_symmetry.png}
 \caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$.
 Under symmetric mutual information, points would lie on $y = x$.
 The best-fit slope is \scalingSymSlopeQwen{} ($R^2 = \scalingSymRsqQwen$), and many pairs have opposite signs: mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
 \label{fig:pairwise-symmetry}
-\end{figure}
+\end{figure*}
 
 \paragraph{Connections to information-theoretic properties.} Two information-theoretic properties are relevant to interpreting the pairwise matrix:
 
@@ -70,7 +70,7 @@ For cross-entropies this is not guaranteed (the KL term can increase), but a wel
     \item \textbf{Symmetry of mutual information} ($I(X;Y) = I(Y;X)$): Under the true joint, row means (how informative mode $i$ is as context) should correlate with column means (how much mode $i$ benefits from context).
 \end{enumerate}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \begin{subfigure}[t]{0.48\textwidth}
     \includegraphics[width=\textwidth]{pairwise_row_vs_col.png}
@@ -87,7 +87,7 @@ For cross-entropies this is not guaranteed (the KL term can increase), but a wel
 Qwen shows tighter correlation closer to the identity, consistent with approximate symmetry of mutual information.
 GPT-2 shows widespread violations of non-negative conditioning (modes in the negative-row-mean region).}
 \label{fig:row-vs-col}
-\end{figure}
+\end{figure*}
 
 Figure~\ref{fig:row-vs-col} compares the two models.
 Qwen shows a tighter row--column relationship (slope = \scalingRCSlopeQwen{}, $R^2 = \scalingRCRsqQwen$) with only \crossmodeQwenNegColCount{} of \crossmodeNumModes{} modes having a negative column mean.

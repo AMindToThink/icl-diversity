@@ -13,7 +13,7 @@ We validate it against Tevet and Berant's human-grounded diversity benchmark (Se
 The metric measures diversity as $\theta$ perceives it: outputs differing only in ways $\theta$ cannot distinguish in context appear less diverse, and outputs in which $\theta$ hallucinates structure appear less diverse than they are.
 This relativity tightens automatically as base models improve.
 
-\begin{figure}[tbp]
+\begin{figure*}[tbp]
 \centering
 \begin{tikzpicture}[
     font=\footnotesize,
@@ -75,5 +75,5 @@ The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each 
 The product $D_{Ca_n} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
 Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
 \label{fig:pipeline}
-\end{figure}
+\end{figure*}
 

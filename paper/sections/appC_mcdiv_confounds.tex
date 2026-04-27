@@ -19,19 +19,19 @@ This means that individual low-diversity responses are intrinsically more surpri
 Table~\ref{tab:confound-stats} summarizes the gap.
 The per-byte $a_1$ difference is substantial (a content effect) while the total-bits difference is small because high-diversity responses are on average several bytes longer.
 
-\begin{table}[ht]
+\begin{table*}[ht]
 \centering
 \caption{Unconditional surprise ($a_1$) by diversity label, McDiv\_nuggets story\_gen.}\label{tab:confound-stats}
 \input{../results/tables/confound_stats.tex}
-\end{table}
+\end{table*}
 
 The gap persists after binning by response length (Table~\ref{tab:confound-length}), confirming it is primarily a content effect rather than a length artifact: the high-minus-low per-byte gap remains positive across the bulk of the length range.
 
-\begin{table}[ht]
+\begin{table*}[ht]
 \centering
 \caption{Unconditional per-byte surprise by response length bin, story\_gen.}\label{tab:confound-length}
 \input{../results/tables/confound_length.tex}
-\end{table}
+\end{table*}
 
 \subsection{Illustrative Examples}\label{sec:mcdiv-examples}
 
@@ -52,39 +52,39 @@ Harry boosted morale by talking to his team.
 The team caught up and the game was tied.''} Response: \emph{``He scored winner.''} This is a specific, somewhat ungrammatical ending ($a_1 = \confoundLowRoAone$ bits/byte).
 All five responses in this set are paraphrases of the same idea (``Harry scored the winning point'').
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=\textwidth]{../figures/dataset_confound/a1_distributions.png}
 \caption{Distribution of $a_1$ (unconditional surprise of the first response) for high- vs.\ low-diversity story\_gen samples.
 Left: per-byte.
 Right: total bits.
 The per-byte gap (see Table~\ref{tab:confound-stats}) is a dataset construction artifact.}\label{fig:confound-a1-dist}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=\textwidth]{../figures/dataset_confound/per_token_high_0_test.sa-sb.sa_00698.png}
 \caption{Per-token surprise for a high-diversity sample's first response.
 The continuation (``Joel fired the cook...'') is predictable, yielding low per-token surprise across response tokens.}\label{fig:confound-high}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=\textwidth]{../figures/dataset_confound/per_token_low_0_test.sa-sb.sa-b_00279.png}
 \caption{Per-token surprise for a low-diversity sample's first response.
 The specific ending (``He scored winner'') is inherently more surprising to the base model, despite being labeled ``low diversity.''}\label{fig:confound-low}
-\end{figure}
+\end{figure*}
 
 \subsection{Label Contamination}
 
 In addition to the construction confound, we found that the McDiv\_nuggets CSVs contain duplicate sample IDs with \emph{conflicting labels}: the same response set appears once labeled as high diversity and once as low diversity.
 Table~\ref{tab:contamination} shows the extent of this contamination across the three generation tasks.
 
-\begin{table}[ht]
+\begin{table*}[ht]
 \centering
 \caption{Number of sample IDs appearing with both high- and low-diversity labels in the McDiv\_nuggets (with HDS) CSVs.}\label{tab:contamination}
 \input{../results/tables/confound_contamination.tex}
-\end{table}
+\end{table*}
 
 These duplicates introduce noise into any correlation analysis: the same $\bar{a}_k$ curve is counted as evidence for \emph{both} labels, diluting the signal.
 We did not remove these duplicates from our analysis, so the correlations reported here are conservative.

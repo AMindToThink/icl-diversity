@@ -8,7 +8,7 @@ We run $D_{Ca_n}$ through this evaluation pipeline.
 \paragraph{Setup.} We use Qwen2.5-3B (base) with 50 permutations in completion format on the released no\_hds splits: \tevetMcDivSetCount{} McDiv sets, \tevetMcDivNugSetCount{} McDiv\_nuggets sets, and \tevetConTestSetCount{} ConTest sets, each with 5 worker-written responses per set and a binary high/low diversity label.
 We follow Tevet and Berant in reporting Spearman $\rho$ and OCA, and additionally report ROC AUC (the natural metric for binary classification).
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{ConTest results: Spearman $\rho$ and OCA between a set's diversity class and each metric score.
 Baselines from Tevet's pre-computed metrics; $C \!\times\! a_n$ and $a_n$ are ours (Qwen2.5-3B, 50 permutations, per-byte).
@@ -16,7 +16,7 @@ Best result per task in bold.}
 \label{tab:contest}
 \small
 \input{../results/tables/contest_rho_oca.tex}
-\end{table}
+\end{table*}
 
 \paragraph{Headline result.} On the binary tasks $D_{Ca_n}$ matches the strongest embedding baseline.
 On McDiv prompt\_gen, $D_{Ca_n}$ reaches $\rho = \tevetMcDivPromptGenCxAnRho{}$ and OCA = \tevetMcDivPromptGenCxAnOCA{}, against SentBERT's $\rho = \tevetMcDivPromptGenSentBertRho{}$ and OCA = \tevetMcDivPromptGenSentBertOCA{}; the corresponding ROC AUC is \tevetMcDivPromptGenAUC{}.

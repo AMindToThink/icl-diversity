@@ -54,7 +54,7 @@ For large $n$ where $E_n \to E$, the total correlation grows linearly with slope
 Figure~\ref{fig:decomposition} illustrates.
 The three quantities have clean interpretations, all in bits: $(\bar{a}_1 - a_\infty)$ is the per-response redundancy once $\theta$ has fully learned the available structure; $E$ is the total finite structural information, consumed during $\theta$'s transient learning phase; $\TC_n$ is the cumulative redundancy, which grows without bound.
 
-\begin{figure}[tb]
+\begin{figure*}[tb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
@@ -125,7 +125,7 @@ Summing across $k$: the red area is the total correlation $\TC_n$; the blue area
 As $k$ grows, $e_k \to 0$ and each step contributes the full $\bar{a}_1 - a_\infty$ to $\TC_n$, so $\TC_n$ grows linearly while $E$ converges.
 All quantities are in bits.}
 \label{fig:decomposition}
-\end{figure}
+\end{figure*}
 
 \subsection{Per-Byte Excess Entropy Rate}\label{app:per-byte-rate}
 
@@ -172,14 +172,14 @@ These limitations are the reason $D_{Ca_n}$ is preferred as the primary score: $
 \paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of \tevetMcDivNugPromptGenCxAnAUC{} on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant cannot be computed at all (the four-parameter sigmoid fails to converge on only five points) and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC = \tevetMcDivNugPromptGenDdiscAUC{}, well below chance).
 Figure~\ref{fig:roc-curves} shows the ROC curves.
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
 \caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations).
 Five per-byte metrics are overlaid per panel: $C \times a_n$ (red, solid), $a_n$ alone (orange, dashed), $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ (blue, solid), $D_{\mathrm{disc}} = C \times \hat{E}_n$ (cyan, dashed), and $a_1$ (gray, dotted). Line style is redundant with color so the encoding remains legible under common color-vision deficiencies.
 $C \times a_n$ dominates the other four scores on every task; the $E$-based scores ($D_{\mathrm{fit}}, D_{\mathrm{disc}}$) hug or fall below the chance diagonal in this 5-response regime.}
 \label{fig:roc-curves}
-\end{figure}
+\end{figure*}
 
 \paragraph{Why $E$ fails in this regime.} With only 5 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity.
 The $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets.
@@ -205,28 +205,28 @@ We did not use either strategy in our experiments.
 In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), the sigmoid-extrapolated $E_{\mathrm{fit}}$ is monotonic in mode count for Qwen2.5-3B but has wide confidence intervals at high $m$, while the raw $\hat{E}_n$ estimator is non-monotonic.
 Table~\ref{tab:mode-count} and Figure~\ref{fig:metrics-vs-m} show the details.
 
-\begin{table}[h]
+\begin{table*}[h]
 \centering
 \caption{Mode count scaling metrics for Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=\modeCountNResponses$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point.
 Confidence intervals are 95\% bootstrap.}
 \label{tab:mode-count}
 \small
 \input{../results/tables/mode_count_scaling.tex}
-\end{table}
+\end{table*}
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
 \caption{Summary metrics vs.\ mode count $m$ (Qwen2.5-3B, $n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
 \label{fig:metrics-vs-m}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
 \caption{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B).
 The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau (see Section~\ref{sec:cross-mode-learning}).}
 \label{fig:fit-params}
-\end{figure}
+\end{figure*}
 
 \input{../results/tables/confound_examples.tex}

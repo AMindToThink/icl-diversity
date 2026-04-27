@@ -65,7 +65,7 @@ All three pre-registered contrasts are significant after Bonferroni correction: 
 On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \olmoNbCuratedSftDMean / \olmoNbCuratedDpoDMean / \olmoNbCuratedInstructDMean, with H1a $d_z = \olmoNbCuratedHoneADz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneAPbonf$), H1b $d_z = \olmoNbCuratedHoneBDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneBPbonf$), and H1c $d_z = \olmoNbCuratedHoneCDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneCPbonf$).
 
 \IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}{%
-\begin{figure}[h]
+\begin{figure*}[h]
 \centering
 \begin{subfigure}[t]{0.48\textwidth}
     \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}
@@ -77,11 +77,11 @@ On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \o
 \end{subfigure}
 \caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on AlpacaEval. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D_{Ca_n}$ distribution shifts toward lower values as the pipeline advances.}
 \label{fig:rlhf-ak-violin}
-\end{figure}
+\end{figure*}
 }{}
 
 \IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}{%
-\begin{figure}[!htbp]
+\begin{figure*}[!htbp]
 \centering
 \begin{subfigure}[t]{\textwidth}
     \centering
@@ -95,7 +95,7 @@ On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \o
 \end{subfigure}
 \caption{Per-prompt $D_{Ca_n}$ versus EAD (left subpanel) and SentBERT-similarity diversity (right subpanel), coloured by stage, on the length-matched subset of prompts. Length-matching truncates each (stage, prompt) tuple's responses to a common per-prompt byte budget so the per-byte conditional surprise that defines $a_n$ is not depressed by response length. Pearson $r$ and Spearman $\rho$ (two-sided $p$) are reported in each panel. The rank correlations are positive across both prompt sets and both baselines: $D_{Ca_n}$ tracks the same diversity-loss signal EAD and SentBERT detect, and the agreement is not an artefact of response length.}
 \label{fig:rlhf-metric-scatter}
-\end{figure}
+\end{figure*}
 }{}
 
 \paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function.

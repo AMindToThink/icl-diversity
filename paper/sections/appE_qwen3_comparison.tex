@@ -3,14 +3,14 @@
 To test whether a stronger base model improves the metric on Tevet's benchmarks, we re-ran the full evaluation using Qwen3-30B-A3B-Base (a 30B-parameter mixture-of-experts model with $\sim$3B active parameters per token) via the Tinker API, with the same setup as in Section~\ref{sec:tevet}: completion-format prompting, 50 permutations, no fine-tuning.
 Table~\ref{tab:qwen3-comparison} reports per-task $C \times a_n$ (per-byte) for both base models.
 
-\begin{table}[h]
+\begin{table*}[h]
 \centering
 \caption{Per-task comparison of $C \times a_n$ (per-byte) for Qwen2.5-3B vs Qwen3-30B-A3B-Base on Tevet diversity-eval. $\Delta$AUC is positive when the larger model wins.
 ROC AUC is reported for the binary tasks (McDiv, McDiv\_nuggets, ConTest); only Spearman $\rho$ is meaningful for DecTest (continuous temperature labels).}
 \label{tab:qwen3-comparison}
 \small
 \input{../results/tables/qwen3_comparison.tex}
-\end{table}
+\end{table*}
 
 \paragraph{Result: scaling did not help on the binary tasks.} On the \qwenThreeBinaryTotal{} binary classification tasks (McDiv, McDiv\_nuggets, ConTest), Qwen2.5-3B wins on \qwenThreeBinaryWinsQwenTwoFive{} of \qwenThreeBinaryTotal{}, with ConTest prompt\_gen the only marginal win for Qwen3-30B-A3B ($\qwenThreeConTestPromptGenDeltaAUC$ AUC).
 The mean degradation from scaling is small but consistent (mean $\Delta$AUC = $\qwenThreeBinaryMeanDeltaAUC$ across the \qwenThreeBinaryTotal{} binary tasks).
