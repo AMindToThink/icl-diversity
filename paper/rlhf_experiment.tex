@@ -20,6 +20,9 @@
 \IfFileExists{../results/rlhf_experiment/paper_macros_rlhf.tex}{%
   \input{../results/rlhf_experiment/paper_macros_rlhf.tex}%
 }{}
+\IfFileExists{../results/rlhf_experiment/paper_macros_rlhf_lenmatched.tex}{%
+  \input{../results/rlhf_experiment/paper_macros_rlhf_lenmatched.tex}%
+}{}
 \IfFileExists{../results/rlhf_experiment/tables/cross_model_macros.tex}{%
   \input{../results/rlhf_experiment/tables/cross_model_macros.tex}%
 }{}
@@ -75,11 +78,20 @@ On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \o
 \end{figure}
 }{}
 
-\IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval.pdf}{%
-\begin{figure}[h]
+\IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}{%
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval.pdf}
-\caption{Per-prompt $D = C \times a_n$ versus EAD (left) and SentBERT-similarity diversity (right) on AlpacaEval, coloured by stage. The signs and stage-ordering agree across metrics; $D$ tracks the same diversity-loss direction that EAD and SentBERT detect.}
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}
+    \caption{AlpacaEval (length-matched, $n=\olmoLmAlpacaN$ prompts).}
+\end{subfigure}\\[0.5em]
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_nbcurated_lm.pdf}
+    \caption{NoveltyBench curated (length-matched, $n=\olmoLmNbCuratedN$ prompts).}
+\end{subfigure}
+\caption{Per-prompt $D = C \times a_n$ versus EAD (left subpanel) and SentBERT-similarity diversity (right subpanel), coloured by stage, on the length-matched subset of prompts. Length-matching truncates each (stage, prompt) tuple's responses to a common per-prompt byte budget so the per-byte conditional surprise that defines $a_n$ is not depressed by response length. Pearson $r$ and Spearman $\rho$ (two-sided $p$) are reported in each panel. The rank correlations are positive across both prompt sets and both baselines: $D$ tracks the same diversity-loss signal EAD and SentBERT detect, and the agreement is not an artefact of response length.}
 \label{fig:rlhf-metric-scatter}
 \end{figure}
 }{}
@@ -132,6 +144,11 @@ Three patterns in Table~\ref{tab:cross-model} deserve comment. First, the four O
 \providecommand{\olmoNbCuratedHoneBPbonf}{??}
 \providecommand{\olmoNbCuratedHoneCDz}{??}
 \providecommand{\olmoNbCuratedHoneCPbonf}{??}
+
+% Length-matched run macros (from paper_macros_rlhf_lenmatched.tex);
+% only the prompt counts are referenced in the scatter figure caption.
+\providecommand{\olmoLmAlpacaN}{??}
+\providecommand{\olmoLmNbCuratedN}{??}
 
 % Cross-model comparison table macros (from 5c_cross_model_table.py);
 % already loaded at the top of the file — fallbacks below only fire if
