@@ -1,0 +1,79 @@
+\section{Motivation}\label{sec:motivation}
+
+Creativity researchers routinely need to compare the diversity of outputs across generation processes: post-training stages of the same base model (does RLHF collapse modes?), decoding strategies (what does temperature trade off against?), prompting interventions (does a chain-of-thought prompt narrow the response distribution?), and human-AI hybrid pipelines (how does a model's contribution compare in spread to a human writer's drafts?).
+Existing diversity metrics rely on embedding distances \citep{du2019boosting} or surface-level $n$-gram statistics, both of which conflate genuine content diversity with lexical or representational artefacts (Section~\ref{sec:related}).
+We propose a metric, $D_{Ca_n} = C \times a_n$, that scores AI samples and human-written response sets through the same pipeline: per-byte log-probabilities of a base model $\theta$, in a \emph{single forward pass} over the concatenated responses (Figure~\ref{fig:pipeline}).
+No embedding model, no reference corpus, no human labels, no auxiliary classifier --- only the per-token probabilities $\theta$ already produces.
+
+The intuition is that if responses from a policy $\pi$ are diverse, seeing one should not help $\theta$ predict the next; if they are repetitive or constrained to a few modes, conditioning on earlier responses should sharply reduce $\theta$'s surprise at later ones.
+The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of the $k$-th response given the previous $k{-}1$) captures this signal directly, and its last point $a_n$ estimates the asymptotic floor (Section~\ref{sec:progressive-conditioning}).
+A separate coherence term $C = 1/\mathrm{PPL}_\theta(\pi, p)$ --- the reciprocal of the geometric-mean per-byte perplexity that $\theta$ assigns to each response individually --- prevents pure noise from registering as ``diverse'' (Section~\ref{sec:coherence}).
+The product $D_{Ca_n} = C \times a_n$ is the score; it is plausibility-weighted residual diversity in bits per byte.
+We validate it against Tevet and Berant's human-grounded diversity benchmark (Section~\ref{sec:tevet}) and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:rlhf-experiment}), and release a working open-source implementation alongside.\footnote{Code link withheld for double-blind review; see anonymous mirror in supplementary materials.}
+The metric measures diversity as $\theta$ perceives it: outputs differing only in ways $\theta$ cannot distinguish in context appear less diverse, and outputs in which $\theta$ hallucinates structure appear less diverse than they are.
+This relativity tightens automatically as base models improve.
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize,
+    box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt},
+    stage/.style={box, fill=gray!8},
+    cond/.style={box, fill=orange!10},
+    uncond/.style={box, fill=blue!8},
+    final/.style={box, fill=green!10, very thick},
+    arrow/.style={-{Latex[length=1.8mm]}, thick},
+    node distance=2mm and 4mm,
+]
+
+% --- INPUT + FORMAT (combined, top) ---
+\node[stage, text width=0.92\textwidth] (input) {
+    \textbf{Input:} prompt $p$, responses $r_1,\ldots,r_n$ from policy $\pi$.\\[2pt]
+    \textbf{Format:} \texttt{p\textbackslash n\textbackslash nResponse A: $r_{\sigma(1)}$\textbackslash n\textbackslash nResponse B: $r_{\sigma(2)}$\,\ldots}\\[2pt]
+    \textbf{Tokenize:} $[\texttt{Resp}][\texttt{onse}][\texttt{ A}][\texttt{:}][\texttt{ Rain}][\texttt{ falls}]\cdots$
+};
+
+% --- CONDITIONAL TRACK (LEFT) ---
+\node[cond, below left=5mm and 1mm of input.south, text width=0.45\textwidth, anchor=north east] (cond) {
+    \textbf{Conditional track} \;{\scriptsize ($\times\,n_\sigma$ permutations)}\\[2pt]
+    Feed concatenated context to base model $\theta$ in one forward pass.\\
+    For each response slot $k$:
+    \[ a_k^\sigma \;=\; -\!\!\sum_{t \in r_{\sigma(k)}}\!\!\log_2 \theta(t \mid \mathrm{prev}) \]
+    Divide by $\|r_{\sigma(k)}\|$ \emph{(per-byte)}.\\
+    Average over $\sigma$ to get $\bar{a}_k$ curve.\\[2pt]
+    Last point: $a_n \approx a_\infty$
+};
+
+% --- UNCONDITIONAL TRACK (RIGHT) ---
+\node[uncond, below right=5mm and 1mm of input.south, text width=0.45\textwidth, anchor=north west] (unc) {
+    \textbf{Unconditional track} \;{\scriptsize ($n$ separate passes)}\\[2pt]
+    Feed each $r_i$ alone (with prompt $p$) to $\theta$.
+    \[ h(r_i\mid p) \;=\; -\tfrac{1}{\|r_i\|}\log_2 \theta(r_i \mid p) \]
+    \emph{(per-byte)} Take the geometric mean:
+    \[ C \;=\; 2^{-\,\frac{1}{n}\sum_i h(r_i\mid p)} \]
+};
+
+% Arrows from input down to each track
+\draw[arrow] (input.south) -- ++(0,-1mm) -| (cond.north);
+\draw[arrow] (input.south) -- ++(0,-1mm) -| (unc.north);
+
+% --- FINAL FORMULA ---
+\node[final, below=4mm of input, text width=0.62\textwidth, yshift=-49mm] (out) {
+    \textbf{Diversity score:}\quad $D_{Ca_n} \;=\; C \times a_n$\quad{\scriptsize(bits/byte)}
+};
+
+% Arrows from each track straight down into the final box
+\draw[arrow] (cond.south) -- (cond.south |- out.north);
+\draw[arrow] (unc.south)  -- (unc.south |- out.north);
+
+\end{tikzpicture}
+\caption{The diversity-metric pipeline.
+Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize.
+The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$.
+Its last point $a_n$ estimates the asymptotic floor $a_\infty$.
+The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte; the geometric mean of these surprises defines coherence $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity.
+The product $D_{Ca_n} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
+Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
+\label{fig:pipeline}
+\end{figure}
+
