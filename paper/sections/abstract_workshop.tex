@@ -1,0 +1,6 @@
+Measuring the diversity of creative outputs is central to evaluating post-training mode collapse, comparing decoding strategies, and quantifying creative behavior in both AI and human writing.
+Existing diversity metrics rely on embedding distances or $n$-gram statistics, both of which conflate genuine content diversity with lexical or representational artefacts.
+We propose $D_{Ca_n} = C \times a_n$: a per-byte score read off the per-token log-probabilities of a base model $\theta$ in a \emph{single forward pass} per permutation, with no embedding model, no reference corpus, and no human labels.
+The same pipeline scores AI samples and human-written response sets, with diversity treated as a property of (responses, prompt, scoring model) rather than how the responses were produced.
+On Tevet and Berant's human-grounded McDiv benchmark, $D_{Ca_n}$ reaches ROC AUC \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, at the level of the strongest embedding baseline.
+On the OLMo-2-7B post-training pipeline, $D_{Ca_n}$ drops monotonically across the base $\to$ SFT $\to$ DPO $\to$ RLVR stages, detecting the diversity loss that creative-writing applications care about.
