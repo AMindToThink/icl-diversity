@@ -53,45 +53,79 @@ def plot_single_scenario(
     scenario_name: str,
     metrics_list: list[dict[str, Any]],
     ax: plt.Axes,
+    show_ylabel: bool = True,
+    show_legend: bool = True,
 ) -> None:
     """Plot a_k curves for one scenario on the given axes.
 
     Uses per-byte normalized curves for human-readable y-axis.
     Falls back to a_k_curve if a_k_curve_per_byte is not available
     (backward compat with old JSON files).
+
+    Layers (back to front):
+      1. Per-permutation curves: very faint, prompt-colored.
+      2. Per-prompt averaged curves: medium-weight, prompt-colored.
+      3. Mean-across-prompts ("average of averages"): bold black, on top.
     """
     curve_key = (
         "a_k_curve_per_byte" if "a_k_curve_per_byte" in metrics_list[0] else "a_k_curve"
     )
     n_responses = len(metrics_list[0][curve_key])
 
+    per_prompt_curves: list[list[float]] = []
     for i, m in enumerate(metrics_list):
         curve = m[curve_key]
+        per_prompt_curves.append(list(curve))
         k = np.arange(1, len(curve) + 1)
         label = m.get("prompt_label", f"Prompt {i}")
         color = COLORS[i % len(COLORS)]
-        ax.plot(
-            k, curve, marker="o", markersize=4, linewidth=1.5, color=color, label=label
-        )
 
-        # Show per-permutation curves as faint lines
+        # Per-permutation curves: very faint, drawn first (back layer)
         if m.get("per_permutation_a_k_curves") is not None:
             perm_byte_counts = m.get("per_permutation_byte_counts")
             for j, perm_curve in enumerate(m["per_permutation_a_k_curves"]):
                 if perm_byte_counts is not None:
-                    # Convert total bits to per-byte for plotting
                     perm_per_byte = [
                         t / b if b > 0 else 0.0
                         for t, b in zip(perm_curve, perm_byte_counts[j])
                     ]
                 else:
                     perm_per_byte = perm_curve
-                ax.plot(k, perm_per_byte, linewidth=0.5, alpha=0.25, color=color)
+                ax.plot(k, perm_per_byte, linewidth=0.4, alpha=0.08, color=color)
+
+        # Per-prompt averaged curve: medium weight
+        ax.plot(
+            k,
+            curve,
+            marker="o",
+            markersize=3,
+            linewidth=1.2,
+            alpha=0.85,
+            color=color,
+            label=label,
+        )
+
+    # Mean-across-prompts ("average of averages"): bold black on top
+    if per_prompt_curves:
+        mean_curve = np.mean(np.array(per_prompt_curves), axis=0)
+        k = np.arange(1, len(mean_curve) + 1)
+        ax.plot(
+            k,
+            mean_curve,
+            marker="o",
+            markersize=5,
+            linewidth=2.6,
+            color="black",
+            label="Mean across prompts",
+            zorder=10,
+        )
 
     ax.set_title(scenario_name, fontsize=12, fontweight="bold")
     ax.set_xlabel("k (response index)")
-    ax.set_ylabel("$a_k$ (bits/byte)")
-    ax.legend(fontsize=8, loc="best")
+    if show_ylabel:
+        ax.set_ylabel("$a_k$ (bits/byte)")
+    if show_legend:
+        ax.legend(fontsize=7, loc="best", framealpha=0.85)
     ax.set_xticks(range(1, n_responses + 1))
 
 
@@ -227,16 +261,20 @@ def generate_comparison_plots(
         plt.close(fig)
         print(f"  Saved: {path}")
 
-    # Combined overview: scenarios (rows) x models (columns)
+    # Combined overview: models (rows) x scenarios (columns) — landscape.
+    # Each column is shared y-axis (per-scenario), so different scenarios can
+    # have different y-ranges but both models for one scenario stay comparable.
     n_scenarios = len(all_keys)
     fig, axes = plt.subplots(
-        n_scenarios, n_models, figsize=(7 * n_models, 4 * n_scenarios), squeeze=False
+        n_models,
+        n_scenarios,
+        figsize=(4.4 * n_scenarios, 3.6 * n_models),
+        squeeze=False,
     )
 
-    for row, key in enumerate(all_keys):
-        title = SCENARIO_TITLES.get(key, key)
-
-        # Shared y-axis per scenario row (per-byte)
+    # Compute per-scenario shared y-ranges first (across both models).
+    scenario_y_ranges: dict[str, tuple[float, float]] = {}
+    for key in all_keys:
         y_min, y_max = float("inf"), float("-inf")
         for data in datasets:
             if key in data.get("scenarios", {}):
@@ -261,12 +299,20 @@ def generate_comparison_plots(
                             y_min = min(y_min, min(pb))
                             y_max = max(y_max, max(pb))
         y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
-        y_range = (y_min - y_pad, y_max + y_pad)
+        scenario_y_ranges[key] = (y_min - y_pad, y_max + y_pad)
 
-        for col, data in enumerate(datasets):
+    for row, data in enumerate(datasets):
+        for col, key in enumerate(all_keys):
             ax = axes[row, col]
+            title = SCENARIO_TITLES.get(key, key)
             if key in data.get("scenarios", {}):
-                plot_single_scenario(title, data["scenarios"][key], ax)
+                plot_single_scenario(
+                    title,
+                    data["scenarios"][key],
+                    ax,
+                    show_ylabel=(col == 0),
+                    show_legend=(row == 0),  # legend only in top row to reduce clutter
+                )
             else:
                 ax.text(
                     0.5,
@@ -276,21 +322,23 @@ def generate_comparison_plots(
                     va="center",
                     transform=ax.transAxes,
                 )
-            ax.set_ylim(y_range)
-            if row == 0:
-                ax.set_title(
-                    f"{model_names[col]}\n{title}", fontsize=11, fontweight="bold"
-                )
-            else:
                 ax.set_title(title, fontsize=11, fontweight="bold")
+            ax.set_ylim(scenario_y_ranges[key])
+
+        # Row label (model name) on the leftmost axis of each row.
+        axes[row, 0].set_ylabel(
+            f"{model_names[row]}\n$a_k$ (bits/byte)",
+            fontsize=11,
+            fontweight="bold",
+        )
 
     fig.suptitle(
         "Progressive Conditional Surprise Curves: Model Comparison",
         fontsize=14,
         fontweight="bold",
-        y=0.99,
+        y=0.995,
     )
-    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
     path = figures_dir / "comparison_ak_curves_all.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)

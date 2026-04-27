@@ -517,8 +517,8 @@ Figure~\ref{fig:scenario-curves} shows the $a_k$ curves for all scenarios.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{comparison_v3/comparison_ak_curves_all.png}
-\caption{Progressive conditional surprise curves ($a_k$ in total bits) for all five scenarios, comparing GPT-2 (left) and Qwen2.5-3B (right).
-Shaded regions show $\pm 1$ standard deviation across 100 permutations.
+\caption{Progressive conditional surprise curves ($a_k$, per-byte) for all five scenarios, comparing GPT-2 (top row) and Qwen2.5-3B (bottom row).
+In each panel, faint colored curves are individual permutations (100 per prompt), medium colored curves are per-prompt averages, and the bold black curve is the mean across prompts.
 Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}
 \label{fig:scenario-curves}
 \end{figure}
