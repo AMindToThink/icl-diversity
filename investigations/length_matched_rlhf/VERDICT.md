@@ -85,7 +85,7 @@ CUDA_VISIBLE_DEVICES=1 uv run python scripts/rlhf_experiment/3_score_icl_diversi
 # 3. Analyze + write parallel macros / tables / figures
 uv run python scripts/rlhf_experiment/5_analyze_and_figures.py \
   --icl results/rlhf_experiment/icl_metrics_length_matched.jsonl \
-  --baselines results/rlhf_experiment/baseline_metrics_DOES_NOT_EXIST.jsonl \
+  --baselines results/rlhf_experiment/baseline_metrics.jsonl \
   --analysis-name analysis_length_matched.json \
   --table-subdir tables_length_matched \
   --macros-name paper_macros_rlhf_lenmatched.tex \

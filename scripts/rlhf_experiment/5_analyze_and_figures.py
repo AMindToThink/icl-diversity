@@ -266,6 +266,40 @@ def plot_violins(per_stage: dict[str, dict[str, float]], prompt_set: str, out: P
     plt.close(fig)
 
 
+def _format_corr_pvalue(p: float) -> str:
+    """Format a two-sided p-value for an in-figure correlation annotation."""
+    if p is None or (isinstance(p, float) and math.isnan(p)):
+        return "p = ---"
+    if p <= 0.0:
+        return "p < 1e-300"
+    if p < 1e-3:
+        exp = int(math.floor(math.log10(p)))
+        return f"p < 1e{exp + 1}"
+    return f"p = {p:.3f}"
+
+
+def _corr_annotation(x, y) -> str:
+    """Pearson r and Spearman ρ (two-sided) annotation for a scatter panel.
+
+    Requires at least 3 finite paired points; returns "n < 3" otherwise.
+    """
+    import numpy as np
+    from scipy.stats import pearsonr, spearmanr
+
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    mask = np.isfinite(x) & np.isfinite(y)
+    x, y = x[mask], y[mask]
+    if x.size < 3:
+        return f"n = {x.size} (need >= 3)"
+    r, p_r = pearsonr(x, y)
+    rho, p_rho = spearmanr(x, y)
+    return (
+        f"Pearson r = {r:.2f} ({_format_corr_pvalue(float(p_r))})\n"
+        f"Spearman ρ = {rho:.2f} ({_format_corr_pvalue(float(p_rho))})"
+    )
+
+
 def plot_metric_correlation(
     icl_rows: list[dict], baseline_rows: list[dict], prompt_set: str, out: Path
 ) -> None:
@@ -297,6 +331,8 @@ def plot_metric_correlation(
         axes,
         [(base_map_ead, "EAD"), (base_map_sb, "SentBERT diversity")],
     ):
+        pooled_x: list[float] = []
+        pooled_y: list[float] = []
         for s in stages_present:
             xs = []
             ys = []
@@ -310,10 +346,23 @@ def plot_metric_correlation(
                 ys.append(d)
             if xs:
                 ax.scatter(xs, ys, s=8, alpha=0.6, c=colours.get(s, "gray"), label=STAGE_LABELS[s])
+                pooled_x.extend(xs)
+                pooled_y.extend(ys)
         ax.set_xlabel(title)
         ax.set_ylabel(r"$C \times a_n$")
         ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8)
+        annot = _corr_annotation(pooled_x, pooled_y)
+        ax.text(
+            0.02,
+            0.98,
+            annot,
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85, edgecolor="0.7"),
+        )
+        ax.legend(fontsize=8, loc="lower right")
     fig.suptitle(f"C × a_n vs baselines on {prompt_set}")
     fig.tight_layout()
     out.parent.mkdir(parents=True, exist_ok=True)

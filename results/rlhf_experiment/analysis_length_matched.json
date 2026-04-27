@@ -91,68 +91,68 @@
       },
       "ead": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.9004783599475336,
+          "std": 0.029505798520285276,
+          "n": 200
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7888251224434737,
+          "std": 0.08679394570296123,
+          "n": 200
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7661774197424706,
+          "std": 0.08854482162350091,
+          "n": 200
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7565310131454369,
+          "std": 0.09194943486524364,
+          "n": 200
         }
       },
       "distinct_n": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.8947710840963705,
+          "std": 0.02950280656769092,
+          "n": 200
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7838258849491117,
+          "std": 0.08630857234202621,
+          "n": 200
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.760821842599147,
+          "std": 0.08795938872868576,
+          "n": 200
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7512972169908808,
+          "std": 0.09136676977523406,
+          "n": 200
         }
       },
       "sentbert_diversity": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7076463407278061,
+          "std": 0.11822841452084525,
+          "n": 200
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.29674135327339174,
+          "std": 0.1512171678335898,
+          "n": 200
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.22260571837425233,
+          "std": 0.1223197098643956,
+          "n": 200
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.21801130712032318,
+          "std": 0.12534453418965139,
+          "n": 200
         }
       }
     },
@@ -378,53 +378,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 19820.0,
+          "p_raw": 4.596420788237731e-33,
+          "p_bonferroni": 1.3789262364713192e-32,
+          "n": 200,
+          "mean_a": 0.9004783599475336,
+          "mean_b": 0.7888251224434737,
+          "mean_diff": 0.11165323750405998,
+          "cohen_dz": 1.3692342885720257
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 15040.0,
+          "p_raw": 5.693364989606299e-10,
+          "p_bonferroni": 1.7080094968818898e-09,
+          "n": 200,
+          "mean_a": 0.7888251224434737,
+          "mean_b": 0.7661774197424706,
+          "mean_diff": 0.0226477027010031,
+          "cohen_dz": 0.36831456511832655
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 20058.0,
+          "p_raw": 1.3499475572209212e-34,
+          "p_bonferroni": 4.049842671662764e-34,
+          "n": 200,
+          "mean_a": 0.9004783599475336,
+          "mean_b": 0.7565310131454369,
+          "mean_diff": 0.14394734680209667,
+          "cohen_dz": 1.647546624112907
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 5020.0,
+          "p_raw": 8.385342317975302e-10,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 200,
+          "mean_a": 0.7661774197424706,
+          "mean_b": 0.7565310131454369,
+          "mean_diff": 0.009646406597033579,
+          "cohen_dz": 0.45956015850564896
         }
       },
       "distinct_n": {
@@ -432,53 +432,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 19813.0,
+          "p_raw": 5.092498076938849e-33,
+          "p_bonferroni": 1.5277494230816548e-32,
+          "n": 200,
+          "mean_a": 0.8947710840963705,
+          "mean_b": 0.7838258849491117,
+          "mean_diff": 0.11094519914725903,
+          "cohen_dz": 1.3682220250170578
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 15105.0,
+          "p_raw": 3.458825845455829e-10,
+          "p_bonferroni": 1.0376477536367487e-09,
+          "n": 200,
+          "mean_a": 0.7838258849491117,
+          "mean_b": 0.760821842599147,
+          "mean_diff": 0.023004042349964542,
+          "cohen_dz": 0.3762299215473136
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 20056.0,
+          "p_raw": 1.3910518100391388e-34,
+          "p_bonferroni": 4.173155430117416e-34,
+          "n": 200,
+          "mean_a": 0.8947710840963705,
+          "mean_b": 0.7512972169908808,
+          "mean_diff": 0.14347386710548984,
+          "cohen_dz": 1.650994333509499
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 5048.0,
+          "p_raw": 1.0390624632967665e-09,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 200,
+          "mean_a": 0.760821842599147,
+          "mean_b": 0.7512972169908808,
+          "mean_diff": 0.009524625608266274,
+          "cohen_dz": 0.4562496051714347
         }
       },
       "sentbert_diversity": {
@@ -486,53 +486,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 20097.0,
+          "p_raw": 7.512566288085137e-35,
+          "p_bonferroni": 2.253769886425541e-34,
+          "n": 200,
+          "mean_a": 0.7076463407278061,
+          "mean_b": 0.29674135327339174,
+          "mean_diff": 0.4109049874544144,
+          "cohen_dz": 2.440654359233523
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 18283.0,
+          "p_raw": 4.800087879407994e-24,
+          "p_bonferroni": 1.4400263638223984e-23,
+          "n": 200,
+          "mean_a": 0.29674135327339174,
+          "mean_b": 0.22260571837425233,
+          "mean_diff": 0.07413563489913941,
+          "cohen_dz": 0.858999677014769
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 20100.0,
+          "p_raw": 7.180732063806761e-35,
+          "p_bonferroni": 2.1542196191420285e-34,
+          "n": 200,
+          "mean_a": 0.7076463407278061,
+          "mean_b": 0.21801130712032318,
+          "mean_diff": 0.4896350336074829,
+          "cohen_dz": 3.4285098080402845
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 8204.0,
+          "p_raw": 0.024294849196761985,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 200,
+          "mean_a": 0.22260571837425233,
+          "mean_b": 0.21801130712032318,
+          "mean_diff": 0.004594411253929138,
+          "cohen_dz": 0.14124924197237493
         }
       }
     }
@@ -629,68 +629,68 @@
       },
       "ead": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.9082486210377394,
+          "std": 0.013596115623236652,
+          "n": 100
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.8435441573037467,
+          "std": 0.0679229720810189,
+          "n": 100
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.8012958860085719,
+          "std": 0.08183913197651495,
+          "n": 100
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7853098306405257,
+          "std": 0.12574392339518808,
+          "n": 100
         }
       },
       "distinct_n": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.9022445586542743,
+          "std": 0.013736958463839434,
+          "n": 100
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.8402727865530282,
+          "std": 0.06800547240391905,
+          "n": 100
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7964654214711022,
+          "std": 0.08167064937812567,
+          "n": 100
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7808914429985007,
+          "std": 0.12538265536545848,
+          "n": 100
         }
       },
       "sentbert_diversity": {
         "base": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.7594419950246811,
+          "std": 0.08367934718270846,
+          "n": 100
         },
         "sft": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.487999986410141,
+          "std": 0.17415459731071828,
+          "n": 100
         },
         "dpo": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.34541120767593386,
+          "std": 0.16745466065847198,
+          "n": 100
         },
         "instruct": {
-          "mean": NaN,
-          "std": NaN,
-          "n": 0
+          "mean": 0.35911829888820646,
+          "std": 0.1869910523032294,
+          "n": 100
         }
       }
     },
@@ -916,53 +916,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4632.0,
+          "p_raw": 2.169379522880936e-13,
+          "p_bonferroni": 6.508138568642808e-13,
+          "n": 100,
+          "mean_a": 0.9082486210377394,
+          "mean_b": 0.8435441573037467,
+          "mean_diff": 0.0647044637339927,
+          "cohen_dz": 0.9358493717960278
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4300.0,
+          "p_raw": 5.203925717411219e-10,
+          "p_bonferroni": 1.5611777152233657e-09,
+          "n": 100,
+          "mean_a": 0.8435441573037467,
+          "mean_b": 0.8012958860085719,
+          "mean_diff": 0.042248271295174764,
+          "cohen_dz": 0.5254789564579311
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4925.0,
+          "p_raw": 7.789599455000806e-17,
+          "p_bonferroni": 2.336879836500242e-16,
+          "n": 100,
+          "mean_a": 0.9082486210377394,
+          "mean_b": 0.7853098306405257,
+          "mean_diff": 0.12293879039721357,
+          "cohen_dz": 0.9933030048572823
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 1963.0,
+          "p_raw": 0.05331773175249094,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 100,
+          "mean_a": 0.8012958860085719,
+          "mean_b": 0.7853098306405257,
+          "mean_diff": 0.015986055368046096,
+          "cohen_dz": 0.18253236278281093
         }
       },
       "distinct_n": {
@@ -970,53 +970,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4574.0,
+          "p_raw": 9.264581118657383e-13,
+          "p_bonferroni": 2.779374335597215e-12,
+          "n": 100,
+          "mean_a": 0.9022445586542743,
+          "mean_b": 0.8402727865530282,
+          "mean_diff": 0.06197177210124608,
+          "cohen_dz": 0.8952401505208657
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4356.0,
+          "p_raw": 1.5313340033587944e-10,
+          "p_bonferroni": 4.5940020100763833e-10,
+          "n": 100,
+          "mean_a": 0.8402727865530282,
+          "mean_b": 0.7964654214711022,
+          "mean_diff": 0.04380736508192605,
+          "cohen_dz": 0.5470149348878675
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4909.0,
+          "p_raw": 1.232646308644845e-16,
+          "p_bonferroni": 3.697938925934535e-16,
+          "n": 100,
+          "mean_a": 0.9022445586542743,
+          "mean_b": 0.7808914429985007,
+          "mean_diff": 0.1213531156557737,
+          "cohen_dz": 0.9833899653180214
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 1959.0,
+          "p_raw": 0.07170453093046945,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 100,
+          "mean_a": 0.7964654214711022,
+          "mean_b": 0.7808914429985007,
+          "mean_diff": 0.015573978472601568,
+          "cohen_dz": 0.1781918771016913
         }
       },
       "sentbert_diversity": {
@@ -1024,53 +1024,53 @@
           "a": "base",
           "b": "sft",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4928.0,
+          "p_raw": 7.144924726761379e-17,
+          "p_bonferroni": 2.1434774180284135e-16,
+          "n": 100,
+          "mean_a": 0.7594419950246811,
+          "mean_b": 0.487999986410141,
+          "mean_diff": 0.2714420086145401,
+          "cohen_dz": 1.4041715119359839
         },
         "HoneB": {
           "a": "sft",
           "b": "dpo",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 4922.0,
+          "p_raw": 8.49155080338676e-17,
+          "p_bonferroni": 2.547465241016028e-16,
+          "n": 100,
+          "mean_a": 0.487999986410141,
+          "mean_b": 0.34541120767593386,
+          "mean_diff": 0.14258877873420717,
+          "cohen_dz": 1.215474026888732
         },
         "HoneC": {
           "a": "base",
           "b": "instruct",
           "alternative": "greater",
-          "stat": NaN,
-          "p_raw": NaN,
-          "p_bonferroni": NaN,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "stat": 5021.0,
+          "p_raw": 4.659498617796703e-18,
+          "p_bonferroni": 1.397849585339011e-17,
+          "n": 100,
+          "mean_a": 0.7594419950246811,
+          "mean_b": 0.35911829888820646,
+          "mean_diff": 0.4003236961364746,
+          "cohen_dz": 1.9909402385485864
         },
         "Hpa": {
           "a": "dpo",
           "b": "instruct",
           "alternative": "two-sided",
-          "stat": NaN,
-          "p_raw": NaN,
+          "stat": 2090.0,
+          "p_raw": 0.13473933100822336,
           "p_bonferroni": null,
-          "n": 0,
-          "mean_a": NaN,
-          "mean_b": NaN,
-          "mean_diff": NaN,
-          "cohen_dz": NaN
+          "n": 100,
+          "mean_a": 0.34541120767593386,
+          "mean_b": 0.35911829888820646,
+          "mean_diff": -0.013707091212272643,
+          "cohen_dz": -0.1627817353513652
         }
       }
     }
