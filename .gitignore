@@ -43,3 +43,6 @@ compute_v*.log
 # Claude Code session state (plans, worktree metadata, etc.) — entirely
 # local to this machine; should not be tracked.
 .claude/
+
+# Git worktrees (per-branch isolated workspaces, e.g. .worktrees/workshop-icml2026)
+.worktrees/
