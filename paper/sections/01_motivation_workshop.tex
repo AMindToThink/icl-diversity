@@ -2,6 +2,7 @@
 
 Creativity researchers routinely need to compare the diversity of outputs across generation processes: post-training stages of the same base model (does RLHF collapse modes?), decoding strategies (what does temperature trade off against?), prompting interventions (does a chain-of-thought prompt narrow the response distribution?), and human-AI hybrid pipelines (how does a model's contribution compare in spread to a human writer's drafts?).
 Existing diversity metrics rely on embedding distances \citep{du2019boosting} or surface-level $n$-gram statistics, both of which conflate genuine content diversity with lexical or representational artefacts (Section~\ref{sec:related}).
+A complementary line of work applies information theory directly --- Maximum Mutual Information decoding \citep{li2016diversity} and Adversarial Information Maximization \citep{zhang2018aim} optimise pairwise mutual information between input and response, but as a training or decoding objective rather than an evaluation-time diagnostic.
 We propose a metric, $D_{Ca_n} = C \times a_n$, that scores AI samples and human-written response sets through the same pipeline: per-byte log-probabilities of a base model $\theta$, in a \emph{single forward pass} over the concatenated responses (Figure~\ref{fig:pipeline}).
 No embedding model, no reference corpus, no human labels, no auxiliary classifier --- only the per-token probabilities $\theta$ already produces.
 
