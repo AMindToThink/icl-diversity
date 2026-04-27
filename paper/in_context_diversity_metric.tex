@@ -39,7 +39,7 @@ Existing diversity metrics rely on embedding-space distances or surface-level $n
 We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses.
 This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities.
 We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
-Their product $D_{a_\infty} = C \times a_\infty$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
+Their product $D_{Ca_n} = C \times a_n$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
 It does not reward noise.
 It works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
 We validate the metric on four fronts.
@@ -76,7 +76,7 @@ As base models continue to improve at in-context learning, this gap narrows.
 \paragraph{Contributions.}
 \begin{itemize}[leftmargin=*, itemsep=2pt]
   \item We define a \emph{progressive conditional surprise curve} $a_k$ for language-model outputs, computed by a single forward pass of a base model $\theta$ over the concatenated responses, whose shape characterizes the learnable structure among outputs (Section~\ref{sec:progressive-conditioning}).
-  \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the asymptotic curve value $a_\infty$ to yield a single plausibility-weighted diversity score $\mathbf{D_{a_\infty} = C \times a_\infty}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
+  \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the asymptotic curve value $a_\infty$ to yield a single plausibility-weighted diversity score $\mathbf{D_{Ca_n} = C \times a_n}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
   \item We validate the metric on synthetic mode scenarios, on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ is competitive with embedding-based metrics), on a cross-model scaling study, and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:experiments}).
 \end{itemize}
 
@@ -141,7 +141,7 @@ The remainder of the paper formalizes each step and validates the resulting metr
 
 % --- FINAL FORMULA ---
 \node[final, below=4mm of input, text width=0.62\textwidth, yshift=-49mm] (out) {
-    \textbf{Diversity score:}\quad $D_{a_\infty} \;=\; C \times a_n$\quad{\scriptsize(bits/byte)}
+    \textbf{Diversity score:}\quad $D_{Ca_n} \;=\; C \times a_n$\quad{\scriptsize(bits/byte)}
 };
 
 % Arrows from each track straight down into the final box
@@ -154,7 +154,7 @@ Given prompt $p$ and $n$ responses from policy $\pi$, we format them with respon
 The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$.
 Its last point $a_n$ estimates the asymptotic floor $a_\infty$.
 The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte; the geometric mean of these surprises defines coherence $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity.
-The product $D_{a_\infty} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
+The product $D_{Ca_n} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
 Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
 \label{fig:pipeline}
 \end{figure}
@@ -227,7 +227,7 @@ Units: bits.
 Each $a_k$ is the total surprise of the $k$-th response given all previous responses.
 The sequence $(a_1, a_2, \ldots, a_n)$ is the \textbf{progressive conditional surprise curve}.
 In practice, we normalize each $a_k$ by dividing by the byte count $\|r_k\|$ to obtain a per-byte curve (bits/byte); this makes the curve independent of $\theta$'s tokenizer and removes length variation.
-Unless otherwise noted, all reported $a_k$ values and the diversity score $D_{a_\infty}$ are in per-byte units.
+Unless otherwise noted, all reported $a_k$ values and the diversity score $D_{Ca_n}$ are in per-byte units.
 
 Since responses have different lengths, the raw total-bits $a_k$ values for a single ordering reflect both structural learning and length variation.
 Per-byte normalization and averaging over random permutations of the response ordering (Section~\ref{sec:ordering}) remove these effects: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context.
@@ -260,13 +260,13 @@ The sigmoid prediction holds only for weaker models like GPT-2.
 
 At first glance, the $a_k$ curve appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own.
 A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_\infty$ is high but $C$ will be near zero.
-The noise policy correctly gets a low $D_{a_\infty}$ because of the coherence term, not because of the curve alone.
+The noise policy correctly gets a low $D_{Ca_n}$ because of the coherence term, not because of the curve alone.
 
 The problem the curve alone cannot solve is a \textbf{policy that has multiple distinct but individually incoherent modes}.
 Consider a badly trained or modified model that produces several recognizably different types of low-quality output.
 The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$ and $a_\infty$ may be low), but each type is still implausible text.
 Without a separate plausibility term, the policy could score as meaningfully diverse.
-A separate coherence term lets $D_{a_\infty}$ suppress these cases.
+A separate coherence term lets $D_{Ca_n}$ suppress these cases.
 
 \subsection{Definition}
 
@@ -338,22 +338,22 @@ When a single number is required (e.g., for ranking policies in a table), we com
 Diverse responses remain surprising even after full conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
 This motivates:
 \begin{equation}\label{eq:D-ainf}
-    D_{a_\infty} = C \times a_\infty
+    D_{Ca_n} = C \times a_n
 \end{equation}
 measuring ``how many bits of surprise remain per byte after $\theta$ has learned everything it can from the other responses, weighted by output plausibility.''
 
 In practice, $a_\infty$ is estimated by the last observed point $a_n$ on the permutation-averaged per-byte curve.
-Section~\ref{sec:tevet} compares $D_{a_\infty}$ against alternative scalars (raw $a_n$, $C$ alone, the excess-entropy-based $C \times E$) and finds that $D_{a_\infty}$ outperforms all of them on external benchmarks.
+Section~\ref{sec:tevet} compares $D_{Ca_n}$ against alternative scalars (raw $a_n$, $C$ alone, the excess-entropy-based $C \times E$) and finds that $D_{Ca_n}$ outperforms all of them on external benchmarks.
 
-$D_{a_\infty}$ works in both the many-draws regime (where modes repeat and $a_\infty$ reflects the irreducible floor after $\theta$ has learned all recurring patterns) and the few-draws regime (where each response is unique and $a_\infty$ captures how much surprise survives full conditioning).
+$D_{Ca_n}$ works in both the many-draws regime (where modes repeat and $a_\infty$ reflects the irreducible floor after $\theta$ has learned all recurring patterns) and the few-draws regime (where each response is unique and $a_\infty$ captures how much surprise survives full conditioning).
 
 The edge cases behave correctly:
 \begin{enumerate}[nosep]
-    \item \textbf{Pure noise}: $C \approx 0$ (incoherent), so $D_{a_\infty} \approx 0$.
-    \item \textbf{Multiple incoherent patterns}: $C$ low, $a_\infty$ high, but $D_{a_\infty}$ is suppressed by $C$.
-    \item \textbf{Rich coherent diversity}: $C$ high, $a_\infty$ high, so $D_{a_\infty}$ is high.
-    \item \textbf{One coherent pattern}: $C$ high, $a_\infty$ low ($\theta$ learns the mode), so $D_{a_\infty} \approx 0$.
-    \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{a_\infty}$ is low.
+    \item \textbf{Pure noise}: $C \approx 0$ (incoherent), so $D_{Ca_n} \approx 0$.
+    \item \textbf{Multiple incoherent patterns}: $C$ low, $a_\infty$ high, but $D_{Ca_n}$ is suppressed by $C$.
+    \item \textbf{Rich coherent diversity}: $C$ high, $a_\infty$ high, so $D_{Ca_n}$ is high.
+    \item \textbf{One coherent pattern}: $C$ high, $a_\infty$ low ($\theta$ learns the mode), so $D_{Ca_n} \approx 0$.
+    \item \textbf{Non-diverse paraphrases}: $C$ high, $a_\infty$ low ($\theta$ recognizes shared meaning), so $D_{Ca_n}$ is low.
 \end{enumerate}
 
 \paragraph{Typical range of $C$.} Published bits-per-byte values for English text range from $\sim$0.72 (GPT-3 davinci on The Pile \citep{gao2020pile}) to $\sim$1.05 (GPT-2 XL), corresponding to $C \in [0.49, 0.61]$.
@@ -393,12 +393,12 @@ In order of informativeness:
     \item The $a_k$ curve, the primary output.
 It reveals the total learnable structure, its rate of acquisition, residual variation ($a_\infty$), and unconditional surprise ($a_1$).
 When comparing policies, overlaying curves on the same axes provides immediate visual insight.
-    \item The summary triple $(a_n, C, \sigma_\ell)$ together with the scalar $D_{a_\infty} = C \times a_n$ (bits/byte).
-When $\sigma_\ell$ is small, $D_{a_\infty}$ is a reliable scalar; when $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$ and examine which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values.
+    \item The summary triple $(a_n, C, \sigma_\ell)$ together with the scalar $D_{Ca_n} = C \times a_n$ (bits/byte).
+When $\sigma_\ell$ is small, $D_{Ca_n}$ is a reliable scalar; when $\sigma_\ell$ is large, report the diversity band $[D_-, D_+]$ and examine which modes are incoherent via the per-response $c_i = 2^{-h_\theta(r_i \mid p)}$ values.
 \end{enumerate}
 
 The score is defined per prompt $p$.
-When comparing policies across a prompt suite, one can average $D_{a_\infty}$ over prompts or take differences; see Appendix~\ref{app:aggregation} for details.
+When comparing policies across a prompt suite, one can average $D_{Ca_n}$ over prompts or take differences; see Appendix~\ref{app:aggregation} for details.
 
 \section{Practical Considerations}\label{sec:practical}
 
@@ -504,7 +504,7 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 \begin{table}[t]
 \centering
 \caption{Scenario validation metrics (mean across 5 prompts, 100 permutations, $n=10$ responses, per-byte).
-We report several candidate scalars: unconditional surprise $a_1$, the asymptotic floor $a_n$, coherence $C$, our recommended score $D_{a_\infty} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{a_\infty}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
+We report several candidate scalars: unconditional surprise $a_1$, the asymptotic floor $a_n$, coherence $C$, our recommended score $D_{Ca_n} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{Ca_n}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
 Both $E$ and $C \times E$ go negative for the mixed scenario on GPT-2.}
 \label{tab:scenarios}
 \small
@@ -526,7 +526,7 @@ Pure noise curves are flat (no learnable structure); multi-mode curves show prog
 The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise.
 The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
 
-$C$ consistently improves with model strength (Qwen2.5-3B assigns higher coherence to genuinely coherent text than GPT-2). $D_{a_\infty}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
+$C$ consistently improves with model strength (Qwen2.5-3B assigns higher coherence to genuinely coherent text than GPT-2). $D_{Ca_n}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
 
 \subsection{Mode Count Scaling}\label{sec:mode-count-scaling}
 
@@ -544,7 +544,7 @@ All curves are exponential (no sigmoidal plateau), even at $m=\modeCountMMax$, d
 
 \paragraph{Key findings.} Figure~\ref{fig:mode-count} shows the $a_k$ curves.
 The floor $a_n$ increases monotonically with $m$ (\modeCountAnMone{} bits at $m=1$ to \modeCountAnMten{} bits at $m=10$; see Table~\ref{tab:mode-count}), reflecting more irreducible entropy remaining after full conditioning.
-This is exactly the behavior $D_{a_\infty} = C \times a_n$ needs: the asymptotic floor tracks mode count directly.
+This is exactly the behavior $D_{Ca_n} = C \times a_n$ needs: the asymptotic floor tracks mode count directly.
 All curves are purely exponential (no sigmoidal plateau), even at $m=10$; Section~\ref{sec:cross-mode-learning} investigates why.
 For a detailed comparison of the excess-entropy-based scores on this data, including the sigmoid fit parameters and the non-monotonicity of $\hat{E}_n$, see Appendix~\ref{app:excess-entropy}.
 
@@ -719,7 +719,7 @@ We also tested an alternative score based on the excess entropy $E$ (a measure o
 See Appendix~\ref{app:excess-entropy} for the definition, ROC curves, and a detailed comparison.
 Two ``surprising'' patterns emerge on these binary tasks that have a common explanation rather than a profound one: unconditional surprise $a_1$ has the wrong sign (negative Spearman $\rho$ against the diversity label on every binary task), and raw $C$ alone correlates positively with human diversity labels.
 Both reflect the McDiv construction confound (Appendix~\ref{app:confound}): low-diversity sets are self-selected paraphrases of specific, dramatic endings that are intrinsically less likely under $\theta$, which drives up $a_1$ and drives down $C$ on low-diversity sets.
-The $C$ weighting in $D_{a_\infty}$ thus helps rather than hurts on this benchmark, but for reasons tied to this dataset's construction; we expect $a_n$ to carry most of the signal in settings without such a confound.
+The $C$ weighting in $D_{Ca_n}$ thus helps rather than hurts on this benchmark, but for reasons tied to this dataset's construction; we expect $a_n$ to carry most of the signal in settings without such a confound.
 
 % Source: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
 % comparing C×a_n vs C×a_{n-1} in summary_table.txt
@@ -742,8 +742,8 @@ The excess-entropy-based alternatives are compared in Appendix~\ref{app:excess-e
 \subsection{Practical Findings}\label{sec:practical-findings}
 
 \paragraph{Permutation sensitivity.} The per-byte $a_k$ curve depends on the response ordering.
-Comparing the $D_{a_\infty}$ ranking of the \permSensNumScenarios{} validation scenarios from Section~\ref{sec:scenario-validation} between \permSensLowPerm{}- and \permSensHighPerm{}-permutation runs: on GPT-2, \permSensGPTMisranked{} of \permSensNumScenarios{} scenarios shift rank between the two settings; on Qwen2.5-3B, \permSensQwenMisranked{} of \permSensNumScenarios{}.
-Where scenarios do shift rank, it is between adjacent scenarios with similar $D_{a_\infty}$ values rather than dramatic reorderings.
+Comparing the $D_{Ca_n}$ ranking of the \permSensNumScenarios{} validation scenarios from Section~\ref{sec:scenario-validation} between \permSensLowPerm{}- and \permSensHighPerm{}-permutation runs: on GPT-2, \permSensGPTMisranked{} of \permSensNumScenarios{} scenarios shift rank between the two settings; on Qwen2.5-3B, \permSensQwenMisranked{} of \permSensNumScenarios{}.
+Where scenarios do shift rank, it is between adjacent scenarios with similar $D_{Ca_n}$ values rather than dramatic reorderings.
 We use \permSensHighPerm{} permutations throughout for scenario-level experiments; we have not swept intermediate values, so we cannot pinpoint a minimum that is both cheap and reliable.
 The coherence term $C$ and spread $\sigma_\ell$ are permutation-invariant by construction and are unaffected.
 
@@ -777,7 +777,7 @@ GPT-2 and Qwen2.5-3B (gray) are included for context but differ in architecture.
 
 \paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent.
 This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay).
-The sigmoid fit still provides a useful parametric form for extrapolating $a_\infty$, even when the inflection point is degenerate ($k_0 < 1$).
+The current method takes $a_\infty \approx a_n$ (Section~\ref{sec:scalar}); the sigmoid form is retained only as a theoretical model of the curve shape (Appendix~\ref{app:k0-derivation}), not as an estimator.
 
 \paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (its OCA trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% across the nine binary tasks), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity).
 The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities.
@@ -786,10 +786,10 @@ It does not: on the binary McDiv/ConTest tasks, the larger model is slightly \em
 We interpret this as evidence that the binary human labels are coarse enough to be saturated for our metric at the 3B scale.
 Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
 
-\paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{a_\infty} = C \times a_n$ is one natural summary of it among many.
+\paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{Ca_n} = C \times a_n$ is one natural summary of it among many.
 Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
 Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
-We have not explored this space systematically; we focus on $D_{a_\infty}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
+We have not explored this space systematically; we focus on $D_{Ca_n}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
 
 \section{Limitations}\label{sec:limitations}
 
@@ -799,7 +799,7 @@ Several points below recap caveats already made in their natural context and cro
 \paragraph{$D = C \times a_n$ is a pragmatic choice, not a theoretically derived one.}
 The product form was selected because it captures the properties we wanted a diversity score to have---residual surprise remains after the base model has seen previous responses, low-coherence outputs are penalised, and the result stays on a bits-per-byte scale---not because it is derived from an axiomatic information-theoretic setup.
 Other scalars respecting the same constraints---weighted integrals of $a_k - a_\infty$, slope-based scores, or coherence applied at a different point on the curve---could equally be defended (see ``The framework admits other metrics'' in Section~\ref{sec:exp-discussion}).
-We adopt $D_{a_\infty}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
+We adopt $D_{Ca_n}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
 
 \paragraph{Measurement is relative to $\theta$'s perception.}
 The metric evaluates diversity \emph{as perceived by the base model $\theta$}: if $\pi$'s outputs differ only in ways $\theta$ cannot distinguish from context, the metric underestimates diversity, and if $\theta$ hallucinates structure, it overestimates redundancy (Section~\ref{sec:motivation}, ``Important caveat'').
@@ -852,10 +852,10 @@ Explicit framing---e.g., prefixing the context with ``the following are several 
 \section{Related Concepts}\label{sec:related}
 
 \paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
-We found it empirically inferior to $D_{a_\infty}$ on external benchmarks.
+We found it empirically inferior to $D_{Ca_n}$ on external benchmarks.
 
 \paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric.
-The primary diversity score $D_{a_\infty} = C \times a_\infty$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
+The primary diversity score $D_{Ca_n} = C \times a_n$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
 
 \paragraph{Coherence as a signal.} Our coherence term $C$ uses the base model's predictive distribution as an unsupervised quality signal.
 This connects to a broader line of work using model-internal coherence without external supervision: \citet{qiu2026selfimprovement} show theoretically that feedback-free self-improvement methods work by optimizing coherence (compressibility of context-to-behavior mappings), and \citet{wen2025unsupervised} use internal coherence maximization to elicit capabilities from language models.
@@ -1016,8 +1016,8 @@ Modes with very small weight $w_i \lesssim 1/n$ may never appear in the sample a
 
 \section{Excess Entropy and the \texorpdfstring{$C \times E$}{C x E} Score}\label{app:excess-entropy}
 
-This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting (connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation) but empirically inferior to $D_{a_\infty}$ on the external benchmarks of Section~\ref{sec:tevet}.
-We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{a_\infty}$.
+This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting (connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation) but empirically inferior to $D_{Ca_n}$ on the external benchmarks of Section~\ref{sec:tevet}.
+We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{Ca_n}$.
 
 \subsection{The Excess Entropy}\label{app:excess-entropy-def}
 
@@ -1183,7 +1183,7 @@ $C \times E$ inherits two limitations from $E$.
 First, $E$ measures learnable \emph{structure} (recurring patterns that $\theta$ can extract from seeing multiple responses) rather than continuous spread.
 A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity.
 Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal.
-These limitations are the reason $D_{a_\infty}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
+These limitations are the reason $D_{Ca_n}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
 
 \paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of \tevetMcDivNugPromptGenCxAnAUC{} on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant cannot be computed at all (the four-parameter sigmoid fails to converge on only five points) and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC = \tevetMcDivNugPromptGenDdiscAUC{}, well below chance).
 Figure~\ref{fig:roc-curves} shows the ROC curves.
@@ -1201,7 +1201,7 @@ $C \times a_n$ dominates the other four scores on every task; the $E$-based scor
 The $a_k$ curve stays approximately flat, yielding $E \approx 0$ for both diverse and non-diverse sets.
 The $E$-based scores thus carry almost no signal.
 The asymptotic floor $a_\infty$, by contrast, differs substantially between the two conditions: diverse responses remain surprising after conditioning ($a_\infty$ high), while paraphrases become predictable ($a_\infty$ low).
-This is the fundamental reason $D_{a_\infty}$ is preferred.
+This is the fundamental reason $D_{Ca_n}$ is preferred.
 
 \subsection{Coherence Normalization Strategies}\label{app:c-normalization}
 
@@ -1346,19 +1346,19 @@ Per-byte normalization amplifies the confound because shorter low-diversity resp
 
 \section{Aggregation Across Prompts}\label{app:aggregation}
 
-The diversity score $D_{a_\infty}$ is defined relative to a single prompt $p$.
+The diversity score $D_{Ca_n}$ is defined relative to a single prompt $p$.
 To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, one can average:
 \begin{equation}
-    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{a_\infty}(\pi, p_j)
+    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{Ca_n}(\pi, p_j)
 \end{equation}
 
 To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
 \begin{equation}
-    \Delta D_{a_\infty} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
+    \Delta D_{Ca_n} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
 \end{equation}
 
-$\Delta D_{a_\infty}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?''
-No division is involved, so $\Delta D_{a_\infty}$ is stable even when either policy's score is near zero.
+$\Delta D_{Ca_n}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?''
+No division is involved, so $\Delta D_{Ca_n}$ is stable even when either policy's score is near zero.
 
 \paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt.
 Clamping the denominator introduces a hyperparameter.
@@ -1366,7 +1366,7 @@ The absolute difference avoids these issues.
 
 \paragraph{Limitation.} We have not yet validated the aggregation machinery by sampling from actual models and comparing their diversity scores across prompts.
 Our experiments evaluate diversity of fixed response sets (human-written or synthetically constructed).
-Applying $\Delta D_{a_\infty}$ to compare, e.g., a base model against an RLHF-trained variant across a prompt suite is a natural next step.
+Applying $\Delta D_{Ca_n}$ to compare, e.g., a base model against an RLHF-trained variant across a prompt suite is a natural next step.
 
 \section{Scaling the Base Model: Qwen2.5-3B vs Qwen3-30B-A3B-Base}\label{app:qwen3-comparison}
 

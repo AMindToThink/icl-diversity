@@ -60,8 +60,8 @@ def main() -> None:
     )
     lines.append(r"\cmidrule(lr){2-8} \cmidrule(lr){9-15}")
     lines.append(
-        r"Scenario & $a_1$ & $a_n$ & $C$ & $\mathbf{D_{a_\infty}}$ & $E$ & $C\!\times\!E$ & $\sigma_\ell$ "
-        r"& $a_1$ & $a_n$ & $C$ & $\mathbf{D_{a_\infty}}$ & $E$ & $C\!\times\!E$ & $\sigma_\ell$ \\"
+        r"Scenario & $a_1$ & $a_n$ & $C$ & $\mathbf{D_{Ca_n}}$ & $E$ & $C\!\times\!E$ & $\sigma_\ell$ "
+        r"& $a_1$ & $a_n$ & $C$ & $\mathbf{D_{Ca_n}}$ & $E$ & $C\!\times\!E$ & $\sigma_\ell$ \\"
     )
     lines.append(r"\midrule")
 

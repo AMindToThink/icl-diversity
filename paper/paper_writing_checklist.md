@@ -60,7 +60,7 @@ When ticking a new item, add the relevant anchor or label at the end of the bull
 - [x] **Following 1–2 sentences each:** any additional key claim or experimental result. *(validation split into 4 sentences, one per result.)* — `We validate the metric on four fronts`
 - [x] At least one **concrete metric or numeric result** is in the abstract to make the result feel real. *(\tevetMcDivPromptGenAUC on McDiv prompt\_gen.)* — `ROC AUC up to \tevetMcDivPromptGenAUC`
 - [x] **Final 1–2 sentences:** why this matters / broader context, with the standard of evidence honestly stated. *(closer added; chose "show" rather than "preliminary" — four-front validation does not warrant preliminary-tier hedging.)* — `Together, these results show`
-- [x] One idea per sentence — no run-on or overstuffed sentences. *(S6 on $D = C \times a_\infty$ was split into three: definition, "does not reward noise", "works in both regimes".)* — `Their product $D_{a_\infty} = C \times a_\infty$`
+- [x] One idea per sentence — no run-on or overstuffed sentences. *(S6 on $D = C \times a_\infty$ was split into three: definition, "does not reward noise", "works in both regimes".)* — `Their product $D_{Ca_n} = C \times a_\infty$`
 
 ## 5. Introduction
 
