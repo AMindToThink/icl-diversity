@@ -1,0 +1,24 @@
+\section{Aggregation Across Prompts}\label{app:aggregation}
+
+The diversity score $D_{Ca_n}$ is defined relative to a single prompt $p$.
+To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, one can average:
+\begin{equation}
+    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{Ca_n}(\pi, p_j)
+\end{equation}
+
+To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
+\begin{equation}
+    \Delta D_{Ca_n} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
+\end{equation}
+
+$\Delta D_{Ca_n}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?''
+No division is involved, so $\Delta D_{Ca_n}$ is stable even when either policy's score is near zero.
+
+\paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt.
+Clamping the denominator introduces a hyperparameter.
+The absolute difference avoids these issues.
+
+\paragraph{Limitation.} We have not yet validated the aggregation machinery by sampling from actual models and comparing their diversity scores across prompts.
+Our experiments evaluate diversity of fixed response sets (human-written or synthetically constructed).
+Applying $\Delta D_{Ca_n}$ to compare, e.g., a base model against an RLHF-trained variant across a prompt suite is a natural next step.
+

@@ -1,0 +1,166 @@
+% ============================================================================
+% Standalone subsection: using $C \times a_n$ to detect RLHF-induced diversity
+% loss across the OLMo-2-7B four-stage pipeline.
+%
+% Generated numbers come from:
+%   results/rlhf_experiment/paper_macros_rlhf.tex   (\olmo* macros)
+%   results/rlhf_experiment/tables/rlhf_diversity.tex  (\input'd below)
+%
+% Figures:
+%   figures/rlhf_experiment/ak_curves_overlay_*.pdf
+%   figures/rlhf_experiment/per_prompt_D_violin_*.pdf
+%   figures/rlhf_experiment/metric_correlation_scatter_*.pdf
+%
+% Included as a subsection of Section 7 (Experiments) in the main paper.
+% ============================================================================
+
+% Load generated macros BEFORE the subsection body so prose references
+% resolve to real numbers rather than fallback ??s. (\providecommand at
+% the bottom of this file only matters if the generated files are absent.)
+\IfFileExists{../results/rlhf_experiment/paper_macros_rlhf.tex}{%
+  \input{../results/rlhf_experiment/paper_macros_rlhf.tex}%
+}{}
+\IfFileExists{../results/rlhf_experiment/paper_macros_rlhf_lenmatched.tex}{%
+  \input{../results/rlhf_experiment/paper_macros_rlhf_lenmatched.tex}%
+}{}
+\IfFileExists{../results/rlhf_experiment/tables/cross_model_macros.tex}{%
+  \input{../results/rlhf_experiment/tables/cross_model_macros.tex}%
+}{}
+
+\subsection{Detecting Post-Training Diversity Loss on OLMo-2-7B}\label{sec:rlhf-experiment}
+
+Prior sections validated $D = C \times a_n$ on synthetic response sets and on Tevet and Berant's human-labelled diversity sets. Here we close the gap flagged in Section~\ref{sec:exp-discussion}: sample from real policies at different post-training stages and ask whether $D$ detects the diversity loss widely attributed to RLHF \citep{kirk2023rlhf,zhang2025verbalizedsampling,padmakumar2023writingreduces}.
+
+\paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint. On two prompt sets --- \olmoAlpacaN{} AlpacaEval prompts (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench} --- we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$). Base runs raw; SFT / DPO / Instruct receive the prompt through their own chat template. Prompts come from \citet{dubois2024alpacafarm}'s released AlpacaEval set. We score each (stage, prompt) group with $D = C \times a_n$ using Qwen2.5-3B as $\theta$ and 25 permutations (a 5-prompt spot check at 50 permutations confirmed per-prompt rank stability). For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and SentBERT similarity-to-diversity \citep{reimers2019sbert}.
+
+\paragraph{Hypotheses.} We pre-register three one-sided paired Wilcoxon signed-rank tests \citep{dror2018hitchhiker} with family-wise Bonferroni correction across the three contrasts \citep{dror2017replicability} ($\alpha = 0.05/3$):
+
+\begin{itemize}[nosep]
+    \item \textbf{H1a} $D_{\mathrm{base}} > D_{\mathrm{SFT}}$ --- SFT narrows toward the helpful-assistant style.
+    \item \textbf{H1b} $D_{\mathrm{SFT}} > D_{\mathrm{DPO}}$ --- DPO is trained on preference data and inherits its typicality bias \citep{zhang2025verbalizedsampling}.
+    \item \textbf{H1c} $D_{\mathrm{base}} > D_{\mathrm{RLVR}}$ --- cumulative effect of the full post-training pipeline.
+\end{itemize}
+
+The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$'$): RLVR uses \emph{verifiable} rewards (for OLMo~2, math and instruction-following \citep{olmo2024olmo2}) rather than human preferences, so the typicality-bias mechanism that motivates H1b does not obviously apply to it. \citet{zhang2025verbalizedsampling} do empirically observe diversity loss at the RLVR stage in their T\"ulu-3 ablation (their \S5.3), but they do not extend their typicality-bias mechanism to verifiable rewards. The effect direction at this stage is therefore genuinely open.
+
+\paragraph{Results.}
+
+\begin{table}[h]
+\centering
+\caption{Per-prompt $D = C \times a_n$ by OLMo-2-7B stage, with pre-registered paired tests.}
+\label{tab:rlhf-diversity}
+\small
+\IfFileExists{../results/rlhf_experiment/tables/rlhf_diversity.tex}{%
+  \input{../results/rlhf_experiment/tables/rlhf_diversity.tex}%
+}{%
+  \texttt{[table will appear here after \texttt{5\_analyze\_and\_figures.py} runs]}%
+}
+\end{table}
+
+Table~\ref{tab:rlhf-diversity} reports per-stage means, the pre-registered contrasts, and the exploratory DPO$\,\neq\,$RLVR test.
+On AlpacaEval, $D$ drops from \olmoAlpacaBaseDMean{} (base) to \olmoAlpacaSftDMean{} (SFT) to \olmoAlpacaDpoDMean{} (DPO) to \olmoAlpacaInstructDMean{} (Instruct/RLVR).
+All three pre-registered contrasts are significant after Bonferroni correction: H1a (base$\,\rightarrow\,$SFT) has $d_z = \olmoAlpacaHoneADz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneAPbonf$; H1b (SFT$\,\rightarrow\,$DPO) has $d_z = \olmoAlpacaHoneBDz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneBPbonf$; H1c (base$\,\rightarrow\,$RLVR) has $d_z = \olmoAlpacaHoneCDz$, $p_\mathrm{Bonf} = \olmoAlpacaHoneCPbonf$.
+On NoveltyBench curated the corresponding means are \olmoNbCuratedBaseDMean / \olmoNbCuratedSftDMean / \olmoNbCuratedDpoDMean / \olmoNbCuratedInstructDMean, with H1a $d_z = \olmoNbCuratedHoneADz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneAPbonf$), H1b $d_z = \olmoNbCuratedHoneBDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneBPbonf$), and H1c $d_z = \olmoNbCuratedHoneCDz$ ($p_\mathrm{Bonf} = \olmoNbCuratedHoneCPbonf$).
+
+\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}{%
+\begin{figure}[h]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}
+    \caption{AlpacaEval $\bar{a}_k$ curves.}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/per_prompt_D_violin_alpacaeval.pdf}
+    \caption{Per-prompt $D$ by stage.}
+\end{subfigure}
+\caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on AlpacaEval. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D$ distribution shifts toward lower values as the pipeline advances.}
+\label{fig:rlhf-ak-violin}
+\end{figure}
+}{}
+
+\IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}{%
+\begin{figure}[!htbp]
+\centering
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}
+    \caption{AlpacaEval (length-matched, $n=\olmoLmAlpacaN$ prompts).}
+\end{subfigure}\\[0.5em]
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../figures/rlhf_experiment/metric_correlation_scatter_nbcurated_lm.pdf}
+    \caption{NoveltyBench curated (length-matched, $n=\olmoLmNbCuratedN$ prompts).}
+\end{subfigure}
+\caption{Per-prompt $D = C \times a_n$ versus EAD (left subpanel) and SentBERT-similarity diversity (right subpanel), coloured by stage, on the length-matched subset of prompts. Length-matching truncates each (stage, prompt) tuple's responses to a common per-prompt byte budget so the per-byte conditional surprise that defines $a_n$ is not depressed by response length. Pearson $r$ and Spearman $\rho$ (two-sided $p$) are reported in each panel. The rank correlations are positive across both prompt sets and both baselines: $D$ tracks the same diversity-loss signal EAD and SentBERT detect, and the agreement is not an artefact of response length.}
+\label{fig:rlhf-metric-scatter}
+\end{figure}
+}{}
+
+\paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function. Cross-metric agreement with EAD and SentBERT (H2, Figure~\ref{fig:rlhf-metric-scatter}) confirms $C \times a_n$ responds to the same signal lexical and semantic baselines detect. The DPO vs RLVR exploratory contrast is reported without pre-registered direction because RLVR's verifiable-rewards objective breaks the typicality-bias mechanism that narrows preference-trained policies; we observe $\Delta = \olmoAlpacaHpaDiff$ with $d_z = \olmoAlpacaHpaDz$.
+
+\paragraph{Cross-model comparison on NoveltyBench curated.} The NB-curated prompt set overlaps with published response sets from seven frontier instruct-tuned models released by \citet{zhang2025noveltybench}'s ecosystem, so we can score those released generations with the same $C \times a_n$ pipeline and place them alongside our four OLMo-2-7B stages. Table~\ref{tab:cross-model} reports the result. Because the external generations are substantially longer than the 100-token ceiling we used when sampling from OLMo, we truncate each external response to 100 words before scoring; this keeps the concatenated contexts within the Qwen2.5-3B forward pass's memory budget and roughly equalises response length across the two groups (the truncation is a real caveat, discussed below).
+
+\begin{table}[h]
+\centering
+\caption{Cross-model $D = C \times a_n$ (per-byte) on the \olmoNbCuratedN{} NoveltyBench curated prompts, $K=10$ responses per prompt. Our four OLMo-2-7B stages were sampled for this paper (temperature 1, $\texttt{max\_new\_tokens}{=}100$); the external frontier-model responses are the released 10-sample generations from \citet{zhang2025noveltybench}'s ecosystem (\texttt{alon-albalak/*-noveltybench-responses}), truncated to 100 words before scoring. All runs share the same Qwen2.5-3B scorer $\theta$ and 25 permutations.}
+\label{tab:cross-model}
+\small
+\IfFileExists{../results/rlhf_experiment/tables/cross_model.tex}{%
+  \input{../results/rlhf_experiment/tables/cross_model.tex}%
+}{%
+  \texttt{[table will appear here after \texttt{5c\_cross\_model\_table.py} runs]}%
+}
+\end{table}
+
+Three patterns in Table~\ref{tab:cross-model} deserve comment. First, the four OLMo-2-7B stages span a $D$ range of about $0.2$ bits/byte (\crossModelOlmoBase{} for the base model vs \crossModelOlmoInstruct{} for the final RLVR checkpoint), while the entire frontier-instruct cluster --- spanning three families, roughly two orders of magnitude in parameter count, and across three distinct RLHF-flavoured recipes --- sits between \crossModelLlamaThreeThreeSeventyB{} and \crossModelGptFive{}. The base--SFT gap within OLMo (a single family, at 7 B) is larger than the dispersion across the entire frontier. Second, within the Qwen family we observe a monotone drop with scale: \crossModelQwenFourB{} at 4 B, \crossModelQwenEightB{} at 8 B, \crossModelQwenTwoThreeFiveB{} at 235 B active-22 B --- consistent with \citet{zhang2025noveltybench}'s headline that frontier-model diversity scales \emph{inversely} with parameter count within a training pipeline. Third, the most heavily aligned models --- Llama-3.3-70B-Instruct (\crossModelLlamaThreeThreeSeventyB{}) and Claude Sonnet~4.5 (\crossModelClaudeSonnetFourFive{}) --- sit below even the OLMo RLVR stage (\crossModelOlmoInstruct{}), consistent with their heavier and longer post-training pipelines.
+
+\paragraph{Caveats on the cross-model table.} The comparison is only as fair as the preprocessing allows. We sample OLMo at $\texttt{max\_new\_tokens}{=}100$; the external datasets have variable, usually-longer responses. We truncate external responses to 100 words to reduce that asymmetry, but truncation removes information --- a model that front-loads diverse content benefits more than one that back-loads it. We report the comparison as suggestive rather than definitive and suggest a follow-up run at matched sampling length before drawing strong cross-family conclusions. The in-paper finding is the OLMo four-stage monotone drop (Table~\ref{tab:rlhf-diversity}), which is a paired comparison within one pipeline and not subject to this caveat.
+
+\paragraph{Released artifacts.} The \olmoAlpacaN$\,+\,$\olmoNbCuratedN{} prompts $\times$ 4 stages $\times$ $K{=}10$ generations are released as a public HuggingFace dataset\footnote{\url{https://huggingface.co/datasets/AMindToThink/olmo-2-1124-7b-four-stage-samples-rlhf-diversity}} (schema compatible with NoveltyBench submissions). To our knowledge this is the first public release of $K\!\ge\!10$ sampled responses across a paired SFT/DPO/RL pipeline, filling a gap that blocked direct diversity replication of \citet{kirk2023rlhf} (whose K=16 generations were logged only to a private W\&B project).
+
+% --- provide macro fallbacks so \input'ing this file without the generated
+%     macros still compiles (the '??' placeholders signal "run the analysis") ---
+\providecommand{\olmoAlpacaN}{200}
+\providecommand{\olmoNbCuratedN}{100}
+\providecommand{\olmoAlpacaBaseDMean}{??}
+\providecommand{\olmoAlpacaSftDMean}{??}
+\providecommand{\olmoAlpacaDpoDMean}{??}
+\providecommand{\olmoAlpacaInstructDMean}{??}
+\providecommand{\olmoAlpacaHoneADz}{??}
+\providecommand{\olmoAlpacaHoneAPbonf}{??}
+\providecommand{\olmoAlpacaHoneBDz}{??}
+\providecommand{\olmoAlpacaHoneBPbonf}{??}
+\providecommand{\olmoAlpacaHoneCDz}{??}
+\providecommand{\olmoAlpacaHoneCPbonf}{??}
+\providecommand{\olmoAlpacaHpaDiff}{??}
+\providecommand{\olmoAlpacaHpaDz}{??}
+\providecommand{\olmoNbCuratedBaseDMean}{??}
+\providecommand{\olmoNbCuratedSftDMean}{??}
+\providecommand{\olmoNbCuratedDpoDMean}{??}
+\providecommand{\olmoNbCuratedInstructDMean}{??}
+\providecommand{\olmoNbCuratedHoneADz}{??}
+\providecommand{\olmoNbCuratedHoneAPbonf}{??}
+\providecommand{\olmoNbCuratedHoneBDz}{??}
+\providecommand{\olmoNbCuratedHoneBPbonf}{??}
+\providecommand{\olmoNbCuratedHoneCDz}{??}
+\providecommand{\olmoNbCuratedHoneCPbonf}{??}
+
+% Length-matched run macros (from paper_macros_rlhf_lenmatched.tex);
+% only the prompt counts are referenced in the scatter figure caption.
+\providecommand{\olmoLmAlpacaN}{??}
+\providecommand{\olmoLmNbCuratedN}{??}
+
+% Cross-model comparison table macros (from 5c_cross_model_table.py);
+% already loaded at the top of the file — fallbacks below only fire if
+% the generated file is absent.
+\providecommand{\crossModelOlmoBase}{??}
+\providecommand{\crossModelOlmoSft}{??}
+\providecommand{\crossModelOlmoDpo}{??}
+\providecommand{\crossModelOlmoInstruct}{??}
+\providecommand{\crossModelQwenFourB}{??}
+\providecommand{\crossModelQwenEightB}{??}
+\providecommand{\crossModelQwenTwoThreeFiveB}{??}
+\providecommand{\crossModelLlamaThreeThreeSeventyB}{??}
+\providecommand{\crossModelGptFiveNano}{??}
+\providecommand{\crossModelGptFive}{??}
+\providecommand{\crossModelClaudeSonnetFourFive}{??}

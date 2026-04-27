@@ -1,0 +1,40 @@
+\section{Limitations}\label{sec:limitations}
+
+We collect the main limitations of the framework and of our $D = C \times a_n$ choice in one place so readers can calibrate how strongly to update on the results above.
+Several points below recap caveats already made in their natural context and cross-reference those for detail.
+
+\paragraph{$D = C \times a_n$ is a pragmatic choice, not a theoretically derived one.}
+The product form was selected because it captures the properties we wanted a diversity score to have---residual surprise remains after the base model has seen previous responses, low-coherence outputs are penalised, and the result stays on a bits-per-byte scale---not because it is derived from an axiomatic information-theoretic setup.
+Other scalars respecting the same constraints---weighted integrals of $a_k - a_\infty$, slope-based scores, or coherence applied at a different point on the curve---could equally be defended (see ``The framework admits other metrics'' in Section~\ref{sec:exp-discussion}).
+We adopt $D_{Ca_n}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
+
+\paragraph{Measurement is relative to $\theta$'s perception.}
+The metric evaluates diversity \emph{as perceived by the base model $\theta$}: if $\pi$'s outputs differ only in ways $\theta$ cannot distinguish from context, the metric underestimates diversity, and if $\theta$ hallucinates structure, it overestimates redundancy (Section~\ref{sec:motivation}, ``Important caveat'').
+
+\paragraph{Cross-mode learning is model-dependent.}
+The off-diagonal sign of the pairwise surprise-reduction matrix changes with $\theta$'s scale (Section~\ref{sec:cross-mode-learning}): $a_k$ curves for the same response set are not directly comparable across different choices of $\theta$, and the $k_0 \propto m$ sigmoid prediction (Appendix~\ref{app:k0-derivation}) only holds when modes appear approximately independent to $\theta$.
+
+\paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.}
+Coherence spread measures heterogeneity across outputs, not content diversity; it is reported alongside $D$ only to flag mixed-coherence situations (Section~\ref{sec:exp-discussion}).
+
+\paragraph{Metric selection saw the full Tevet benchmark.}
+We chose $C \times a_n$ (rather than alternative summaries such as $C \times E$; Appendix~\ref{app:excess-entropy}) after observing its performance on the full Tevet diversity-eval benchmark, without holding out a validation split.
+The Tevet numbers in Section~\ref{sec:tevet} may therefore be optimistically biased: the scalar form was selected with visibility into those results.
+The OLMo-2-7B post-training experiment (Section~\ref{sec:experiments}) was scored after the metric form was fixed and provides independent validation; the synthetic mode-count experiments (Section~\ref{sec:mode-count-scaling}) informally influenced the choice --- had they failed, we would likely have revised the metric --- and so are not strictly independent.
+
+\paragraph{External benchmark performance is competitive, not dominant.}
+On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% OCA across the nine binary tasks (Section~\ref{sec:tevet}); scaling the base model to Qwen3-30B-A3B-Base did not close the gap (Appendix~\ref{app:qwen3-comparison}).
+We position $C \times a_n$ as a principled complement to embedding-based metrics, not a replacement.
+
+\paragraph{Prompt format is fixed.}
+We use a neutral ``Response A: \ldots, Response B: \ldots'' template throughout and have not attempted prompt optimisation; targeted prompt engineering could plausibly improve discriminative power, especially for larger base models (Section~\ref{sec:exp-discussion}).
+
+\paragraph{Length sensitivity of $D$ in the OLMo RLHF experiment.}
+$C$ and $a_n$ are both per-byte quantities, but neither is invariant to response length: in a causal LM, longer responses give $\theta$ more within-response context to predict later tokens, lowering per-byte surprise.
+On the OLMo-2-7B post-training experiment (Section~\ref{sec:experiments}) raw response length is not monotone across stages, so the monotone $D$ drop could in principle be driven partly by length rather than diversity per se.
+We tested this directly by re-running the experiment with every response truncated to a per-prompt common UTF-8 byte length (the minimum across all 40 responses for that prompt) before re-scoring with the same base $\theta$.
+The monotone $D$ drop survives length-matching on both prompt sets, with all three pre-registered H1 contrasts (H1a, H1b, H1c) remaining Bonferroni-significant at $p<0.001$ and effect sizes of the same order of magnitude as the raw analysis.
+The single qualification is that $111/300$ prompts had a per-prompt common length below 50 bytes --- driven by the base model on AlpacaEval (no instruction-following prior) and by SFT on NB-curated short-answer prompts --- and were dropped because length-matching them would compare essentially-empty fragments.
+The length-matched effect therefore conditions on prompts where length-matching is well-defined ($150/200$ AlpacaEval, $39/100$ NB-curated).
+Full numbers and reproduction commands are in \texttt{investigations/length\_matched\_rlhf/VERDICT.md}.
+

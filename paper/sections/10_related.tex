@@ -1,0 +1,32 @@
+\section{Related Concepts}\label{sec:related}
+
+\paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
+We found it empirically inferior to $D_{Ca_n}$ on external benchmarks.
+
+\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric.
+The primary diversity score $D_{Ca_n} = C \times a_n$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
+
+\paragraph{Coherence as a signal.} Our coherence term $C$ uses the base model's predictive distribution as an unsupervised quality signal.
+This connects to a broader line of work using model-internal coherence without external supervision: \citet{qiu2026selfimprovement} show theoretically that feedback-free self-improvement methods work by optimizing coherence (compressibility of context-to-behavior mappings), and \citet{wen2025unsupervised} use internal coherence maximization to elicit capabilities from language models.
+Our metric leverages a related insight: the base model's ability to compress responses in context provides a meaningful signal about their diversity structure.
+
+\paragraph{Embedding-based diversity.} \citet{du2019boosting} introduced the embedding-based approach, clustering sentence embeddings of generated responses with $k$-means and reporting cluster inertia as the diversity score; subsequent work has explored alternative geometric statistics over embedded responses.
+These approaches are complementary to ours: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model.
+The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
+
+\paragraph{Sampling diversity metrics.} Work on decoding-time diversity \citep{holtzman2020curious} typically operates at the surface level ($n$-gram overlap, self-BLEU).
+Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
+
+\paragraph{Output collapse in RL training.} \citet{wang2025ragen} document an ``Echo Trap'' pattern during multi-turn agent RL: early-stage agents produce varied symbolic reasoning, then collapse to deterministic templates as training proceeds.
+They detect this collapse using within-prompt reward standard deviation as an early-warning signal, a proxy that relies on the reward distinguishing degenerate outputs from diverse ones.
+The $a_k$ framework provides a text-level alternative: collapse should appear as a drop in $a_\infty$ on the agent's own outputs, independent of reward structure.
+
+\paragraph{Diversity evaluation benchmarks.}
+\citet{tevet2020evaluating} introduced the first systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels.
+We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.
+More recent work has revisited the meta-evaluation problem.
+NoveltyBench \citep{zhang2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples), conceptually close to our mode count.
+However, their ground truth is itself a trained classifier (79\% accuracy), making it unclear whether correlation with their labels validates a metric or merely measures agreement between two model-based scores.
+\citet{zhang2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
+\citet{guo2024linguistic} benchmark linguistic diversity of LLMs, extending Tevet and Berant's framework to a broader set of generation tasks.
+

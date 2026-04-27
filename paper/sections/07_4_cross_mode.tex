@@ -1,0 +1,109 @@
+\subsection{Cross-Mode Learning and Curve Shape}\label{sec:cross-mode-learning}
+
+The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate.
+GPT-2 shows this pattern at $m=10$.
+Qwen2.5-3B does not: it shows immediate exponential decay at all $m$.
+This section investigates the discrepancy through systematic pairwise analysis.
+
+\paragraph{Pairwise cross-mode surprise matrix.} For 15 modes, we compute a $15 \times 15$ matrix $M_{ij}$: the surprise reduction (in bits) when a response from mode $j$ is in the context and mode $i$ is the target.
+Diagonal entries measure same-mode learning; off-diagonal entries measure cross-mode information transfer.
+Each entry averages over 5 context--target samples (using different samples for context and target to avoid self-prediction inflation).
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{pairwise_matrix_heatmap.png}
+    \caption{Qwen2.5-3B: positive off-diagonal.}
+    \label{fig:pairwise-qwen}
+\end{subfigure}
+
+\vspace{1.5em}
+
+\begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{gpt2/pairwise_matrix_heatmap.png}
+    \caption{GPT-2: negative off-diagonal.}
+    \label{fig:pairwise-gpt2}
+\end{subfigure}
+\caption{Pairwise cross-mode surprise reduction matrices.
+Each cell $(i,j)$ shows how many bits of surprise reduction mode $i$ (target) receives from seeing mode $j$ (context).
+Qwen shows diagonal dominance with pervasive positive off-diagonal (\crossmodeQwenOffMean{} bits mean); GPT-2 shows diagonal dominance with negative off-diagonal (\crossmodeGPTOffMean{} bits mean).}
+\label{fig:pairwise-matrices}
+\end{figure}
+
+\paragraph{Results.} (Cell standard deviations are the mean within-cell sampling std across the \crossmodeNumModes{} diagonal or \crossmodeNumOffPairs{} off-diagonal matrix cells, each estimated from 5 context-target sample pairs.)
+\begin{itemize}[nosep]
+    \item \textbf{Qwen2.5-3B}: diagonal mean = $\crossmodeQwenDiagMean \pm \crossmodeQwenDiagStd$ bits, off-diagonal mean = $\crossmodeQwenOffMean \pm \crossmodeQwenOffStd$ bits, \crossmodeQwenOffPctPos\% of off-diagonal entries positive.
+    \item \textbf{GPT-2}: diagonal mean = $\crossmodeGPTDiagMean \pm \crossmodeGPTDiagStd$ bits, off-diagonal mean = $\crossmodeGPTOffMean$ bits, only \crossmodeGPTOffPctPos\% of off-diagonal entries positive.
+\end{itemize}
+
+The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwise-matrices}):
+\begin{itemize}[nosep]
+    \item \textbf{Positive off-diagonal (Qwen)}: Every response helps predict every other response through format calibration and topic priming.
+The $a_k$ curve drops from position 1, producing exponential decay.
+    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions.
+At $m=10$, the expected first-step net drop under the additive independent-mode model is only $\crossmodeGPTFirstStepDrop$ bits (the \crossmodeGPTDiagGainMten{}-bit diagonal gain from the $1/m$ same-mode chance is largely offset by the $\crossmodeGPTCrossDamageMten$-bit cross-mode damage from the $(m{-}1)/m$ different-mode chance), producing a flat plateau until same-mode repetitions accumulate, the predicted sigmoid.
+\end{itemize}
+
+\paragraph{From pairwise matrix to full curve.} The sign-of-off-diagonal calculation above recovers the qualitative shape difference between Qwen and GPT-2 from pairwise measurements alone.
+Extending to the full $a_k$ curve at $m>1$ requires modeling information overlap across repeated encounters --- structure that pairwise (single-encounter) measurements do not capture.
+Additive and fractional decompositions of the pairwise matrix both fail in instructive ways but neither is load-bearing for our thesis; we omit the details.
+
+\paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is \crossmodeAsymmetryMean{} bits ($\crossmodeAsymmetryRatio\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}).
+This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{pairwise_symmetry.png}
+\caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$.
+Under symmetric mutual information, points would lie on $y = x$.
+The best-fit slope is \scalingSymSlopeQwen{} ($R^2 = \scalingSymRsqQwen$), and many pairs have opposite signs: mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
+\label{fig:pairwise-symmetry}
+\end{figure}
+
+\paragraph{Connections to information-theoretic properties.} Two information-theoretic properties are relevant to interpreting the pairwise matrix:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Non-negative conditioning} ($H(X) \geq H(X \mid Y)$): Under the true distribution, conditioning can never increase entropy on average.
+For cross-entropies this is not guaranteed (the KL term can increase), but a well-calibrated $\theta$ should show mostly non-negative off-diagonal entries.
+    \item \textbf{Symmetry of mutual information} ($I(X;Y) = I(Y;X)$): Under the true joint, row means (how informative mode $i$ is as context) should correlate with column means (how much mode $i$ benefits from context).
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{pairwise_row_vs_col.png}
+    \caption{Qwen2.5-3B: slope = \scalingRCSlopeQwen{}, $R^2 = \scalingRCRsqQwen$.}
+    \label{fig:rowcol-qwen}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{gpt2/pairwise_row_vs_col.png}
+    \caption{GPT-2: slope = \scalingRCSlopeGPT{}, $R^2 = \scalingRCRsqGPT$.}
+    \label{fig:rowcol-gpt2}
+\end{subfigure}
+\caption{Row mean (how informative as context) vs.\ column mean (how much benefit from context) for each mode.
+Qwen shows tighter correlation closer to the identity, consistent with approximate symmetry of mutual information.
+GPT-2 shows widespread violations of non-negative conditioning (modes in the negative-row-mean region).}
+\label{fig:row-vs-col}
+\end{figure}
+
+Figure~\ref{fig:row-vs-col} compares the two models.
+Qwen shows a tighter row--column relationship (slope = \scalingRCSlopeQwen{}, $R^2 = \scalingRCRsqQwen$) with only \crossmodeQwenNegColCount{} of \crossmodeNumModes{} modes having a negative column mean.
+GPT-2 shows widespread violations of non-negative conditioning (\crossmodeGPTNegColCount{} modes with negative column means) and a barely-existent row--column relationship (slope = \scalingRCSlopeGPT{}, $R^2 = \scalingRCRsqGPT$).
+With only two base models tested, we have suggestive but not conclusive evidence that stronger models better satisfy these information-theoretic properties.
+
+\paragraph{Token-level mechanisms.} Per-token attribution analysis reveals two mechanisms for cross-mode surprise reduction:
+\begin{itemize}[nosep]
+    \item \textbf{Format calibration} (front-loaded): Seeing any structured response recalibrates the model's expectations about what follows ``Response B:''.
+This effect concentrates in the first few tokens of the target response; the per-pair magnitude varies widely (positive for most cross-mode pairs, negative when the context format actively conflicts with the target).
+    \item \textbf{Topic/vocabulary priming} (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode.
+This contribution is spread across the target response rather than concentrated at the start.
+\end{itemize}
+
+\paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent.
+For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes.
+The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals.
+If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves, but confirming this requires testing additional base models of varying sizes.
+

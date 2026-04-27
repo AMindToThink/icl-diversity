@@ -1,0 +1,14 @@
+Measuring the diversity of language-model outputs is central to evaluating mode collapse from post-training, comparing decoding strategies, and quantifying creative behavior.
+Existing diversity metrics rely on embedding-space distances or surface-level $n$-gram statistics, both of which can conflate genuine content diversity with lexical or representational artifacts.
+We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses.
+This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities.
+We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
+Their product $D_{Ca_n} = C \times a_n$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
+It does not reward noise.
+It works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
+We validate the metric on four fronts.
+On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics.
+Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
+On the OLMo-2-7B post-training pipeline, the metric detects diversity loss across the base–SFT–DPO–RLVR stages.
+A cross-model scaling study shows that larger base models extract more cross-mode information from the same outputs.
+Together, these results show that progressive conditional surprise is a principled complement to embedding- and $n$-gram-based diversity metrics, particularly for diagnosing mode collapse from post-training.

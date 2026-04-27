@@ -1,0 +1,41 @@
+\subsection{Discussion}\label{sec:exp-discussion}
+
+\paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.} $\sigma_\ell$ increased monotonically with $m$ in our synthetic experiments because our modes have very different formats (code vs.\ haiku vs.\ recipe $\to$ different per-byte cross-entropies).
+But $\sigma_\ell$ measures coherence \emph{heterogeneity}, not diversity: modes with similar fluency would have low $\sigma_\ell$ despite high diversity, and a single mode with high quality variance could have high $\sigma_\ell$ with zero diversity.
+Its role is diagnostic (detecting mixed coherence), not as a standalone diversity score.
+
+\paragraph{Cross-mode learning is model-dependent.} The off-diagonal sign determines curve shape, and this sign depends on $\theta$'s ICL capability.
+The metric's behavior is entangled with $\theta$'s capabilities in ways theory did not anticipate.
+Stronger models may produce systematically different $a_k$ curves for the same response set, not because the responses changed, but because $\theta$ detects more cross-mode structure.
+
+\paragraph{Cross-mode information scales with model quality.} To test this, we run the pairwise matrix experiment on \scalingNumLlamaModels{} dense Llama models (1B, 3B, 8B, 70B) using the same \crossmodeNumModes{} modes and 5 samples per mode.
+Figure~\ref{fig:scaling-crossmode} shows the results.
+The off-diagonal mean increases monotonically with model size: $\scalingOffDiagLlamaOneB$ (1B), $\scalingOffDiagLlamaThreeB$ (3B), $\scalingOffDiagLlamaEightB$ (8B), $\scalingOffDiagLlamaSeventyB$ (70B) bits, transitioning from negative (cross-mode context hurts) to positive (cross-mode context helps).
+The fraction of positive off-diagonal entries follows the same monotone trend: \scalingFracPosLlamaOneB\%, \scalingFracPosLlamaThreeB\%, \scalingFracPosLlamaEightB\%, \scalingFracPosLlamaSeventyB\%.
+Since there are $n(n{-}1) = \crossmodeNumOffPairs$ off-diagonal pairs vs.\ $n = \crossmodeNumModes$ diagonal entries, cross-mode information transfer dominates the $a_k$ curve's behavior at high $m$.
+This hypothesis was pre-registered before running any Llama models, and the probability of accidental monotonicity across \scalingNumLlamaModels{} models under the null is $1/\scalingNumLlamaModels! \approx \scalingFactorialProbPct\%$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{scaling_comparison/paper_scaling_figure.pdf}
+\caption{Cross-mode information transfer scales with model size. \textbf{Left}: Mean off-diagonal surprise reduction (with bootstrap 95\% CI) transitions from negative to positive as models grow, indicating that larger models extract more information from cross-mode context. \textbf{Right}: The fraction of mode pairs showing positive cross-mode transfer increases monotonically across the \scalingNumLlamaModels{} Llama models (blue; $p = \scalingFactorialProbPct\%$ under monotone null).
+GPT-2 and Qwen2.5-3B (gray) are included for context but differ in architecture.}
+\label{fig:scaling-crossmode}
+\end{figure}
+
+\paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent.
+This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay).
+The current method takes $a_\infty \approx a_n$ (Section~\ref{sec:scalar}); the sigmoid form is retained only as a theoretical model of the curve shape (Appendix~\ref{app:k0-derivation}), not as an estimator.
+
+\paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (its OCA trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% across the nine binary tasks), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity).
+The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities.
+We tested whether scaling the base model closes the gap with SentBERT by re-running the evaluation with Qwen3-30B-A3B-Base, a mixture-of-experts model with 30B total parameters and $\sim$3B active per token (see Appendix~\ref{app:qwen3-comparison}).
+It does not: on the binary McDiv/ConTest tasks, the larger model is slightly \emph{worse} than Qwen2.5-3B (mean $\qwenThreeBinaryMeanDeltaAUC$ AUC across \qwenThreeBinaryTotal{} binary tasks), though it is mildly better on the continuous DecTest temperature labels.
+We interpret this as evidence that the binary human labels are coarse enough to be saturated for our metric at the 3B scale.
+Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
+
+\paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{Ca_n} = C \times a_n$ is one natural summary of it among many.
+Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
+Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
+We have not explored this space systematically; we focus on $D_{Ca_n}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
+
