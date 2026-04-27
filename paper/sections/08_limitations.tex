@@ -36,5 +36,5 @@ We tested this directly by re-running the experiment with every response truncat
 The monotone $D$ drop survives length-matching on both prompt sets, with all three pre-registered H1 contrasts (H1a, H1b, H1c) remaining Bonferroni-significant at $p<0.001$ and effect sizes of the same order of magnitude as the raw analysis.
 The single qualification is that $111/300$ prompts had a per-prompt common length below 50 bytes --- driven by the base model on AlpacaEval (no instruction-following prior) and by SFT on NB-curated short-answer prompts --- and were dropped because length-matching them would compare essentially-empty fragments.
 The length-matched effect therefore conditions on prompts where length-matching is well-defined ($150/200$ AlpacaEval, $39/100$ NB-curated).
-Full numbers and reproduction commands are in \texttt{investigations/length\_matched\_rlhf/VERDICT.md}.
+Full numbers and reproduction commands are in \path{investigations/length_matched_rlhf/VERDICT.md}.
 

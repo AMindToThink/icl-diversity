@@ -3,7 +3,7 @@
 To test whether a stronger base model improves the metric on Tevet's benchmarks, we re-ran the full evaluation using Qwen3-30B-A3B-Base (a 30B-parameter mixture-of-experts model with $\sim$3B active parameters per token) via the Tinker API, with the same setup as in Section~\ref{sec:tevet}: completion-format prompting, 50 permutations, no fine-tuning.
 Table~\ref{tab:qwen3-comparison} reports per-task $C \times a_n$ (per-byte) for both base models.
 
-\begin{table*}[h]
+\begin{table*}[!t]
 \centering
 \caption{Per-task comparison of $C \times a_n$ (per-byte) for Qwen2.5-3B vs Qwen3-30B-A3B-Base on Tevet diversity-eval. $\Delta$AUC is positive when the larger model wins.
 ROC AUC is reported for the binary tasks (McDiv, McDiv\_nuggets, ConTest); only Spearman $\rho$ is meaningful for DecTest (continuous temperature labels).}

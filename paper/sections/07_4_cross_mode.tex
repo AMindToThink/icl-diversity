@@ -53,14 +53,14 @@ Additive and fractional decompositions of the pairwise matrix both fail in instr
 \paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is \crossmodeAsymmetryMean{} bits ($\crossmodeAsymmetryRatio\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}).
 This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
 
-\begin{figure*}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.5\textwidth]{pairwise_symmetry.png}
+\includegraphics[width=\columnwidth]{pairwise_symmetry.png}
 \caption{Pairwise symmetry scatter for Qwen2.5-3B: each point is one $(i,j)$ pair, plotting $M_{ij}$ vs.\ $M_{ji}$.
 Under symmetric mutual information, points would lie on $y = x$.
 The best-fit slope is \scalingSymSlopeQwen{} ($R^2 = \scalingSymRsqQwen$), and many pairs have opposite signs: mode $i$ can reduce surprise for mode $j$ while $j$ \emph{increases} surprise for $i$.}
 \label{fig:pairwise-symmetry}
-\end{figure*}
+\end{figure}
 
 \paragraph{Connections to information-theoretic properties.} Two information-theoretic properties are relevant to interpreting the pairwise matrix:
 

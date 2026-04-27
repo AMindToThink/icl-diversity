@@ -172,7 +172,7 @@ These limitations are the reason $D_{Ca_n}$ is preferred as the primary score: $
 \paragraph{Empirical inferiority.} On Tevet's diversity-eval benchmark with only 5 responses per set (Section~\ref{sec:tevet}), $C \times a_n$ achieves ROC AUC of \tevetMcDivNugPromptGenCxAnAUC{} on McDiv\_nuggets prompt\_gen while the $D_{\mathrm{fit}} = C \times E_{\mathrm{fit}}$ variant cannot be computed at all (the four-parameter sigmoid fails to converge on only five points) and the discretized $D_{\mathrm{disc}}$ variant is anti-correlated with diversity (AUC = \tevetMcDivNugPromptGenDdiscAUC{}, well below chance).
 Figure~\ref{fig:roc-curves} shows the ROC curves.
 
-\begin{figure*}[h]
+\begin{figure*}[!t]
 \centering
 \includegraphics[width=\textwidth]{tevet_validation/c_ainf_analysis_v3/roc_curves_mcdiv_nuggets.png}
 \caption{ROC curves for McDiv\_nuggets binary classification (Qwen2.5-3B, 50 permutations).
@@ -205,28 +205,28 @@ We did not use either strategy in our experiments.
 In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), the sigmoid-extrapolated $E_{\mathrm{fit}}$ is monotonic in mode count for Qwen2.5-3B but has wide confidence intervals at high $m$, while the raw $\hat{E}_n$ estimator is non-monotonic.
 Table~\ref{tab:mode-count} and Figure~\ref{fig:metrics-vs-m} show the details.
 
-\begin{table*}[h]
+\begin{table}[!htbp]
 \centering
 \caption{Mode count scaling metrics for Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=\modeCountNResponses$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point.
 Confidence intervals are 95\% bootstrap.}
 \label{tab:mode-count}
 \small
 \input{../results/tables/mode_count_scaling.tex}
-\end{table*}
+\end{table}
 
-\begin{figure*}[h]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
+\includegraphics[width=\columnwidth]{mode_count/qwen2.5-3b/metrics_vs_m.png}
 \caption{Summary metrics vs.\ mode count $m$ (Qwen2.5-3B, $n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ (sigmoid-extrapolated) increases monotonically, while the raw $\hat{E}_n$ does not.}
 \label{fig:metrics-vs-m}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[h]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.6\textwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
+\includegraphics[width=\columnwidth]{mode_count/qwen2.5-3b/fit_params_vs_m.png}
 \caption{Sigmoid fit parameters vs.\ mode count $m$ (Qwen2.5-3B).
 The inflection point $k_0$ remains at the lower bound ($-10$) across all $m$, indicating pure exponential decay without an initial plateau (see Section~\ref{sec:cross-mode-learning}).}
 \label{fig:fit-params}
-\end{figure*}
+\end{figure}
 
 \input{../results/tables/confound_examples.tex}
