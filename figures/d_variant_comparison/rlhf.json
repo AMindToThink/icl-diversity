@@ -1,0 +1,654 @@
+{
+  "raw": {
+    "stage_means": {
+      "alpacaeval": {
+        "base": {
+          "n": 200.0,
+          "D_hybrid_mean": 186.49923723405766,
+          "D_hybrid_std": 44.190257956710134,
+          "D_pb_RoM_mean": 0.4685882943398749,
+          "D_pb_RoM_std": 0.04865725247033257,
+          "D_pb_MoR_mean": 0.48776152699745096,
+          "D_pb_MoR_std": 0.04490756417625004,
+          "a_n_total_mean": 401.4767578125,
+          "a_n_pb_RoM_mean": 1.0311462270977731,
+          "a_n_pb_MoR_mean": 1.0814998035898014
+        },
+        "sft": {
+          "n": 200.0,
+          "D_hybrid_mean": 129.4571813134919,
+          "D_hybrid_std": 43.29378640582861,
+          "D_pb_RoM_mean": 0.3202250776210859,
+          "D_pb_RoM_std": 0.07466190378794572,
+          "D_pb_MoR_mean": 0.3298498572214131,
+          "D_pb_MoR_std": 0.09250083838616625,
+          "a_n_total_mean": 187.76855791015626,
+          "a_n_pb_RoM_mean": 0.476788541493933,
+          "a_n_pb_MoR_mean": 0.4955706065688654
+        },
+        "dpo": {
+          "n": 200.0,
+          "D_hybrid_mean": 134.57452636280556,
+          "D_hybrid_std": 34.163078757454805,
+          "D_pb_RoM_mean": 0.2883840360636755,
+          "D_pb_RoM_std": 0.0642607253646527,
+          "D_pb_MoR_mean": 0.29021468890072055,
+          "D_pb_MoR_std": 0.06820733516440315,
+          "a_n_total_mean": 187.4876265625,
+          "a_n_pb_RoM_mean": 0.40541961351905814,
+          "a_n_pb_MoR_mean": 0.4093796886538205
+        },
+        "instruct": {
+          "n": 200.0,
+          "D_hybrid_mean": 131.24988118526383,
+          "D_hybrid_std": 35.85231286397111,
+          "D_pb_RoM_mean": 0.2830389883979616,
+          "D_pb_RoM_std": 0.06542359674429724,
+          "D_pb_MoR_mean": 0.2854858824695684,
+          "D_pb_MoR_std": 0.07083537948832175,
+          "a_n_total_mean": 182.1437451171875,
+          "a_n_pb_RoM_mean": 0.3974129676628337,
+          "a_n_pb_MoR_mean": 0.4020020238455861
+        }
+      },
+      "nbcurated": {
+        "base": {
+          "n": 100.0,
+          "D_hybrid_mean": 194.53441317132183,
+          "D_hybrid_std": 24.03705824037207,
+          "D_pb_RoM_mean": 0.48533636871220087,
+          "D_pb_RoM_std": 0.03218878859280564,
+          "D_pb_MoR_mean": 0.4976803595973472,
+          "D_pb_MoR_std": 0.029801124082924547,
+          "a_n_total_mean": 437.56797187500007,
+          "a_n_pb_RoM_mean": 1.0972908730254676,
+          "a_n_pb_MoR_mean": 1.1271157373476957
+        },
+        "sft": {
+          "n": 100.0,
+          "D_hybrid_mean": 82.62019263895638,
+          "D_hybrid_std": 51.26911919066695,
+          "D_pb_RoM_mean": 0.33037177066991236,
+          "D_pb_RoM_std": 0.08679625821213943,
+          "D_pb_MoR_mean": 0.38447906264518705,
+          "D_pb_MoR_std": 0.08922251621120993,
+          "a_n_total_mean": 133.4998046875,
+          "a_n_pb_RoM_mean": 0.5905898669768986,
+          "a_n_pb_MoR_mean": 0.7824569401207556
+        },
+        "dpo": {
+          "n": 100.0,
+          "D_hybrid_mean": 119.25953633998647,
+          "D_hybrid_std": 45.56934314368269,
+          "D_pb_RoM_mean": 0.29918876060086463,
+          "D_pb_RoM_std": 0.07454231053588098,
+          "D_pb_MoR_mean": 0.3181542533350901,
+          "D_pb_MoR_std": 0.07332567822417045,
+          "a_n_total_mean": 174.40037031249997,
+          "a_n_pb_RoM_mean": 0.484092490017974,
+          "a_n_pb_MoR_mean": 0.5506508521658409
+        },
+        "instruct": {
+          "n": 100.0,
+          "D_hybrid_mean": 105.78969403659463,
+          "D_hybrid_std": 50.123522443261116,
+          "D_pb_RoM_mean": 0.2829389703657882,
+          "D_pb_RoM_std": 0.07307239354545068,
+          "D_pb_MoR_mean": 0.3145134167851453,
+          "D_pb_MoR_std": 0.08599827131522672,
+          "a_n_total_mean": 153.27827226562502,
+          "a_n_pb_RoM_mean": 0.49825410032583256,
+          "a_n_pb_MoR_mean": 0.6096797322304421
+        }
+      }
+    },
+    "orderings": {
+      "alpacaeval": {
+        "D_hybrid": {
+          "n_pairs": 6,
+          "n_correct": 4,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              false
+            ],
+            [
+              "sft",
+              "instruct",
+              false
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_RoM": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_MoR": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        }
+      },
+      "nbcurated": {
+        "D_hybrid": {
+          "n_pairs": 6,
+          "n_correct": 4,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              false
+            ],
+            [
+              "sft",
+              "instruct",
+              false
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_RoM": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_MoR": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "length_matched": {
+    "stage_means": {
+      "alpacaeval": {
+        "base": {
+          "n": 150.0,
+          "D_hybrid_mean": 98.54590805122022,
+          "D_hybrid_std": 56.36582733341082,
+          "D_pb_RoM_mean": 0.4805512890863234,
+          "D_pb_RoM_std": 0.03777176284313034,
+          "D_pb_MoR_mean": 0.4805652021208951,
+          "D_pb_MoR_std": 0.03777145491480251,
+          "a_n_total_mean": 218.93905416666666,
+          "a_n_pb_RoM_mean": 1.1418037776442225,
+          "a_n_pb_MoR_mean": 1.1418359512393301
+        },
+        "sft": {
+          "n": 150.0,
+          "D_hybrid_mean": 65.98309040270716,
+          "D_hybrid_std": 38.60201887180812,
+          "D_pb_RoM_mean": 0.3291706107029273,
+          "D_pb_RoM_std": 0.08362322428531513,
+          "D_pb_MoR_mean": 0.3291738553548859,
+          "D_pb_MoR_std": 0.08362426922932142,
+          "a_n_total_mean": 99.09396927083333,
+          "a_n_pb_RoM_mean": 0.5124624154338615,
+          "a_n_pb_MoR_mean": 0.5124670528340604
+        },
+        "dpo": {
+          "n": 150.0,
+          "D_hybrid_mean": 58.81820494665923,
+          "D_hybrid_std": 37.5920776800708,
+          "D_pb_RoM_mean": 0.28566977856081455,
+          "D_pb_RoM_std": 0.07221946262488678,
+          "D_pb_MoR_mean": 0.28567100569722054,
+          "D_pb_MoR_std": 0.07221946902594963,
+          "a_n_total_mean": 85.36084791666666,
+          "a_n_pb_RoM_mean": 0.4269729291700927,
+          "a_n_pb_MoR_mean": 0.4269747045044549
+        },
+        "instruct": {
+          "n": 150.0,
+          "D_hybrid_mean": 57.785705299695934,
+          "D_hybrid_std": 37.149578839989175,
+          "D_pb_RoM_mean": 0.2810590376636979,
+          "D_pb_RoM_std": 0.07140032293401855,
+          "D_pb_MoR_mean": 0.28106173339075136,
+          "D_pb_MoR_std": 0.07140060015139281,
+          "a_n_total_mean": 83.80880677083333,
+          "a_n_pb_RoM_mean": 0.419213069501142,
+          "a_n_pb_MoR_mean": 0.4192168007463129
+        }
+      },
+      "nbcurated": {
+        "base": {
+          "n": 39.0,
+          "D_hybrid_mean": 61.81069386183125,
+          "D_hybrid_std": 41.805840417268776,
+          "D_pb_RoM_mean": 0.48125925790772345,
+          "D_pb_RoM_std": 0.030321445910383004,
+          "D_pb_MoR_mean": 0.4813814844942797,
+          "D_pb_MoR_std": 0.030213227673558885,
+          "a_n_total_mean": 153.04548076923072,
+          "a_n_pb_RoM_mean": 1.2574702832386278,
+          "a_n_pb_MoR_mean": 1.257810956840931
+        },
+        "sft": {
+          "n": 39.0,
+          "D_hybrid_mean": 45.903443985037235,
+          "D_hybrid_std": 30.472684114428667,
+          "D_pb_RoM_mean": 0.3690464432856898,
+          "D_pb_RoM_std": 0.08465020798783879,
+          "D_pb_MoR_mean": 0.36904644328568986,
+          "D_pb_MoR_std": 0.08465020798783879,
+          "a_n_total_mean": 75.84032852564103,
+          "a_n_pb_RoM_mean": 0.6421771209082741,
+          "a_n_pb_MoR_mean": 0.6421771209082741
+        },
+        "dpo": {
+          "n": 39.0,
+          "D_hybrid_mean": 39.65734325633655,
+          "D_hybrid_std": 28.16977226039336,
+          "D_pb_RoM_mean": 0.3122381683693911,
+          "D_pb_RoM_std": 0.08226668343885755,
+          "D_pb_MoR_mean": 0.3122699543092335,
+          "D_pb_MoR_std": 0.08226526067886299,
+          "a_n_total_mean": 62.11641025641024,
+          "a_n_pb_RoM_mean": 0.5184265485827443,
+          "a_n_pb_MoR_mean": 0.518478191180249
+        },
+        "instruct": {
+          "n": 39.0,
+          "D_hybrid_mean": 38.36103908670544,
+          "D_hybrid_std": 27.298925118768004,
+          "D_pb_RoM_mean": 0.30270739152584697,
+          "D_pb_RoM_std": 0.08596285221661142,
+          "D_pb_MoR_mean": 0.3027308320381553,
+          "D_pb_MoR_std": 0.08596718714547996,
+          "a_n_total_mean": 59.82842147435898,
+          "a_n_pb_RoM_mean": 0.503804170615225,
+          "a_n_pb_MoR_mean": 0.503844391290144
+        }
+      }
+    },
+    "orderings": {
+      "alpacaeval": {
+        "D_hybrid": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_RoM": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_MoR": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        }
+      },
+      "nbcurated": {
+        "D_hybrid": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_RoM": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        },
+        "D_pb_MoR": {
+          "n_pairs": 6,
+          "n_correct": 6,
+          "details": [
+            [
+              "base",
+              "sft",
+              true
+            ],
+            [
+              "base",
+              "dpo",
+              true
+            ],
+            [
+              "base",
+              "instruct",
+              true
+            ],
+            [
+              "sft",
+              "dpo",
+              true
+            ],
+            [
+              "sft",
+              "instruct",
+              true
+            ],
+            [
+              "dpo",
+              "instruct",
+              true
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

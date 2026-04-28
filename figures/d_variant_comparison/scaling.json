@@ -1,0 +1,47 @@
+{
+  "gpt2": {
+    "n_modes": 15,
+    "diag_mean_bits": 83.03917429606119,
+    "off_diag_mean_bits": -3.743342030843099,
+    "off_diag_frac_pos_bits": 0.3047619047619048,
+    "diag_mean_pb": 0.5911528941670031,
+    "off_diag_mean_pb": -0.030306232910752195,
+    "off_diag_frac_pos_pb": 0.3047619047619048
+  },
+  "llama_3_1_70b": {
+    "n_modes": 15,
+    "diag_mean_bits": 59.020791079203285,
+    "off_diag_mean_bits": 2.132376883370536,
+    "off_diag_frac_pos_bits": 0.6285714285714286,
+    "diag_mean_pb": 0.4311200263232737,
+    "off_diag_mean_pb": 0.012594794577301243,
+    "off_diag_frac_pos_pb": 0.6285714285714286
+  },
+  "llama_3_1_8b": {
+    "n_modes": 15,
+    "diag_mean_bits": 63.01706732432047,
+    "off_diag_mean_bits": -1.2057404727027528,
+    "off_diag_frac_pos_bits": 0.4380952380952381,
+    "diag_mean_pb": 0.4573236637698674,
+    "off_diag_mean_pb": -0.012478842229674462,
+    "off_diag_frac_pos_pb": 0.44761904761904764
+  },
+  "llama_3_2_1b": {
+    "n_modes": 15,
+    "diag_mean_bits": 72.04398193359376,
+    "off_diag_mean_bits": -4.857804027739025,
+    "off_diag_frac_pos_bits": 0.2523809523809524,
+    "diag_mean_pb": 0.5249227954108605,
+    "off_diag_mean_pb": -0.03565092867271892,
+    "off_diag_frac_pos_pb": 0.2571428571428571
+  },
+  "llama_3_2_3b": {
+    "n_modes": 15,
+    "diag_mean_bits": 66.9022084681193,
+    "off_diag_mean_bits": -1.3512955075218565,
+    "off_diag_frac_pos_bits": 0.4095238095238095,
+    "diag_mean_pb": 0.48263863934113155,
+    "off_diag_mean_pb": -0.013561211560449045,
+    "off_diag_frac_pos_pb": 0.41904761904761906
+  }
+}
