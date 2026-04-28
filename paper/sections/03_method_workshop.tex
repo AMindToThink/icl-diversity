@@ -42,23 +42,24 @@ The scalar score is the product:
     D_{Ca_n} = C \times a_n \quad \text{(bits/byte).}
 \end{equation}
 It can be read as ``how many bits of surprise per byte remain after $\theta$ has learned everything it can from the other responses, weighted by output plausibility.''
-The five edge-case behaviors are summarized in Table~\ref{tab:edge-cases}.
+The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}; empirical metric values on synthetic instances of each scenario appear in Appendix~\ref{sec:scenario-validation} (Table~\ref{tab:scenarios}).
 
 \begin{table}[t]
 \centering
 \small
-\caption{Edge-case behavior of $D_{Ca_n} = C \times a_n$.
-The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and correctly suppresses single-mode and paraphrase sets (via $a_n$).}
+\caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five appendix scenarios (Appendix~\ref{sec:scenario-validation}).
+The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and correctly suppresses one-mode sets (via $a_n$); multi-mode coherent is the intended winner.
+Empirical numbers under GPT-2 and Qwen2.5-3B appear in Table~\ref{tab:scenarios}.}
 \label{tab:edge-cases}
 \begin{tabular}{@{}lccc@{}}
 \toprule
-Scenario & $C$ & $a_n$ & $D_{Ca_n}$ \\
+Scenario              & $C$  & $a_n$ & $D_{Ca_n}$       \\
 \midrule
-Pure noise                   & $\approx 0$ & high   & $\approx 0$ \\
-Multi-mode, incoherent       & low         & high   & low (via $C$) \\
-Multi-mode, coherent         & high        & high   & \textbf{high} \\
-One coherent mode            & high        & low    & $\approx 0$ \\
-Coherent paraphrases         & high        & low    & low (via $a_n$) \\
+Pure noise            & low  & high  & low (via $C$)    \\
+Multi-mode incoherent & low  & high  & low (via $C$)    \\
+Multi-mode coherent   & high & high  & \textbf{high}    \\
+One-mode              & high & low   & low (via $a_n$)  \\
+Mixed                 & mid  & high  & mid              \\
 \bottomrule
 \end{tabular}
 \end{table}
