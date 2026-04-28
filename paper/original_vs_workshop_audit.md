@@ -1,14 +1,14 @@
-# Canonical vs Workshop Audit
+# Original vs Workshop Audit
 
-Generated 2026-04-27. Compares `paper/in_context_diversity_metric.tex` (canonical
+Generated 2026-04-27. Compares `paper/in_context_diversity_metric.tex` (original
 journal-track wrapper) against `paper/main_icml_workshop.tex` (Human-AI
 Co-Creativity @ ICML 2026 workshop wrapper). Both built from the shared
 `paper/sections/*.tex` source pool, with five workshop-specific variants
-(`*_workshop.tex`) overriding their canonical counterparts.
+(`*_workshop.tex`) overriding their original counterparts.
 
 ## Snapshot
 
-| Dimension | Canonical | Workshop |
+| Dimension | Original | Workshop |
 |---|---|---|
 | Document class | `article` (11pt, 1in margin) | `icml2026` (loaded over `article`) |
 | Layout | single column | two column (via `\twocolumn[...]`) |
@@ -47,22 +47,22 @@ by the wrapper's column count):
 
 ## Section-by-section: what's where
 
-| Section file | Canonical | Workshop | Notes |
+| Section file | Original | Workshop | Notes |
 |---|---|---|---|
-| `abstract` / `abstract_workshop` | main body | main body (variant) | workshop is 164w (canonical 303w, −46%) |
-| `01_motivation` / `01_motivation_workshop` | main body | main body (variant) | workshop is 766w (canonical 1059w, −28%) |
+| `abstract` / `abstract_workshop` | main body | main body (variant) | workshop is 164w (original 303w, −46%) |
+| `01_motivation` / `01_motivation_workshop` | main body | main body (variant) | workshop is 766w (original 1059w, −28%) |
 | `02_setup` | main body | main body | shared |
 | `03_progressive_conditioning` | main body | **dropped from main body** | folded into workshop's `03_method_workshop` |
 | `04_coherence` | main body | **dropped from main body** | folded into workshop's `03_method_workshop` |
 | `05_reporting` | main body | **dropped from main body** | partial fold into `03_method_workshop`; rest dropped |
-| `03_method_workshop` (NEW) | not used | main body | combined +compressed §3+§4+§5 (706 words; the three canonical sources sum to 2352w, −70%) |
+| `03_method_workshop` (NEW) | not used | main body | combined +compressed §3+§4+§5 (706 words; the three original sources sum to 2352w, −70%) |
 | `06_practical` | main body | **appendix** | |
 | `07_experiments_intro` | main body | **appendix** | |
 | `07_2_scenario_validation` | main body | **appendix** | |
 | `07_3_mode_count` | main body | **appendix** | |
 | `07_4_cross_mode` | main body | **appendix** | |
-| `07_5_tevet` / `07_5_tevet_workshop` | main body | main body (variant) | workshop is 576w (canonical 1065w, −46%); demotes DecTest to a single paragraph; promoted to `\section{}` |
-| `07_6_rlhf` / `07_6_rlhf_workshop` | main body | main body (variant) | workshop is 962w (canonical 1440w, −33%); promoted to `\section{}`; trims cross-model comparison |
+| `07_5_tevet` / `07_5_tevet_workshop` | main body | main body (variant) | workshop is 576w (original 1065w, −46%); demotes DecTest to a single paragraph; promoted to `\section{}` |
+| `07_6_rlhf` / `07_6_rlhf_workshop` | main body | main body (variant) | workshop is 962w (original 1440w, −33%); promoted to `\section{}`; trims cross-model comparison |
 | `07_7_practical_findings` | main body | **appendix** | |
 | `07_8_discussion` | main body | **appendix** | |
 | `08_limitations` | main body | main body | shared |
@@ -71,25 +71,25 @@ by the wrapper's column count):
 | `acknowledgements` | main body | **omitted entirely** | double-blind requirement |
 | `appA`–`appE` | appendix | appendix | shared |
 
-Workshop drops 9 canonical main-body sections (or, more precisely, 7 of
+Workshop drops 9 original main-body sections (or, more precisely, 7 of
 them go to the workshop appendix; 3 are folded into the new
 `03_method_workshop` variant; 1 is dropped entirely — acknowledgements).
 
 ## Per-variant content deltas
 
-These are the only files where workshop prose differs from canonical
+These are the only files where workshop prose differs from original
 prose (i.e., the only places to audit for substantive content drift).
 
 ### `abstract_workshop` (vs `abstract`)
 
 - **Lead changes**: opens with the use case ("creativity researchers
   routinely need to compare diversity") instead of the field-pinning
-  sentence. Drops the canonical's "many- and few-draws regimes" framing
+  sentence. Drops the original's "many- and few-draws regimes" framing
   (a holdover from the historical $E$-vs-$D$ comparison; workshop is
   $D_{Ca_n}$-only).
 - **Anchor numbers**: same OLMo monotone-drop story and Tevet AUC, but
   reduced to one sentence each.
-- **Word count**: 164w (canonical 303w, −46%).
+- **Word count**: 164w (original 303w, −46%).
 
 ### `01_motivation_workshop` (vs `01_motivation`)
 
@@ -101,12 +101,12 @@ prose (i.e., the only places to audit for substantive content drift).
 - **Pipeline figure (`fig:pipeline`)**: same TikZ diagram, same caption.
 - **Contributions list**: dropped (compressed into one sentence in the
   opening paragraph).
-- **PMI/MMI prior-work contrast**: present in both (canonical has a full
+- **PMI/MMI prior-work contrast**: present in both (original has a full
   paragraph, workshop has a single-sentence pointer added in commit
   `e3782ab` to keep `li2016diversity` and `zhang2018aim` cited).
 - **"Evidence preview" / "Who should care" paragraphs**: present in
-  canonical, dropped in workshop.
-- **Word count**: 766w (canonical 1059w, −28%).
+  original, dropped in workshop.
+- **Word count**: 766w (original 1059w, −28%).
 
 ### `03_method_workshop` (combines `03_progressive_conditioning` + `04_coherence` + `05_reporting`)
 
@@ -117,22 +117,22 @@ prose (i.e., the only places to audit for substantive content drift).
   plus section labels `sec:progressive-conditioning`, `sec:coherence`,
   `sec:scalar` — cross-references from shared files (e.g.
   `08_limitations`, `10_related`) still resolve.
-- **Edge-case table**: included (the same 5-row content as canonical's
+- **Edge-case table**: included (the same 5-row content as original's
   edge-case enumeration, converted to a `table[t]`).
-- **Pile scale-anchor footnote**: present (commit `636bf21`); canonical's
+- **Pile scale-anchor footnote**: present (commit `636bf21`); original's
   parallel `\paragraph{Typical range of $C$}` was reframed identically
   in commit `acd038d`. Both wrappers carry the same corrected sentence
   inline.
-- **Dropped from canonical sources**: PMI/chain-rule motivation
-  (canonical §3.1, §3.3), the $(a_n, C, \sigma_\ell)$-triple discussion
-  (canonical §5), the coherence-heterogeneity subsection (canonical
-  §5.4), the diversity uncertainty band (canonical §5.4), the
-  "What to Report" subsection (canonical §5.5).
-- **Word count**: 706w; canonical sources sum to 2352w (−70%).
+- **Dropped from original sources**: PMI/chain-rule motivation
+  (original §3.1, §3.3), the $(a_n, C, \sigma_\ell)$-triple discussion
+  (original §5), the coherence-heterogeneity subsection (original
+  §5.4), the diversity uncertainty band (original §5.4), the
+  "What to Report" subsection (original §5.5).
+- **Word count**: 706w; original sources sum to 2352w (−70%).
 
 ### `07_5_tevet_workshop` (vs `07_5_tevet`)
 
-- **Promoted from `\subsection`** (under the canonical `\section{Experiments}`)
+- **Promoted from `\subsection`** (under the original `\section{Experiments}`)
   to `\section{}` in the workshop wrapper, since the workshop has no
   parent §7 Experiments umbrella.
 - **Lead reframed**: opens with what McDiv/ConTest *are* (human-grounded
@@ -143,7 +143,7 @@ prose (i.e., the only places to audit for substantive content drift).
 - **ConTest table**: kept as `table*[t]` (workshop) to span both columns.
 - **Construction-confound caveat**: kept as one-sentence pointer to
   Appendix C.
-- **Word count**: 576w (canonical 1065w, −46%).
+- **Word count**: 576w (original 1065w, −46%).
 
 ### `07_6_rlhf_workshop` (vs `07_6_rlhf`)
 
@@ -154,13 +154,13 @@ prose (i.e., the only places to audit for substantive content drift).
 - **Length-matched re-run + Pearson/Spearman**: kept as a `figure*[!htbp]`.
 - **AlpacaFarm prompt-source citation**: present (commit `546d177` —
   was an oversight in the original workshop trim).
-- **Cross-model comparison** (canonical's full table + discussion):
+- **Cross-model comparison** (original's full table + discussion):
   trimmed to a one-sentence pointer ("we defer the full cross-model
   table to a longer venue") so the cross-model table doesn't have to
   appear in the workshop.
 - **Released artefacts**: HF URL replaced with double-blind placeholder
-  via `\projectHfDatasetUrl` macro (real URL kept in canonical wrapper).
-- **Word count**: 962w (canonical 1440w, −33%).
+  via `\projectHfDatasetUrl` macro (real URL kept in original wrapper).
+- **Word count**: 962w (original 1440w, −33%).
 
 ## Citations
 
@@ -179,10 +179,10 @@ all resolved` for both, with zero unused entries in `refs.bib`.
 ## Anonymization deltas (workshop only)
 
 - `\projectGithubUrl` macro:
-  - Canonical: `\url{https://github.com/AMindToThink/icl-diversity}`
+  - Original: `\url{https://github.com/AMindToThink/icl-diversity}`
   - Workshop: `[code link withheld for double-blind review; an anonymous mirror is included in supplementary materials]`
 - `\projectHfDatasetUrl` macro:
-  - Canonical: `\url{https://huggingface.co/datasets/AMindToThink/olmo-2-1124-7b-four-stage-samples-rlhf-diversity}`
+  - Original: `\url{https://huggingface.co/datasets/AMindToThink/olmo-2-1124-7b-four-stage-samples-rlhf-diversity}`
   - Workshop: `[dataset link withheld for double-blind review; an anonymous mirror is included in supplementary materials]`
 - `acknowledgements.tex`: not `\input`'d by the workshop wrapper.
 - Author block: replaced with `\icmlauthor{Anonymous Authors}` /
@@ -207,7 +207,7 @@ Concretely (from commit history `770c13e` + `ef344f8`):
   width ≤ 0.6\textwidth, the pairwise-symmetry scatter, the small
   confound tables in Appendix C.
 
-The canonical doesn't make this distinction (single column throughout).
+The original doesn't make this distinction (single column throughout).
 
 ## What to read first if you only have 10 minutes
 
@@ -215,8 +215,8 @@ The canonical doesn't make this distinction (single column throughout).
    abstract → motivation → method → Tevet → OLMo → limitations → related.
    This is the actual submission content.
 2. **The 5 workshop-variant files** under `paper/sections/*_workshop.tex`:
-   these are the only places where prose differs from canonical. Every
-   other rendered word in the workshop PDF is byte-identical to canonical
+   these are the only places where prose differs from original. Every
+   other rendered word in the workshop PDF is byte-identical to original
    prose.
 3. **`paper/workshop_submission_todos.md`**: the open admin items
    (anonymous code mirror, HF dataset anonymization strategy, OpenReview

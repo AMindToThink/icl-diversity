@@ -18,7 +18,7 @@ service to use).
       \newcommand{\projectGithubUrl}{[code link withheld …]}
       ```
       with `\newcommand{\projectGithubUrl}{\url{https://anonymous.4open.science/r/<id>}}`.
-      The canonical (named-author) `paper/in_context_diversity_metric.tex` stays
+      The original (named-author) `paper/in_context_diversity_metric.tex` stays
       pointed at the real GitHub URL.
 
 - [ ] **Anonymized HF dataset.** The OLMo-2-7B four-stage samples currently live at
@@ -65,4 +65,4 @@ service to use).
 - [ ] Replace anonymous-mirror code URL with canonical GitHub URL in the
       camera-ready.
 - [ ] Merge `workshop-icml2026` branch back to `main` once the parallel
-      canonical-paper work has settled.
+      original-paper work has settled.
