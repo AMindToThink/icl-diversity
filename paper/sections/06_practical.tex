@@ -58,6 +58,11 @@ Averaging over random permutations removes this length effect: each position ave
 We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $\geq 50$ permutations are needed for reliable rankings.
 
 Per-response normalization by byte count must be performed \emph{before} averaging across permutations, since the byte count depends on which response lands at each position.
+Concretely, the per-byte curve is a mean of per-permutation rates,
+\begin{equation}\label{eq:akbar-mor}
+    \bar{a}_k = \frac{1}{|\Sigma|}\sum_{\sigma \in \Sigma} \frac{a_k^{\sigma}}{\|r_{\sigma(k)}\|},
+\end{equation}
+not a ratio of permutation-averaged bits to permutation-averaged byte counts (which would degenerate, after enough permutations, into the total-bits curve rescaled by the mean response length).
 
 \subsection{Choice of $n$}
 

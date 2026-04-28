@@ -1,5 +1,10 @@
 \section{Aggregation Across Prompts}\label{app:aggregation}
 
+This appendix concerns aggregation across prompts.
+Aggregation \emph{within} a single prompt, across permutations of the response ordering, is described in Section~\ref{sec:ordering} and given by Eq.~\eqref{eq:akbar-mor}: the per-byte $\bar{a}_k$ is a mean of per-permutation per-byte rates, not a ratio of permutation-averaged bits to permutation-averaged byte counts.\footnote{An earlier revision of our implementation computed the ratio-of-means form, in which the bits and byte counts at each position are each averaged across permutations before dividing.
+After enough permutations, the byte counts at each position approach the mean response length, so that estimator collapses into the total-bits curve rescaled by a single constant, losing the per-permutation per-byte signal that Eq.~\eqref{eq:akbar-mor} preserves.
+Switching the implementation to the form in Eq.~\eqref{eq:akbar-mor} shifts the headline numbers in this paper by 0--17\% (in mean-of-ratios' favor), with no qualitative change to any ranking we report.}
+
 The diversity score $D_{Ca_n}$ is defined relative to a single prompt $p$.
 To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, one can average:
 \begin{equation}
