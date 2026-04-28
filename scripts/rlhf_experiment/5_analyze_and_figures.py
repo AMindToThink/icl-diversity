@@ -104,17 +104,36 @@ def _derive_metric(rec: dict, key: str) -> float | None:
     Supports synthetic keys the underlying row doesn't store directly:
       - D_Can   = coherence_C * a_n_per_byte      (the paper's primary
                   C × a_n diversity score, in bits/byte)
-      - a_n_per_byte = a_k_curve_per_byte[-1]
+      - a_n_per_byte = mean-of-ratios across permutations of the last
+                      slot's per-byte surprise (the formula §6.3 gives).
+                      Computed from ``per_permutation_*`` fields when
+                      present; falls back to the precomputed
+                      ``a_k_curve_per_byte[-1]`` (which is also MoR
+                      after the core.py fix landed in this branch).
       - a_n_total    = a_k_curve[-1]
     Falls back to `rec.get(key)` for anything else.
     """
     if key == "D_Can":
         c = rec.get("coherence_C")
-        curve = rec.get("a_k_curve_per_byte")
-        if c is None or not curve:
+        an_pb = _derive_metric(rec, "a_n_per_byte")
+        if c is None or an_pb is None:
             return None
-        return float(c) * float(curve[-1])
+        return float(c) * an_pb
     if key == "a_n_per_byte":
+        # Prefer per-permutation MoR when available — that is what the
+        # paper specifies (see src/icl_diversity/per_byte.py and the
+        # implement-math skill).
+        pp_curves = rec.get("per_permutation_a_k_curves")
+        pp_bytes = rec.get("per_permutation_byte_counts")
+        if pp_curves and pp_bytes:
+            from icl_diversity.per_byte import compute_a_n_per_byte_mor
+            try:
+                return compute_a_n_per_byte_mor(pp_curves, pp_bytes)
+            except ValueError:
+                return None
+        # Fallback: precomputed per-byte curve.  Records written by the
+        # post-fix core.py contain MoR here; pre-fix records contain RoM.
+        # Old logs flow through this branch.
         curve = rec.get("a_k_curve_per_byte")
         if not curve:
             return None
