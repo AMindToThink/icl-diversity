@@ -17,7 +17,6 @@ Using an independent $\theta$ provides an external reference frame.
 \paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses.
 All quantities derived below (the progressive conditional surprise curve, the asymptotic floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}.
 If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity.
-Conversely, if $\theta$ hallucinates structure that is not present, it overestimates redundancy.
 The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$.
 As base models continue to improve at in-context learning, this gap narrows.
 

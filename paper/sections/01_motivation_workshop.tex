@@ -12,7 +12,7 @@ The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of 
 A separate coherence term $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity that $\theta$ assigns to each response individually, prevents pure noise from registering as ``diverse'' (Section~\ref{sec:coherence}).
 The product $D_{Ca_n} = C \times a_n$ is the score; it is plausibility-weighted residual diversity in bits per byte.
 We validate it against Tevet and Berant's human-grounded diversity benchmark (Section~\ref{sec:tevet}) and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:rlhf-experiment}), and release a working open-source implementation alongside.\footnote{Code link withheld for double-blind review; see anonymous mirror in supplementary materials.}
-The metric measures diversity as $\theta$ perceives it: outputs differing only in ways $\theta$ cannot distinguish in context appear less diverse, and outputs in which $\theta$ hallucinates structure appear less diverse than they are.
+The metric measures diversity as $\theta$ perceives it: outputs differing only in ways $\theta$ cannot distinguish in context appear less diverse.
 This relativity tightens automatically as base models improve.
 
 \begin{figure*}[tbp]
