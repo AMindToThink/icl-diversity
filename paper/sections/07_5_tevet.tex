@@ -10,8 +10,7 @@ We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completio
 For the binary datasets we follow \citet{tevet2020evaluating} in reporting Spearman $\rho$ and OCA (\emph{optimal classification accuracy}: the best accuracy achievable by a one-dimensional threshold separating low- and high-diversity sets), and additionally report ROC AUC (the natural metric for binary classification).
 For DecTest we report Spearman $\rho$ with the labeled temperature.
 
-\paragraph{Caveats.} The benchmark provides only 5 responses per set (McDiv\_nuggets, ConTest), well below the 20+ responses needed for $E$ (Appendix~\ref{app:excess-entropy}) to converge.
-Additionally, McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
+\paragraph{Caveats.} McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
 
 % Source for all numbers in Tables 5--7:
 % - Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3
