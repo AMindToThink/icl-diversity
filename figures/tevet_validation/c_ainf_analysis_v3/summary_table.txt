@@ -234,26 +234,26 @@
   ---------------------------------------- ---------------------- ------------ ---------- --------
   prompt_gen (no_hds)                      C×a_inf_fit (pb)                nan        nan      nan
                                            C×a_inf_fit (bits)              nan        nan      nan
-                                           C×a_n (pb)                   +0.842          —        —
-                                           C×a_n (bits)                 +0.761          —        —
-                                           C×a_{n-1} (pb)               +0.876          —        —
-                                           C×a_{n-1} (bits)             +0.784          —        —
-                                           a_n (pb)                     +0.927          —        —
-                                           a_n (bits)                   +0.935          —        —
-                                           a_{n-1} (pb)                 +0.929          —        —
-                                           a_{n-1} (bits)               +0.938          —        —
+                                           C×a_n (pb)                   +0.847          —        —
+                                           C×a_n (bits)                 +0.766          —        —
+                                           C×a_{n-1} (pb)               +0.881          —        —
+                                           C×a_{n-1} (bits)             +0.789          —        —
+                                           a_n (pb)                     +0.932          —        —
+                                           a_n (bits)                   +0.940          —        —
+                                           a_{n-1} (pb)                 +0.934          —        —
+                                           a_{n-1} (bits)               +0.943          —        —
                                            a_inf_fit (pb)                  nan        nan      nan
                                            a_inf_fit (bits)                nan        nan      nan
-                                           a_1 (pb)                     +0.723          —        —
-                                           a_1 (bits)                   +0.823          —        —
+                                           a_1 (pb)                     +0.727          —        —
+                                           a_1 (bits)                   +0.828          —        —
                                            D_fit (pb)                      nan        nan      nan
                                            D_fit (bits)                    nan        nan      nan
-                                           D_disc (pb)                  -0.557          —        —
-                                           D_disc (bits)                -0.531          —        —
+                                           D_disc (pb)                  -0.556          —        —
+                                           D_disc (bits)                -0.530          —        —
                                            E_fit (pb)                      nan        nan      nan
                                            E_fit (bits)                    nan        nan      nan
-                                           E_disc (pb)                  -0.320          —        —
-                                           E_disc (bits)                -0.304          —        —
+                                           E_disc (pb)                  -0.318          —        —
+                                           E_disc (bits)                -0.302          —        —
                                            redundancy (pb)                 nan        nan      nan
 
   resp_gen (no_hds)                        C×a_inf_fit (pb)                nan        nan      nan

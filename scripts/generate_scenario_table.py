@@ -71,10 +71,24 @@ def main() -> None:
 
         for data in [gpt2, qwen]:
             prompts = data["scenarios"][scenario]
-            # a_1 per-byte: first element of a_k_curve_per_byte
-            a1_vals = [p["a_k_curve_per_byte"][0] for p in prompts]
-            # a_n per-byte: last element of a_k_curve_per_byte
-            an_vals = [p["a_k_curve_per_byte"][-1] for p in prompts]
+            # a_1, a_n per-byte: derived from per-permutation data as
+            # mean-of-ratios (the formula §6.3 specifies; see
+            # src/icl_diversity/per_byte.py and the implement-math
+            # skill).  Fall back to ``a_k_curve_per_byte`` when the
+            # log lacks per-permutation fields — old logs may contain
+            # the historically-buggy ratio-of-means in that field.
+            from icl_diversity.per_byte import compute_a_k_curve_mor
+            a1_vals: list[float] = []
+            an_vals: list[float] = []
+            for p in prompts:
+                pp_curves = p.get("per_permutation_a_k_curves")
+                pp_bytes = p.get("per_permutation_byte_counts")
+                if pp_curves and pp_bytes:
+                    pb = compute_a_k_curve_mor(pp_curves, pp_bytes)
+                else:
+                    pb = p["a_k_curve_per_byte"]
+                a1_vals.append(pb[0])
+                an_vals.append(pb[-1])
             cs = [p["coherence_C"] for p in prompts]
             # D_{a_inf} = C * a_n (per-byte)
             d_ainf = [c * a for c, a in zip(cs, an_vals)]

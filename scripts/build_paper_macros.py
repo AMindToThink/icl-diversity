@@ -407,6 +407,8 @@ def tevet_macros() -> dict[str, str]:
 
     # Last-position uptick percentage (a_5 > a_4 across McDiv_nuggets per-byte).
     base = RESULTS / "tevet" / "qwen25_completion_v3" / "McDiv_nuggets"
+    from icl_diversity.per_byte import compute_a_k_curve_mor
+
     total_n = total_up = 0
     for variant in ["no_hds", "200_with_hds"]:
         for t in ["prompt_gen", "resp_gen", "story_gen"]:
@@ -416,7 +418,20 @@ def tevet_macros() -> dict[str, str]:
             with p.open() as f:
                 d = json.load(f)
             for _, it in d.items():
-                curve = it.get("a_k_curve_per_byte")
+                # Use MoR per-byte curve (the formula §6.3 specifies; see
+                # src/icl_diversity/per_byte.py and the implement-math
+                # skill).  Fall back to ``a_k_curve_per_byte`` if per-perm
+                # data is missing — old logs may store ratio-of-means
+                # there.
+                pp_curves = it.get("per_permutation_a_k_curves")
+                pp_bytes = it.get("per_permutation_byte_counts")
+                if pp_curves and pp_bytes:
+                    try:
+                        curve = compute_a_k_curve_mor(pp_curves, pp_bytes)
+                    except ValueError:
+                        continue
+                else:
+                    curve = it.get("a_k_curve_per_byte")
                 if curve and len(curve) >= 5:
                     total_n += 1
                     if curve[4] > curve[3]:
@@ -568,9 +583,13 @@ def permutation_sensitivity_macros() -> dict[str, str]:
     Note: the legacy ``diversity_score_D`` key in those JSON files is
     ``C * E`` (Appendix-E variant), NOT the paper's primary
     $D_{a_\\infty} = C \\times a_n$ that §8.6 actually refers to. We
-    derive the right scalar from the per-prompt ``coherence_C`` and
-    ``a_k_curve_per_byte[-1]`` fields, which are present in those JSONs.
+    derive the right scalar from the per-prompt ``coherence_C`` and a
+    mean-of-ratios per-byte curve computed from the ``per_permutation_*``
+    fields (the formula §6.3 specifies; see src/icl_diversity/per_byte.py
+    and the implement-math skill).
     """
+    from icl_diversity.per_byte import compute_a_n_per_byte_mor
+
     macros: dict[str, str] = {}
     pairs = [
         ("GPT", "scenario_metrics_v3_gpt2_3perm.json", "scenario_metrics_v3_gpt2_100perm.json"),
@@ -585,8 +604,14 @@ def permutation_sensitivity_macros() -> dict[str, str]:
 
         def _entry_d_can(entry: dict) -> float:
             """Derive D = C * a_n (per-byte) for one prompt's entry."""
-            curve = entry["a_k_curve_per_byte"]
-            return float(entry["coherence_C"]) * float(curve[-1])
+            pp_curves = entry.get("per_permutation_a_k_curves")
+            pp_bytes = entry.get("per_permutation_byte_counts")
+            if pp_curves and pp_bytes:
+                an_pb = compute_a_n_per_byte_mor(pp_curves, pp_bytes)
+            else:
+                # Old log without per-perm data: trust the precomputed curve.
+                an_pb = float(entry["a_k_curve_per_byte"][-1])
+            return float(entry["coherence_C"]) * an_pb
 
         def rank(d: dict) -> dict[str, int]:
             scores = {
