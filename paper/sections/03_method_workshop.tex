@@ -23,8 +23,7 @@ No fitting or extrapolation step is involved.
 
 \subsection{The Coherence Term}\label{sec:coherence}
 
-The curve alone cannot distinguish a policy producing rich coherent diversity from one producing several individually incoherent modes.
-For both, $\theta$ may learn the mode structure from context (so $a_k$ drops meaningfully) and end up at a similar floor.
+The curve alone is fooled by pure noise: $\theta$ can never predict random tokens from one another, so $a_n$ stays at the high unconditional surprise level and noise would dominate the metric.
 The distinguishing signal lies in how plausible $\theta$ finds each individual response, independent of the others.
 
 Let $h_\theta(r \mid p) = -\frac{1}{\|r\|}\log_2 \theta(r \mid p)$ be the per-byte cross-entropy of response $r$ under $\theta$ conditioned on the prompt alone.

@@ -6,11 +6,11 @@ At first glance, the $a_k$ curve appears to handle the coherence problem from Se
 A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_\infty$ is high but $C$ will be near zero.
 The noise policy correctly gets a low $D_{Ca_n}$ because of the coherence term, not because of the curve alone.
 
-The problem the curve alone cannot solve is a \textbf{policy that has multiple distinct but individually incoherent modes}.
+A second case requiring $C$ is a \textbf{policy that has multiple distinct but individually incoherent modes}.
 Consider a badly trained or modified model that produces several recognizably different types of low-quality output.
-The base model $\theta$ can learn from context which type is being produced (so $a_k$ drops meaningfully across $k$ and $a_\infty$ may be low), but each type is still implausible text.
+The base model $\theta$ can pick up on which type is being produced from context, but each type is still implausible text.
 Without a separate plausibility term, the policy could score as meaningfully diverse.
-A separate coherence term lets $D_{Ca_n}$ suppress these cases.
+A separate coherence term lets $D_{Ca_n}$ suppress this case as well.
 
 \subsection{Definition}
 
