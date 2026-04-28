@@ -13,6 +13,3 @@ Targeted prompt engineering could improve the metric's discriminative power, par
 Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure.
 Our codebase supports token-level ensembling, but we have not yet validated it experimentally.
 
-\paragraph{Explicit framing of multi-response contexts.} We observe a characteristic increase in conditional surprise from $k=1$ to $k=2$ in many settings: after seeing the first response, $\theta$ appears to expect the second to continue on the same theme, so a genuinely alternative response is extra-surprising.
-Explicit framing (e.g., prefixing the context with ``the following are several different completions of the same prompt'') could shift this prior and reduce the $k=2$ bump, improving the metric's sensitivity in the few-draws regime.
-

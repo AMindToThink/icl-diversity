@@ -5,7 +5,6 @@ This yields a \emph{progressive conditional surprise curve} (in bits per byte, m
 We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
 Their product $D_{Ca_n} = C \times a_n$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
 It does not reward noise.
-It works in both the many-draws regime (repeated modes) and the few-draws regime (unique responses).
 We validate the metric on four fronts.
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ achieves ROC AUC up to \tevetMcDivPromptGenAUC{} on McDiv prompt\_gen, competitive with embedding-based metrics.
 Synthetic scenarios run with two base models (GPT-2 124M and Qwen2.5-3B) verify the curve's qualitative behavior across one-mode, multi-mode, and noise generators.
