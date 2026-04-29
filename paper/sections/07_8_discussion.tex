@@ -23,10 +23,6 @@ GPT-2 and Qwen2.5-3B (gray) are included for context but differ in architecture.
 \label{fig:scaling-crossmode}
 \end{figure*}
 
-\paragraph{Sigmoid prediction partially supported.} The predicted $k_0 \propto m$ relationship requires modes to be approximately independent.
-This holds for GPT-2 (negative off-diagonal $\to$ modes appear independent $\to$ sigmoidal curves) but not for Qwen (positive off-diagonal $\to$ immediate exponential decay).
-The current method takes $a_\infty \approx a_n$ (Section~\ref{sec:scalar}); the sigmoid form is retained only as a theoretical model of the curve shape (Appendix~\ref{app:k0-derivation}), not as an estimator.
-
 \paragraph{External validation.} On Tevet's diversity-eval benchmark, $C \times a_n$ is competitive with embedding-based metrics (its OCA trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% across the nine binary tasks), while $E$-based scores fail entirely ($D_{\mathrm{disc}}$ is anti-correlated with diversity).
 The key advantage of $C \times a_n$ over embedding-based metrics is conceptual: it is grounded in information theory, requires no embedding model, and uses only the base model's token-level probabilities.
 We tested whether scaling the base model closes the gap with SentBERT by re-running the evaluation with Qwen3-30B-A3B-Base, a mixture-of-experts model with 30B total parameters and $\sim$3B active per token (see Appendix~\ref{app:qwen3-comparison}).
@@ -35,7 +31,7 @@ We interpret this as evidence that the binary human labels are coarse enough to 
 Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
 
 \paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{Ca_n} = C \times a_n$ is one natural summary of it among many.
-Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors (e.g., the fitted sigmoid's inflection point as a mode-count estimate, Appendix~\ref{app:k0-derivation}), or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
+Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors, or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
 Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
 We have not explored this space systematically; we focus on $D_{Ca_n}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
 

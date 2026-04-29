@@ -1,3 +1,21 @@
+% =============================================================================
+% ARCHIVED -- not part of the paper build.
+%
+% This file was previously paper/sections/appA_k0_derivation.tex and was
+% \input by both main_icml_workshop.tex and in_context_diversity_metric.tex.
+% It derives a sigmoid inflection-point estimator $\hat m = k_0 / \ln 2$ for
+% the number of modes underlying a response set, then concludes that the
+% estimator does not work for the primary base model used throughout the
+% paper (Qwen) -- the GPT-2-only "remains valid" caveat is asserted but never
+% verified in the paper. The audit findings file lives at
+% /home/cs29824/.claude/plans/lively-squishing-seahorse.md (finding H6).
+%
+% Kept here for future reference: if a later draft revisits the sigmoid
+% mode-count machinery (e.g., with a deliberate weak-model experiment that
+% verifies the GPT-2 case), the derivation can be re-imported. As of the
+% workshop submission it is removed from the paper entirely (no appendix).
+% =============================================================================
+
 \section{Relating the Sigmoid Inflection Point to Mode Count}\label{app:k0-derivation}
 
 \textbf{Note:} The derivation below assumes that modes are approximately independent (seeing a response from mode $i$ does not help $\theta$ predict mode $j$).

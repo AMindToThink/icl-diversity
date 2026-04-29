@@ -13,7 +13,7 @@ We invite other researchers to build on this work to develop other formulas that
 The metric evaluates diversity \emph{as perceived by the base model $\theta$}: if $\pi$'s outputs differ only in ways $\theta$ cannot distinguish from context, the metric underestimates diversity (Section~\ref{sec:motivation}, ``Important caveat'').
 
 \paragraph{Cross-mode learning is model-dependent.}
-The off-diagonal sign of the pairwise surprise-reduction matrix changes with $\theta$'s scale (Section~\ref{sec:cross-mode-learning}): $a_k$ curves for the same response set are not directly comparable across different choices of $\theta$, and the $k_0 \propto m$ sigmoid prediction (Appendix~\ref{app:k0-derivation}) only holds when modes appear approximately independent to $\theta$.
+The off-diagonal sign of the pairwise surprise-reduction matrix changes with $\theta$'s scale (Section~\ref{sec:cross-mode-learning}): $a_k$ curves for the same response set are not directly comparable across different choices of $\theta$.
 
 \paragraph{$\sigma_\ell$ is a diagnostic, not a diversity signal.}
 Coherence spread measures heterogeneity across outputs, not content diversity; it is reported alongside $D$ only to flag mixed-coherence situations (Section~\ref{sec:exp-discussion}).

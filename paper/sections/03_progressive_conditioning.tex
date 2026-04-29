@@ -58,7 +58,6 @@ This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals 
 Overlaying $a_k$ curves from different policies on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
 
 \paragraph{Curve shape.} If modes were independent (seeing one mode's response tells $\theta$ nothing about other modes), the curve shape would depend on the ratio $m/n$: sigmoidal with a plateau at high $m/n$, exponential decay at low $m/n$.
-Appendix~\ref{app:k0-derivation} derives this prediction formally.
 In practice, capable base models exhibit cross-mode learning (Section~\ref{sec:cross-mode-learning}), which violates the independence assumption and produces exponential decay at all $m/n$ ratios.
 The sigmoid prediction holds only for weaker models like GPT-2.
 

@@ -39,7 +39,7 @@ This motivates fitting a four-parameter sigmoid:
     a_k = a_\infty + \frac{\alpha}{1 + e^{\beta(k - k_0)}}
 \end{equation}
 where $a_\infty$ is the asymptotic floor, $\alpha$ is the total drop from $a_1$ to $a_\infty$, $\beta > 0$ controls the steepness of the transition, and $k_0$ is the inflection point.
-The fit yields $a_\infty$ without requiring $n$ to be large enough for convergence, and the inflection point $k_0$ provides a principled mode-count estimate when $k_0 > 1$ (Appendix~\ref{app:k0-derivation}).
+The fit yields $a_\infty$ without requiring $n$ to be large enough for convergence.
 Section~\ref{sec:mode-count-scaling} provides empirical evidence that the sigmoid-extrapolated $E_{\mathrm{fit}}$ recovers the expected monotonic relationship between mode count and excess entropy, while the raw $\hat{E}_n$ estimator does not.
 
 \paragraph{Relationship to total correlation.} The excess entropy and total correlation are complementary decompositions of the same underlying structure.
