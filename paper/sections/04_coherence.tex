@@ -3,7 +3,7 @@
 \subsection{Does the Curve Already Handle Incoherence?}
 
 At first glance, the $a_k$ curve appears to handle the coherence problem from Section~\ref{sec:coherence-problem} on its own.
-A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_\infty$ is high but $C$ will be near zero.
+A policy that outputs pure noise has $a_k \approx \mathrm{const}$ for all $k$ (random tokens from one response do not help predict random tokens from another), so the curve stays high and $a_n$ is high but $C$ will be near zero.
 The noise policy correctly gets a low $D_{Ca_n}$ because of the coherence term, not because of the curve alone.
 
 \subsection{Definition}

@@ -14,7 +14,7 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 \begin{table*}[t]
 \centering
 \caption{Scenario validation metrics (mean across 5 prompts, 100 permutations, $n=10$ responses, per-byte).
-We report several candidate scalars: unconditional surprise $a_1$, the asymptotic floor $a_n$, coherence $C$, our recommended score $D_{Ca_n} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{Ca_n}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
+We report several candidate scalars: unconditional surprise $a_1$, the floor $a_n$, coherence $C$, our recommended score $D_{Ca_n} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{Ca_n}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
 Both $E$ and $C \times E$ go negative for the mixed scenario on GPT-2.}
 \label{tab:scenarios}
 \small

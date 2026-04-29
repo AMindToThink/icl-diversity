@@ -8,7 +8,7 @@ No embedding model, no reference corpus, no human labels, no auxiliary classifie
 The metric uses only the per-token probabilities $\theta$ already produces.
 
 The intuition is that if responses from a policy $\pi$ are diverse, seeing one should not help $\theta$ predict the next; if they are repetitive or constrained to a few modes, conditioning on earlier responses should sharply reduce $\theta$'s surprise at later ones.
-The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of the $k$-th response given the previous $k{-}1$) captures this signal directly, and its last point $a_n$ estimates the asymptotic floor (Section~\ref{sec:progressive-conditioning}).
+The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of the $k$-th response given the previous $k{-}1$) captures this signal directly, and its last point is $a_n$ (Section~\ref{sec:progressive-conditioning}).
 A separate coherence term $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity that $\theta$ assigns to each response individually, prevents pure noise from registering as ``diverse'' (Section~\ref{sec:coherence}).
 The product $D_{Ca_n} = C \times a_n$ is the score; it is plausibility-weighted residual diversity in bits per byte.
 We validate it against Tevet and Berant's human-grounded diversity benchmark (Section~\ref{sec:tevet}) and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:rlhf-experiment}), and release a working open-source implementation alongside.\footnote{Code link withheld for double-blind review; see anonymous mirror in supplementary materials.}
@@ -72,7 +72,7 @@ This relativity tightens automatically as base models improve.
 \caption{The diversity-metric pipeline.
 Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize.
 The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$.
-Its last point $a_n$ estimates the asymptotic floor $a_\infty$.
+Its last point is $a_n$.
 The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte; the geometric mean of these surprises defines coherence $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity.
 The product $D_{Ca_n} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
 Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}

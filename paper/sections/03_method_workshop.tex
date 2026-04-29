@@ -18,7 +18,7 @@ The intuition is that as $\theta$ sees more responses from $\pi$, the conditiona
 For a policy with rich coherent diversity the curve declines and levels off at a positive floor; for a policy producing one repeated mode the curve drops sharply to near zero; for pure noise the curve stays roughly constant at a high value.
 
 In practice we average $a_k$ over uniformly random permutations of the response ordering (so each position averages over all responses and the curve reflects only how $\theta$'s predictions improve with more context, not which response happened to land in slot $k$).
-The asymptotic floor is taken to be the last observed point: $a_\infty \approx a_n$.
+We take the metric value to be the last observed point $a_n$.
 No fitting or extrapolation step is involved.
 
 \subsection{The Coherence Term}\label{sec:coherence}

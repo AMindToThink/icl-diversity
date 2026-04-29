@@ -8,14 +8,14 @@ These existing approaches have known limitations: embedding distances may not al
 
 We propose an alternative grounded in information theory: use a trusted base model $\theta$ with per-token logprob access to assess how much information responses from $\pi$ share with one another.
 The core intuition is that if $\pi$'s responses are diverse, then seeing one response should not help $\theta$ predict another.
-If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses.
+If $\pi$'s responses are repetitive or constrained to a narrow set of modes, then conditioning on one response should significantly reduce $\theta$'s surprise at subsequent responses, leaving a low floor at $a_n$.
 
 \paragraph{Why a separate base model?} We deliberately avoid using $\pi$ to judge its own outputs.
 A post-trained model may assign high probability to all its (narrowed) outputs, masking the loss of diversity.
 Using an independent $\theta$ provides an external reference frame.
 
 \paragraph{Important caveat.} The entire framework rests on $\theta$'s ability to perform in-context learning: when conditioned on previous responses, $\theta$ must be able to recognize patterns and reduce its surprise at subsequent similar responses.
-All quantities derived below (the progressive conditional surprise curve, the asymptotic floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}.
+All quantities derived below (the progressive conditional surprise curve, its floor, and the coherence term) measure properties of $\pi$'s outputs \emph{as perceived by $\theta$}.
 If $\pi$'s outputs differ only in ways that $\theta$ cannot distinguish from context, the metric underestimates diversity.
 The metric therefore measures diversity \emph{relative to the base model's perceptual capabilities}, which is a weaker claim than measuring the true diversity of $\pi$.
 As base models continue to improve at in-context learning, this gap narrows.
@@ -23,7 +23,7 @@ As base models continue to improve at in-context learning, this gap narrows.
 \paragraph{Contributions.}
 \begin{itemize}[leftmargin=*, itemsep=2pt]
   \item We define a \emph{progressive conditional surprise curve} $a_k$ for language-model outputs, computed by a single forward pass of a base model $\theta$ over the concatenated responses, whose shape characterizes the learnable structure among outputs (Section~\ref{sec:progressive-conditioning}).
-  \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the asymptotic curve value $a_\infty$ to yield a single plausibility-weighted diversity score $\mathbf{D_{Ca_n} = C \times a_n}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
+  \item We introduce a separate \emph{coherence} term $C$ measuring per-byte plausibility of outputs under $\theta$, and combine it with the curve value $a_n$ to yield a single plausibility-weighted diversity score $\mathbf{D_{Ca_n} = C \times a_n}$ (Sections~\ref{sec:coherence} and \ref{sec:scalar}).
   \item We validate the metric on synthetic mode scenarios, on Tevet and Berant's diversity-eval benchmark (where $C \times a_n$ is competitive with embedding-based metrics), on a cross-model scaling study, and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:experiments}).
 \end{itemize}
 
@@ -99,7 +99,7 @@ The remainder of the paper formalizes each step and validates the resulting metr
 \caption{The diversity-metric pipeline.
 Given prompt $p$ and $n$ responses from policy $\pi$, we format them with response labels (``Response A:'', ``Response B:'', \ldots) and tokenize.
 The \textcolor{orange!70!black}{\textbf{conditional track}} (left) feeds the concatenated context to the base model $\theta$ in a single forward pass per permutation $\sigma$, extracts per-response total surprise, divides by each response's UTF-8 byte count, and averages over permutations to get $\bar a_k$.
-Its last point $a_n$ estimates the asymptotic floor $a_\infty$.
+Its last point is $a_n$.
 The \textcolor{blue!70!black}{\textbf{unconditional track}} (right) scores each $r_i$ independently against the prompt alone, again per-byte; the geometric mean of these surprises defines coherence $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity.
 The product $D_{Ca_n} = C \times a_n$ measures plausibility-weighted residual diversity (bits/byte).
 Formal definitions: Sections~\ref{sec:setup-notation}, \ref{sec:progressive-conditioning}, \ref{sec:coherence}, \ref{sec:scalar}.}
