@@ -46,3 +46,7 @@ compute_v*.log
 
 # Git worktrees (per-branch isolated workspaces, e.g. .worktrees/workshop-icml2026)
 .worktrees/
+
+# Per-paper rebuild lock files created by .claude-tools/rebuild-latex.py
+# (used to serialize concurrent latexmk invocations on the same paper).
+.*.tex.rebuild.lock
