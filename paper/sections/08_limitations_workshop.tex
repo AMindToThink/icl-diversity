@@ -3,12 +3,6 @@
 We collect the main limitations of the framework and of our $D = C \times a_n$ choice in one place so readers can calibrate how strongly to update on the results above.
 Several points below recap caveats already made in their natural context and cross-reference those for detail.
 
-\paragraph{$D = C \times a_n$ is a pragmatic choice, not a theoretically derived one.}
-The product form was selected because it captures the properties we wanted a diversity score to have (residual surprise remains after the base model has seen previous responses, low-coherence outputs are penalised, and the result stays on a bits-per-byte scale), not because it is derived from an axiomatic information-theoretic setup.
-Other scalars respecting the same constraints (weighted integrals of $a_k - a_\infty$, slope-based scores, or coherence applied at a different point on the curve) could equally be defended (see ``The framework admits other metrics'' in Section~\ref{sec:exp-discussion}).
-We adopt $D_{Ca_n}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
-We invite other researchers to build on this work to develop other formulas that characterize the $a_k$ curve in meaningful ways.
-
 \paragraph{Measurement is relative to $\theta$'s perception.}
 The metric evaluates diversity \emph{as perceived by the base model $\theta$}: if $\pi$'s outputs differ only in ways $\theta$ cannot distinguish from context, the metric underestimates diversity (Section~\ref{sec:motivation}, ``Important caveat'').
 
@@ -35,3 +29,8 @@ The headline numbers therefore condition on the $150/200$ AlpacaEval and $39/100
 We also verified that the monotone $D$ drop holds on the un-truncated $200+100$ prompt sets, with all three pre-registered H1 contrasts remaining Bonferroni-significant at $p<10^{-13}$ on both prompt sets.
 Full numbers and reproduction commands are in \path{investigations/length_matched_rlhf/VERDICT.md}.
 
+\paragraph{$D = C \times a_n$ is a pragmatic choice, not a theoretically derived one.}
+The product form was selected because it captures the properties we wanted a diversity score to have (residual surprise remains after the base model has seen previous responses, low-coherence outputs are penalised, and the result stays on a bits-per-byte scale), not because it is derived from an axiomatic information-theoretic setup.
+Other scalars respecting the same constraints (weighted integrals of $a_k - a_\infty$, slope-based scores, or coherence applied at a different point on the curve) could equally be defended (see ``The framework admits other metrics'' in Section~\ref{sec:exp-discussion}).
+We adopt $D_{Ca_n}$ because it is interpretable and works empirically across our validation regimes, not because it is uniquely correct.
+We invite other researchers to build on this work to develop other formulas that characterize the $a_k$ curve in meaningful ways.
