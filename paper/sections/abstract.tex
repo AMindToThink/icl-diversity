@@ -2,7 +2,7 @@ Measuring the diversity of language-model outputs is central to evaluating mode 
 Existing diversity metrics rely on embedding-space distances or surface-level $n$-gram statistics, both of which can conflate genuine content diversity with lexical or representational artifacts.
 We develop an alternative grounded in information theory: a trusted base model's token-level probabilities measure how much each successive response from a policy remains surprising to the base model even after conditioning on all previous responses.
 This yields a \emph{progressive conditional surprise curve} (in bits per byte, making it tokenizer-agnostic) whose shape characterizes the learnable structure among the policy's outputs, including discrete modes, shared stylistic patterns, and topic-level regularities.
-We summarize this curve via two complementary quantities: the \emph{asymptotic surprise floor} $a_\infty$ (how much per-byte surprise remains after the base model has learned everything it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
+We summarize this curve via two complementary quantities: the \emph{surprise floor} $a_n$ (the residual per-byte surprise after the base model has learned what it can from the other responses) and a separate \emph{coherence} term $C$ (how plausible the outputs are per byte).
 Their product $D_{Ca_n} = C \times a_n$ yields a single scalar: plausibility-weighted residual diversity in bits per byte.
 It does not reward noise.
 We validate the metric on four fronts.
