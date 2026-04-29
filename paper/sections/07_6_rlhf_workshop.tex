@@ -101,7 +101,18 @@ Figure~\ref{fig:rlhf-ak-violin} shows the underlying $\bar{a}_k$ curves and per-
 
 \paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function.
 Cross-metric agreement with EAD and SentBERT (Figure~\ref{fig:rlhf-metric-scatter}) confirms $D_{Ca_n}$ responds to the same signal lexical and semantic baselines detect.
-The within-pipeline drop ($\sim$\olmoNbCuratedBaseDMean{} to \olmoNbCuratedInstructDMean{}, about 0.2 bits/byte across the four OLMo stages) is comparable in magnitude to the dispersion observed across an entire frontier instruct-model cluster on the same NoveltyBench-curated prompts; we defer the full cross-model table to a longer venue.
+% Cross-model data lives in ../results/rlhf_experiment/tables/cross_model_macros.tex
+% (already \input'd at the top of this file). Within-pipeline OLMo stages:
+% \crossModelOlmoBase / \crossModelOlmoSft / \crossModelOlmoDpo / \crossModelOlmoInstruct
+% (range 0.485 -> 0.283, drop ~0.202 bits/byte). Frontier instruct cluster on the
+% same NoveltyBench-curated prompts: \crossModelQwenFourB, \crossModelQwenEightB,
+% \crossModelQwenTwoThreeFiveB, \crossModelLlamaThreeThreeSeventyB,
+% \crossModelGptFiveNano, \crossModelGptFive, \crossModelClaudeSonnetFourFive
+% (range 0.169 - 0.262, spread ~0.093). The within-pipeline drop is ~2.2x the
+% cluster spread; an earlier draft characterised these as "comparable in magnitude",
+% which overstated the agreement, so the comparison is deferred to a longer venue
+% where the full table can be shown rather than verbally summarised.
+A cross-model comparison on the same NoveltyBench-curated prompts is deferred to a longer venue.
 
 \paragraph{Released artefacts.} The \olmoAlpacaN$\,+\,$\olmoNbCuratedN{} prompts $\times$ 4 stages $\times$ $K{=}10$ generations are released as a public dataset (link withheld for double-blind review; an anonymous mirror is in supplementary materials).
 To our knowledge this is the first public release of $K\!\ge\!10$ sampled responses across a paired SFT/DPO/RL pipeline, filling a gap that blocked direct diversity replication of \citet{kirk2023rlhf} (whose $K{=}16$ generations were logged only to a private W\&B project).

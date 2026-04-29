@@ -13,3 +13,7 @@ Targeted prompt engineering could improve the metric's discriminative power, par
 Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure.
 Our codebase supports token-level ensembling, but we have not yet validated it experimentally.
 
+\paragraph{Total-bits variants of $D$.}
+We report $D_{Ca_n} = C \times a_n$ in bits/byte so that scores are tokenizer-agnostic and length-controlled, but the implementation also exposes $a_n$ in total bits.
+A hybrid scalar $C \times a_n^{\text{bits}}$ rewards length (longer responses have more positions at which to be surprising), which some practitioners may want; characterising when each variant is the appropriate measurement target is left to future work.
+

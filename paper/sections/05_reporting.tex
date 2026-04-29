@@ -48,7 +48,6 @@ The intended edge cases on the five validation scenarios (Section~\ref{sec:scena
     \item \textbf{Mixed}: $C$ mid, $a_\infty$ high, so $D_{Ca_n}$ is mid.
 \end{enumerate}
 
-\paragraph{Typical range of $C$.} In our Tevet evaluation with Qwen2.5-3B, the central 90\% (5th to 95th percentile) of per-response bits-per-byte values across \tevetCoherenceRespCount{} responses span $[\tevetCoherenceBpbLow, \tevetCoherenceBpbHigh]$, giving $C \in [\tevetCoherenceCLow, \tevetCoherenceCHigh]$; the mean per-set $C$ across \tevetCoherenceSetCount{} response sets is \tevetCoherenceMeanC.
 If coherence variation dominates diversity variation in a particular application, $C$ can be normalized (e.g., dividing by the coherence of $\theta$'s own samples); see Appendix~\ref{app:c-normalization} for details.
 
 \subsection{Coherence Heterogeneity}\label{sec:coherence-hetero}
