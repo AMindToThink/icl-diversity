@@ -405,6 +405,22 @@ def format_p(p: float | None) -> str:
     return f"{p:.3f}"
 
 
+def format_p_macro(p: float | None) -> str:
+    """Format a p-value for emission as a `\\newcommand` macro body that will
+    be expanded inside `$...$` in prose. Uses scientific notation for tiny
+    p-values so that values like 3.4e-24 do not round to "0.000" — three
+    decimals of decimal-format silently destroys precision when comparing
+    or reporting effect significance."""
+    if p is None or (isinstance(p, float) and math.isnan(p)):
+        return "\\text{---}"
+    if p == 0.0:
+        return "0"
+    if p < 1e-3 or p >= 1e4:
+        mantissa, exponent = f"{p:.1e}".split("e")
+        return f"{mantissa} \\times 10^{{{int(exponent)}}}"
+    return f"{p:.3f}"
+
+
 def write_results_table(analysis: dict, out_path: Path) -> None:
     """One LaTeX table per prompt_set, with per-stage means and H1 tests."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -471,12 +487,12 @@ def write_paper_macros(analysis: dict, out_path: Path, name_infix: str = "") -> 
         for name, a_s, b_s, _ in H1_CONTRASTS:
             t = tests[name]
             stem = f"{prefix}{name}"
-            lines.append(f"\\newcommand{{{stem}Pbonf}}{{{safe_num(t['p_bonferroni'])}}}")
+            lines.append(f"\\newcommand{{{stem}Pbonf}}{{{format_p_macro(t['p_bonferroni'])}}}")
             lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")
             lines.append(f"\\newcommand{{{stem}Diff}}{{{safe_num(t['mean_diff'])}}}")
         t = tests["Hpa"]
         stem = f"{prefix}Hpa"
-        lines.append(f"\\newcommand{{{stem}P}}{{{safe_num(t['p_raw'])}}}")
+        lines.append(f"\\newcommand{{{stem}P}}{{{format_p_macro(t['p_raw'])}}}")
         lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")
         lines.append(f"\\newcommand{{{stem}Diff}}{{{safe_num(t['mean_diff'])}}}")
         lines.append(f"\\newcommand{{{prefix}N}}{{{ms['base']['n']}}}")

@@ -1,6 +1,6 @@
 \section{Method}\label{sec:method}
 
-This section defines the three quantities the workshop variant uses: the progressive conditional surprise curve $a_k$, the coherence term $C$, and the scalar score $D_{Ca_n} = C \times a_n$.
+This section defines the three quantities used in the main body: the progressive conditional surprise curve $a_k$, the coherence term $C$, and the scalar score $D_{Ca_n} = C \times a_n$.
 The full information-theoretic motivation, the alternative excess-entropy summary $E$, the coherence-heterogeneity diagnostic $\sigma_\ell$, and the cross-mode learning analysis appear in Appendices~\ref{app:excess-entropy}--\ref{app:qwen3-comparison}.
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
@@ -66,6 +66,6 @@ Mixed                 & mid  & high  & mid              \\
 
 The score depends on $p$, $\pi$'s responses, and $\theta$.
 Diversity is therefore a property of (responses, prompt, scoring model), not of the policy in isolation: the same response set can score differently under a stronger or weaker $\theta$.
-This is by design: $\theta$'s in-context learning capability is the lens through which diversity is measured, and the score sharpens automatically as base models improve.
+This is by design: $\theta$'s in-context learning capability is the lens through which diversity is measured, giving the score the potential to improve as base models improve (see Appendix~\ref{app:qwen3-comparison} for a preliminary scaling experiment).
 When comparing policies across a prompt suite, $D_{Ca_n}$ can be averaged over prompts or differenced; see Appendix~\ref{app:aggregation}.
 

@@ -26,8 +26,8 @@
 \section{OLMo-2-7B Post-Training: AI-Side Validation}\label{sec:rlhf-experiment}
 
 The Tevet evaluation in Section~\ref{sec:tevet} validates $D_{Ca_n}$ against human-grounded labels.
-This section closes the loop on the AI side: sample from real policies at four post-training stages of the same base model and ask whether $D_{Ca_n}$ detects the diversity loss widely attributed to RLHF \citep{kirk2023rlhf,zhang2025verbalizedsampling,padmakumar2023writingreduces}.
-Because the same pipeline scores both human-written and AI-generated response sets, this and the previous section read as two halves of the same evaluation: the metric is policy-agnostic, and the evidence we present matches both halves of the workshop's ``Human-AI'' framing.
+This section evaluates $D_{Ca_n}$ on real policies: we sample from four post-training stages of the same base model and ask whether the metric detects the diversity loss widely attributed to RLHF \citep{kirk2023rlhf,zhang2025verbalizedsampling,padmakumar2023writingreduces}.
+The same scoring pipeline applies to both human-written response sets (Section~\ref{sec:tevet}) and the policy-sampled sets here, so $\theta$ is held fixed across the two evaluations.
 
 \paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint.
 On two prompt sets, \olmoAlpacaN{} AlpacaEval prompts \citep{dubois2024alpacafarm} (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench}, we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
@@ -43,7 +43,7 @@ For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over
     \item \textbf{H1c} $D_{\mathrm{base}} > D_{\mathrm{RLVR}}$: cumulative effect of the full post-training pipeline.
 \end{itemize}
 
-The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$'$): RLVR uses \emph{verifiable} rewards (math and instruction-following \citep{olmo2024olmo2}) rather than human preferences, so the typicality-bias mechanism that motivates H1b does not obviously apply to it.
+The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$'$): we have no directional prediction for which post-training stage loses more diversity.
 
 \paragraph{Results.}
 
