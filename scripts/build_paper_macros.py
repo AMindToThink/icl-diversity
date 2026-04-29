@@ -407,6 +407,8 @@ def tevet_macros() -> dict[str, str]:
 
     # Last-position uptick percentage (a_5 > a_4 across McDiv_nuggets per-byte).
     base = RESULTS / "tevet" / "qwen25_completion_v3" / "McDiv_nuggets"
+    from icl_diversity.per_byte import compute_a_k_curve_mor
+
     total_n = total_up = 0
     for variant in ["no_hds", "200_with_hds"]:
         for t in ["prompt_gen", "resp_gen", "story_gen"]:
@@ -416,7 +418,20 @@ def tevet_macros() -> dict[str, str]:
             with p.open() as f:
                 d = json.load(f)
             for _, it in d.items():
-                curve = it.get("a_k_curve_per_byte")
+                # Use MoR per-byte curve (the formula §6.3 specifies; see
+                # src/icl_diversity/per_byte.py and the implement-math
+                # skill).  Fall back to ``a_k_curve_per_byte`` if per-perm
+                # data is missing — old logs may store ratio-of-means
+                # there.
+                pp_curves = it.get("per_permutation_a_k_curves")
+                pp_bytes = it.get("per_permutation_byte_counts")
+                if pp_curves and pp_bytes:
+                    try:
+                        curve = compute_a_k_curve_mor(pp_curves, pp_bytes)
+                    except ValueError:
+                        continue
+                else:
+                    curve = it.get("a_k_curve_per_byte")
                 if curve and len(curve) >= 5:
                     total_n += 1
                     if curve[4] > curve[3]:
@@ -424,6 +439,55 @@ def tevet_macros() -> dict[str, str]:
     pct = 100 * total_up / max(total_n, 1)
     macros["tevetLastUptickPct"] = f"{int(round(pct))}"
     return macros
+
+
+def tevet_coherence_distribution_macros() -> dict[str, str]:
+    """Section 5 (Reporting) typical-range-of-$C$ paragraph.
+
+    Reads every per-set sidecar in the qwen25_completion_v3 Tevet run,
+    extracts (a) per-response per-byte cross-entropy from
+    ``unconditional_surprises`` and (b) per-set ``coherence_C``, and emits
+    the 5th/95th percentile of per-response bits/byte (and the corresponding
+    $C = 2^{-\\bar{\\ell}}$ values) plus the mean per-set $C$.
+    """
+    import glob
+    import math
+
+    files = sorted(
+        glob.glob(
+            str(RESULTS / "tevet" / "qwen25_completion_v3" / "**" / "*.icl_curves.qwen25_completion_v3.json"),
+            recursive=True,
+        )
+    )
+    assert files, "No Tevet qwen25_completion_v3 sidecars found"
+    resp_bpb: list[float] = []
+    set_C: list[float] = []
+    for fp in files:
+        with open(fp) as f:
+            d = json.load(f)
+        for k, v in d.items():
+            if k.startswith("__"):
+                continue
+            c = v["metrics"].get("coherence_C")
+            if c is not None and c > 0:
+                set_C.append(c)
+            for s in v.get("unconditional_surprises", []) or []:
+                resp_bpb.append(float(s))
+    assert resp_bpb and set_C, "Empty Tevet distributions"
+    bpb_p5 = float(np.percentile(resp_bpb, 5))
+    bpb_p95 = float(np.percentile(resp_bpb, 95))
+    c_high = 2.0 ** (-bpb_p5)
+    c_low = 2.0 ** (-bpb_p95)
+    mean_c = float(np.mean(set_C))
+    return {
+        "tevetCoherenceBpbLow": _fmt(bpb_p5, 2),
+        "tevetCoherenceBpbHigh": _fmt(bpb_p95, 2),
+        "tevetCoherenceCLow": _fmt(c_low, 2),
+        "tevetCoherenceCHigh": _fmt(c_high, 2),
+        "tevetCoherenceMeanC": _fmt(mean_c, 2),
+        "tevetCoherenceRespCount": str(len(resp_bpb)),
+        "tevetCoherenceSetCount": str(len(set_C)),
+    }
 
 
 def qwen3_macros() -> dict[str, str]:
@@ -568,9 +632,13 @@ def permutation_sensitivity_macros() -> dict[str, str]:
     Note: the legacy ``diversity_score_D`` key in those JSON files is
     ``C * E`` (Appendix-E variant), NOT the paper's primary
     $D_{a_\\infty} = C \\times a_n$ that §8.6 actually refers to. We
-    derive the right scalar from the per-prompt ``coherence_C`` and
-    ``a_k_curve_per_byte[-1]`` fields, which are present in those JSONs.
+    derive the right scalar from the per-prompt ``coherence_C`` and a
+    mean-of-ratios per-byte curve computed from the ``per_permutation_*``
+    fields (the formula §6.3 specifies; see src/icl_diversity/per_byte.py
+    and the implement-math skill).
     """
+    from icl_diversity.per_byte import compute_a_n_per_byte_mor
+
     macros: dict[str, str] = {}
     pairs = [
         ("GPT", "scenario_metrics_v3_gpt2_3perm.json", "scenario_metrics_v3_gpt2_100perm.json"),
@@ -585,8 +653,14 @@ def permutation_sensitivity_macros() -> dict[str, str]:
 
         def _entry_d_can(entry: dict) -> float:
             """Derive D = C * a_n (per-byte) for one prompt's entry."""
-            curve = entry["a_k_curve_per_byte"]
-            return float(entry["coherence_C"]) * float(curve[-1])
+            pp_curves = entry.get("per_permutation_a_k_curves")
+            pp_bytes = entry.get("per_permutation_byte_counts")
+            if pp_curves and pp_bytes:
+                an_pb = compute_a_n_per_byte_mor(pp_curves, pp_bytes)
+            else:
+                # Old log without per-perm data: trust the precomputed curve.
+                an_pb = float(entry["a_k_curve_per_byte"][-1])
+            return float(entry["coherence_C"]) * an_pb
 
         def rank(d: dict) -> dict[str, int]:
             scores = {
@@ -676,6 +750,7 @@ def main() -> None:
     all_macros.update(symmetry_macros())
     all_macros.update(mode_count_macros())
     all_macros.update(tevet_macros())
+    all_macros.update(tevet_coherence_distribution_macros())
     all_macros.update(qwen3_macros())
     all_macros.update(mode_count_extrema())
     all_macros.update(permutation_sensitivity_macros())

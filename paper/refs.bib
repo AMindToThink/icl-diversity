@@ -30,7 +30,7 @@
 }
 
 % source: acl:N16-1014
-% claim : Proposes Maximum Mutual Information (MMI) as the objective function for neural conversation models to promote diverse responses. General MMI definition log p(S,T)/(p(S)p(T)) is Eq. (8); the two operationalized variants are MMI-antiLM (Eq. 9, with tractable decoding form Eq. 14) and MMI-bidi (Eq. 10). These penalize responses with high prior P(Y), reducing 'I don't know'-type generic outputs (abstract + §1, footnote notes 0.45% of OpenSubtitles contain 'I don't know'). Paper's §3 explicitly calls MMI 'pairwise' between source S and target T; no set-level MI is discussed. Used as a decoding criterion (§4.2: 'used the MMI criterion only during testing'). Du & Black 2019 use MMI-decoding as one base learner in their boosting ensemble. Verified 2026-04-24 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/1510.03055.
+% claim : Proposes Maximum Mutual Information (MMI) as the objective function for neural conversation models to promote diverse responses. General MMI definition log p(S,T)/(p(S)p(T)) is Eq. (8); the two operationalized variants are MMI-antiLM (Eq. 9, with tractable decoding form Eq. 14) and MMI-bidi (Eq. 10). These penalize responses with high prior P(Y), reducing 'I don't know'-type generic outputs (abstract + §1, footnote notes 0.45% of OpenSubtitles contain 'I don't know'). Paper's §3 explicitly calls MMI 'pairwise' between source S and target T; no set-level MI is discussed. Used as a decoding criterion (§4.2: 'used the MMI criterion only during testing'). Du & Black 2019 use MMI-decoding as one base learner in their boosting ensemble. Verified 2026-04-24 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/1510.03055. ALSO originates the distinct-n diversity metric: §5.2 defines distinct-1 and distinct-2 as 'the number of distinct unigrams and bigrams in generated responses... scaled by total number of generated tokens'; cited for n-gram overlap in §10 Related Concepts (verified 2026-04-29 by reading the PDF).
 @inproceedings{li2016diversity,
     title = "A Diversity-Promoting Objective Function for Neural Conversation Models",
     author = "Li, Jiwei  and
@@ -120,16 +120,16 @@
 % claim : Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 48). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 13, 25-54, 2003).
 @article{crutchfield2003regularities, title={Regularities unseen, randomness observed: Levels of entropy convergence}, volume={13}, ISSN={1089-7682}, url={http://dx.doi.org/10.1063/1.1530990}, DOI={10.1063/1.1530990}, number={1}, journal={Chaos: An Interdisciplinary Journal of Nonlinear Science}, publisher={AIP Publishing}, author={Crutchfield, James P. and Feldman, David P.}, year={2003}, month=Mar, pages={25–54} }
 
-% source: arxiv:1904.09751
-% claim : Canonical decoding-time diversity reference using self-BLEU and distinct-n (§4). Introduced nucleus/top-p sampling (ICLR 2020). Replaces the earlier zhang2024writingprompts citation, which measured Shannon entropy instead of self-BLEU/n-gram overlap.
-@misc{holtzman2020curious,
-  author         = {Ari Holtzman and Jan Buys and Li Du and Maxwell Forbes and Yejin Choi},
-  title          = {The Curious Case of Neural Text Degeneration},
-  year           = {2019},
-  eprint         = {1904.09751},
+% source: arxiv:1802.01886
+% claim : Originator of Self-BLEU: §2.2.3 explicitly states 'We propose Self-BLEU, a metric to evaluate the diversity of the generated data... Regarding one sentence as hypothesis and the others as reference, we can calculate BLEU score for every generated sentence, and define the average BLEU score to be the Self-BLEU of the document' (Texygen, SIGIR 2018). Cited for self-BLEU in §10 Related Concepts.
+@misc{zhu2018texygen,
+  author         = {Yaoming Zhu and Sidi Lu and Lei Zheng and Jiaxian Guo and Weinan Zhang and Jun Wang and Yong Yu},
+  title          = {Texygen: A Benchmarking Platform for Text Generation Models},
+  year           = {2018},
+  eprint         = {1802.01886},
   archivePrefix  = {arXiv},
   primaryClass   = {cs.CL},
-  url            = {http://arxiv.org/abs/1904.09751v2}
+  url            = {http://arxiv.org/abs/1802.01886v1}
 }
 
 % source: arxiv:2412.10271

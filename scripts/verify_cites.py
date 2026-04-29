@@ -87,6 +87,24 @@ def extract_cite_keys(tex_path: Path, _seen: set[Path] | None = None) -> set[str
     for m in INPUT_RE.finditer(text):
         inc = m.group(1).strip()
         # LaTeX allows the .tex extension to be omitted; try both.
+        #
+        # KNOWN BUG (2026-04-27): we resolve \input{} paths relative to the
+        # including file's directory (`tex_path.parent / inc`). LaTeX
+        # actually resolves them relative to the *main document's*
+        # directory — i.e. the cwd `latex` was invoked from, regardless
+        # of which file the \input{} appears in. The two agree for the
+        # typical case where every \input{} lives in the wrapper, but
+        # they diverge as soon as one section file \input{}s another (e.g.
+        # a shared snippet under sections/snippets/foo.tex). LaTeX finds
+        # `sections/snippets/foo` from the wrapper's `paper/` cwd; this
+        # resolver tries `paper/sections/sections/snippets/foo` and
+        # silently fails to recurse, so any \cite{} inside the snippet
+        # becomes invisible and its bib entry looks "unused".
+        #
+        # Fix when needed: also try `<doc_root> / inc`, where doc_root is
+        # the `--tex` argument's parent. Until then, avoid sub-section
+        # \input{} chains, or write paths relative to the section file
+        # rather than relative to the wrapper.
         for cand in (tex_path.parent / inc, tex_path.parent / f"{inc}.tex"):
             if cand.is_file():
                 keys |= extract_cite_keys(cand, _seen)

@@ -104,17 +104,36 @@ def _derive_metric(rec: dict, key: str) -> float | None:
     Supports synthetic keys the underlying row doesn't store directly:
       - D_Can   = coherence_C * a_n_per_byte      (the paper's primary
                   C × a_n diversity score, in bits/byte)
-      - a_n_per_byte = a_k_curve_per_byte[-1]
+      - a_n_per_byte = mean-of-ratios across permutations of the last
+                      slot's per-byte surprise (the formula §6.3 gives).
+                      Computed from ``per_permutation_*`` fields when
+                      present; falls back to the precomputed
+                      ``a_k_curve_per_byte[-1]`` (which is also MoR
+                      after the core.py fix landed in this branch).
       - a_n_total    = a_k_curve[-1]
     Falls back to `rec.get(key)` for anything else.
     """
     if key == "D_Can":
         c = rec.get("coherence_C")
-        curve = rec.get("a_k_curve_per_byte")
-        if c is None or not curve:
+        an_pb = _derive_metric(rec, "a_n_per_byte")
+        if c is None or an_pb is None:
             return None
-        return float(c) * float(curve[-1])
+        return float(c) * an_pb
     if key == "a_n_per_byte":
+        # Prefer per-permutation MoR when available — that is what the
+        # paper specifies (see src/icl_diversity/per_byte.py and the
+        # implement-math skill).
+        pp_curves = rec.get("per_permutation_a_k_curves")
+        pp_bytes = rec.get("per_permutation_byte_counts")
+        if pp_curves and pp_bytes:
+            from icl_diversity.per_byte import compute_a_n_per_byte_mor
+            try:
+                return compute_a_n_per_byte_mor(pp_curves, pp_bytes)
+            except ValueError:
+                return None
+        # Fallback: precomputed per-byte curve.  Records written by the
+        # post-fix core.py contain MoR here; pre-fix records contain RoM.
+        # Old logs flow through this branch.
         curve = rec.get("a_k_curve_per_byte")
         if not curve:
             return None
@@ -386,50 +405,72 @@ def format_p(p: float | None) -> str:
     return f"{p:.3f}"
 
 
+def format_p_macro(p: float | None) -> str:
+    """Format a p-value for emission as a `\\newcommand` macro body that will
+    be expanded inside `$...$` in prose. Uses scientific notation for tiny
+    p-values so that values like 3.4e-24 do not round to "0.000" — three
+    decimals of decimal-format silently destroys precision when comparing
+    or reporting effect significance."""
+    if p is None or (isinstance(p, float) and math.isnan(p)):
+        return "\\text{---}"
+    if p == 0.0:
+        return "0"
+    if p < 1e-3 or p >= 1e4:
+        mantissa, exponent = f"{p:.1e}".split("e")
+        return f"{mantissa} \\times 10^{{{int(exponent)}}}"
+    return f"{p:.3f}"
+
+
 def write_results_table(analysis: dict, out_path: Path) -> None:
-    """One LaTeX table per prompt_set, with per-stage means and H1 tests."""
+    """Single LaTeX table covering both prompt sets, with per-stage means
+    and H1 tests stacked in two panels separated by a heading row.
+    Bonferroni p-values use scientific notation (see `format_p_macro`)
+    so that very-small values are not rounded to `<0.001`."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    lines = []
-    for pset in ["alpacaeval", "nbcurated"]:
+    panel_titles = {
+        "alpacaeval": "AlpacaEval",
+        "nbcurated": "NoveltyBench curated",
+    }
+    lines = [r"\begin{tabular}{lrrr}", r"\toprule"]
+    for i, pset in enumerate(["alpacaeval", "nbcurated"]):
         a = analysis[pset]
         ms = a["stage_means"]["D_Can"]
         tests = a["tests"]["D_Can"]
-        lines.append(r"\begin{tabular}{lrrr}")
-        lines.append(r"\toprule")
-        lines.append(r"Stage & $D = C \cdot a_n$ mean & std & $n$ \\")
+        if i > 0:
+            lines.append(r"\midrule")
+        lines.append(
+            r"\multicolumn{4}{l}{\textbf{" + panel_titles[pset] + r"}} \\"
+        )
         lines.append(r"\midrule")
+        lines.append(r"Stage & $D_{Ca_n}$ mean & std & $n$ \\")
         for s in STAGES:
             v = ms.get(s, {})
             lines.append(
-                f"{STAGE_LABELS[s]} & {safe_num(v.get('mean'))} & "
+                f"\\quad {STAGE_LABELS[s]} & {safe_num(v.get('mean'))} & "
                 f"{safe_num(v.get('std'))} & {v.get('n', 0)} \\\\"
             )
-        lines.append(r"\midrule")
-        lines.append(r"\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\")
+        lines.append(r"\addlinespace")
+        lines.append(
+            r"Contrast & $\Delta$ & $d_z$ & $p_{\mathrm{Bonf}}$ \\"
+        )
         for name, a_s, b_s, _ in H1_CONTRASTS:
             t = tests[name]
             lines.append(
-                f"{STAGE_LABELS[a_s]}$>$ {STAGE_LABELS[b_s]} & "
-                f"$\\Delta={safe_num(t['mean_diff'])}$ & "
-                f"$d_z={safe_num(t['cohen_dz'])}$ & "
-                f"$p={format_p(t['p_bonferroni'])}$ \\\\"
+                f"\\quad {STAGE_LABELS[a_s]}$>${STAGE_LABELS[b_s]} & "
+                f"${safe_num(t['mean_diff'])}$ & "
+                f"${safe_num(t['cohen_dz'])}$ & "
+                f"${format_p_macro(t['p_bonferroni'])}$ \\\\"
             )
         t = tests["Hpa"]
         lines.append(
-            r"\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\"
+            r"\quad DPO$\,\neq\,$Instruct\,(H1$'$) & "
+            f"${safe_num(t['mean_diff'])}$ & "
+            f"${safe_num(t['cohen_dz'])}$ & "
+            f"${format_p_macro(t['p_raw'])}$ \\\\"
         )
-        lines.append(
-            f"DPO $\\neq$ Instruct & "
-            f"$\\Delta={safe_num(t['mean_diff'])}$ & "
-            f"$d_z={safe_num(t['cohen_dz'])}$ & "
-            f"$p={format_p(t['p_raw'])}$ \\\\"
-        )
-        lines.append(r"\bottomrule")
-        lines.append(r"\end{tabular}")
-        lines.append("")
-        lines.append(r"\vspace{0.5em}")
-        lines.append("")
-    out_path.write_text("\n".join(lines))
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    out_path.write_text("\n".join(lines) + "\n")
 
 
 def write_paper_macros(analysis: dict, out_path: Path, name_infix: str = "") -> None:
@@ -452,12 +493,12 @@ def write_paper_macros(analysis: dict, out_path: Path, name_infix: str = "") -> 
         for name, a_s, b_s, _ in H1_CONTRASTS:
             t = tests[name]
             stem = f"{prefix}{name}"
-            lines.append(f"\\newcommand{{{stem}Pbonf}}{{{safe_num(t['p_bonferroni'])}}}")
+            lines.append(f"\\newcommand{{{stem}Pbonf}}{{{format_p_macro(t['p_bonferroni'])}}}")
             lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")
             lines.append(f"\\newcommand{{{stem}Diff}}{{{safe_num(t['mean_diff'])}}}")
         t = tests["Hpa"]
         stem = f"{prefix}Hpa"
-        lines.append(f"\\newcommand{{{stem}P}}{{{safe_num(t['p_raw'])}}}")
+        lines.append(f"\\newcommand{{{stem}P}}{{{format_p_macro(t['p_raw'])}}}")
         lines.append(f"\\newcommand{{{stem}Dz}}{{{safe_num(t['cohen_dz'])}}}")
         lines.append(f"\\newcommand{{{stem}Diff}}{{{safe_num(t['mean_diff'])}}}")
         lines.append(f"\\newcommand{{{prefix}N}}{{{ms['base']['n']}}}")

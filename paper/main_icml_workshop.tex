@@ -1,0 +1,115 @@
+% ICML 2026 Workshop variant — Human-AI Co-Creativity workshop submission.
+% The original journal-track wrapper is in_context_diversity_metric.tex
+% (named authors, single-column, full content). This wrapper reuses the
+% same paper/sections/*.tex files in ICML two-column format with anonymous
+% authors, with the section ordering and content choices driven by
+% paper/human-ai-creativity-workshop.md.
+%
+% Phase 2 of the workshop adaptation: wrapper structure + ICML style files.
+% Phase 3 commits will swap individual shared-section \input{} lines for
+% workshop-specific variants (sections/*_workshop.tex).
+
+\documentclass{article}
+
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+% Attempt to make hyperref and algorithmic work together better.
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Default (no [accepted]) is anonymous double-blind — required for submission.
+\usepackage{icml2026}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumitem}
+
+\graphicspath{{../figures/}{../investigations/cross_mode_surprise_drop/figures/}}
+\usepackage{pgfplots}
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc, shapes.geometric}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\pmi}{\mathrm{pmi}}
+\newcommand{\TC}{\mathrm{TC}}
+
+% Project URLs — anonymized for double-blind submission. The original
+% in_context_diversity_metric.tex wrapper defines the real URLs; this
+% wrapper points at the placeholder text. Replace with real anonymous-mirror
+% URLs at submission time (e.g. anonymous.4open.science for the GitHub
+% mirror; throwaway HF account or Zenodo for the dataset; see
+% paper/human-ai-creativity-workshop.md, "Risks worth tracking" section).
+\newcommand{\projectGithubUrl}{[code link withheld for double-blind review; an anonymous mirror is included in supplementary materials]}
+\newcommand{\projectHfDatasetUrl}{[dataset link withheld for double-blind review; an anonymous mirror is included in supplementary materials]}
+
+% Script-generated inline scalars. Same source as original paper.
+\input{../results/tables/paper_macros.tex}
+
+\icmltitlerunning{\textquotedblleft I've Seen How This Goes\textquotedblright: Characterizing Diversity via Progressive Conditional Surprise}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{\textquotedblleft I've Seen How This Goes\textquotedblright\texorpdfstring{\\}{: }Characterizing the Diversity of LLM Generations and Human Writing via Progressive Conditional Surprise}
+
+\icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+\icmlauthor{Anonymous Authors}{anon}
+\end{icmlauthorlist}
+
+\icmlaffiliation{anon}{Anonymous Institution}
+
+\icmlcorrespondingauthor{Anonymous Authors}{anonymous@example.com}
+
+\icmlkeywords{diversity, language models, mode collapse, in-context learning, evaluation, creativity}
+
+\vskip 0.3in
+]
+
+\printAffiliationsAndNotice{}
+
+\begin{abstract}
+\input{sections/abstract_workshop}
+\end{abstract}
+
+% --- Main body (target 4-8 pages; trimmed via Phase 3 workshop variants) ---
+% Phase 3 will swap each shared-section \input{} below for a *_workshop.tex
+% variant per the plan in paper/human-ai-creativity-workshop.md.
+
+\input{sections/01_motivation_workshop}
+\input{sections/02_setup}
+\input{sections/03_method_workshop}
+\input{sections/10_related}
+\input{sections/07_5_tevet_workshop}
+\input{sections/07_6_rlhf_workshop}
+\input{sections/08_limitations_workshop}
+
+% Acknowledgements deliberately omitted (double-blind).
+
+\bibliography{refs}
+\bibliographystyle{icml2026}
+
+\newpage
+\appendix
+% Material trimmed from the 4--8 page main body lives here. Reviewers may skip.
+\input{sections/06_practical}
+\input{sections/07_experiments_intro}
+\input{sections/07_2_scenario_validation}
+\input{sections/07_3_mode_count}
+\input{sections/07_4_cross_mode}
+\input{sections/07_7_practical_findings}
+\input{sections/07_8_discussion}
+\input{sections/09_future_work}
+\input{sections/appB_excess_entropy}
+\input{sections/appC_mcdiv_confounds}
+\input{sections/appD_aggregation}
+\input{sections/appE_qwen3_comparison}
+
+\end{document}

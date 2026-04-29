@@ -49,6 +49,37 @@ DEFAULT_INPUT = (
 FIGURES_DIR = Path(__file__).resolve().parent.parent / "figures"
 
 
+def _per_byte_curve(m: dict[str, Any]) -> list[float]:
+    """Per-byte progressive surprise curve for one (prompt, scenario) record.
+
+    Recomputes mean-of-ratios from ``per_permutation_a_k_curves`` and
+    ``per_permutation_byte_counts`` when present (the §6.3 formula; see
+    ``src/icl_diversity/per_byte.py``).  Falls back to the precomputed
+    ``a_k_curve_per_byte`` only when per-perm data is absent — which is
+    exact for n_permutations=1 (MoR ≡ RoM there) but gives the
+    historically-buggy ratio-of-means when applied to a perm-averaged
+    sidecar saved by an older ``core.py``.
+
+    Falls back to ``a_k_curve`` (total bits) as a last resort, for the
+    rare backward-compat case where neither per-byte field is logged.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+    from icl_diversity.per_byte import compute_a_k_curve_mor
+
+    pp_curves = m.get("per_permutation_a_k_curves")
+    pp_bytes = m.get("per_permutation_byte_counts")
+    if pp_curves and pp_bytes:
+        try:
+            return compute_a_k_curve_mor(pp_curves, pp_bytes)
+        except ValueError:
+            pass
+    if "a_k_curve_per_byte" in m:
+        return list(m["a_k_curve_per_byte"])
+    return list(m["a_k_curve"])
+
+
 def plot_single_scenario(
     scenario_name: str,
     metrics_list: list[dict[str, Any]],
@@ -67,14 +98,11 @@ def plot_single_scenario(
       2. Per-prompt averaged curves: medium-weight, prompt-colored.
       3. Mean-across-prompts ("average of averages"): bold black, on top.
     """
-    curve_key = (
-        "a_k_curve_per_byte" if "a_k_curve_per_byte" in metrics_list[0] else "a_k_curve"
-    )
-    n_responses = len(metrics_list[0][curve_key])
+    n_responses = len(_per_byte_curve(metrics_list[0]))
 
     per_prompt_curves: list[list[float]] = []
     for i, m in enumerate(metrics_list):
-        curve = m[curve_key]
+        curve = _per_byte_curve(m)
         per_prompt_curves.append(list(curve))
         k = np.arange(1, len(curve) + 1)
         label = m.get("prompt_label", f"Prompt {i}")
@@ -215,12 +243,7 @@ def generate_comparison_plots(
         for data in datasets:
             if key in data.get("scenarios", {}):
                 for m in data["scenarios"][key]:
-                    ck = (
-                        "a_k_curve_per_byte"
-                        if "a_k_curve_per_byte" in m
-                        else "a_k_curve"
-                    )
-                    curve = m[ck]
+                    curve = _per_byte_curve(m)
                     y_min = min(y_min, min(curve))
                     y_max = max(y_max, max(curve))
                     if m.get("per_permutation_a_k_curves") is not None:
@@ -262,8 +285,9 @@ def generate_comparison_plots(
         print(f"  Saved: {path}")
 
     # Combined overview: models (rows) x scenarios (columns) — landscape.
-    # Each column is shared y-axis (per-scenario), so different scenarios can
-    # have different y-ranges but both models for one scenario stay comparable.
+    # Single shared y-axis across ALL panels so cross-scenario eyeballing is
+    # apples-to-apples (per-scenario rescaling visually flattened the
+    # well-converged scenarios and exaggerated the noisy ones).
     n_scenarios = len(all_keys)
     fig, axes = plt.subplots(
         n_models,
@@ -272,34 +296,31 @@ def generate_comparison_plots(
         squeeze=False,
     )
 
-    # Compute per-scenario shared y-ranges first (across both models).
-    scenario_y_ranges: dict[str, tuple[float, float]] = {}
-    for key in all_keys:
-        y_min, y_max = float("inf"), float("-inf")
-        for data in datasets:
-            if key in data.get("scenarios", {}):
-                for m in data["scenarios"][key]:
-                    ck = (
-                        "a_k_curve_per_byte"
-                        if "a_k_curve_per_byte" in m
-                        else "a_k_curve"
-                    )
-                    curve = m[ck]
-                    y_min = min(y_min, min(curve))
-                    y_max = max(y_max, max(curve))
-                    if m.get("per_permutation_a_k_curves") is not None:
-                        pbc = m.get("per_permutation_byte_counts")
-                        for j, pc in enumerate(m["per_permutation_a_k_curves"]):
-                            if pbc is not None:
-                                pb = [
-                                    t / b if b > 0 else 0.0 for t, b in zip(pc, pbc[j])
-                                ]
-                            else:
-                                pb = pc
-                            y_min = min(y_min, min(pb))
-                            y_max = max(y_max, max(pb))
-        y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
-        scenario_y_ranges[key] = (y_min - y_pad, y_max + y_pad)
+    # One global y-range, computed across every per-perm curve in every
+    # (model, scenario) cell.  Per-perm curves are the widest layer, so
+    # bounding them bounds the per-prompt and mean curves automatically.
+    y_min, y_max = float("inf"), float("-inf")
+    for data in datasets:
+        for key in all_keys:
+            if key not in data.get("scenarios", {}):
+                continue
+            for m in data["scenarios"][key]:
+                curve = _per_byte_curve(m)
+                y_min = min(y_min, min(curve))
+                y_max = max(y_max, max(curve))
+                if m.get("per_permutation_a_k_curves") is not None:
+                    pbc = m.get("per_permutation_byte_counts")
+                    for j, pc in enumerate(m["per_permutation_a_k_curves"]):
+                        if pbc is not None:
+                            pb = [
+                                t / b if b > 0 else 0.0 for t, b in zip(pc, pbc[j])
+                            ]
+                        else:
+                            pb = pc
+                        y_min = min(y_min, min(pb))
+                        y_max = max(y_max, max(pb))
+    y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 0.1
+    global_y_range = (y_min - y_pad, y_max + y_pad)
 
     for row, data in enumerate(datasets):
         for col, key in enumerate(all_keys):
@@ -323,7 +344,7 @@ def generate_comparison_plots(
                     transform=ax.transAxes,
                 )
                 ax.set_title(title, fontsize=11, fontweight="bold")
-            ax.set_ylim(scenario_y_ranges[key])
+            ax.set_ylim(global_y_range)
 
         # Row label (model name) on the leftmost axis of each row.
         axes[row, 0].set_ylabel(

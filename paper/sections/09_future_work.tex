@@ -1,0 +1,20 @@
+\section{Future Work}
+
+Several directions remain unexplored.
+
+\paragraph{Dimension-specific prompt structures.} The neutral ``Response A/B/C'' formatting lets $\theta$ attend to whatever inter-response structure it finds most salient.
+An alternative is to use \emph{dimension-specific} framing (e.g., ``Here are several stories in different genres'') that primes $\theta$ to attend to a particular axis of variation.
+Computing diversity scores under multiple framings would yield a \textbf{diversity profile}: a vector of per-dimension scores for the same response set, potentially revealing that an intervention collapses topic diversity while preserving stylistic diversity.
+
+\paragraph{Prompt format optimization.} We use a fixed prompt template throughout and do not attempt to optimize it for ICL elicitation.
+Targeted prompt engineering could improve the metric's discriminative power, particularly for larger base models whose ICL capabilities are more sensitive to formatting.
+
+\paragraph{Ensembling base models.} A single base model $\theta$ may produce non-monotone $a_k$ curves when pushed out of distribution by long contexts.
+Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure.
+Our codebase supports token-level ensembling, but we have not yet validated it experimentally.
+
+\paragraph{Total-bits variants of $D$.}
+We report $D_{Ca_n} = C \times a_n$ in bits/byte for length control, normalising by bytes rather than tokens so that scores remain tokenizer-agnostic.
+The implementation also exposes $a_n$ in total bits, which is likewise tokenizer-agnostic but not length-controlled.
+A hybrid scalar $C \times a_n^{\text{bits}}$ rewards length (longer responses have more positions at which to be surprising), which some practitioners may want; characterising when each variant is the appropriate measurement target is left to future work.
+

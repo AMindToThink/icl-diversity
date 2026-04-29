@@ -1,0 +1,63 @@
+\section{Progressive Conditioning for Diversity Measurement}
+
+\subsection{Why Not Pairwise MI?}\label{sec:pairwise-mi}
+
+A natural starting point is pairwise mutual information: measure how much seeing one response helps $\theta$ predict another.
+This pairwise framing is also the one used by prior information-theoretic work on dialog diversity: Maximum Mutual Information (MMI) decoding \citep{li2016diversity} and Adversarial Information Maximization \citep{zhang2018aim} both optimize $I(X;Y)$ between input $X$ and a single response $Y$ at training or decoding time, to discourage generic replies.
+Our construction differs from theirs in two further respects: we apply MI \emph{among responses from the same policy} rather than across the query–response boundary, and as a post-hoc evaluation diagnostic rather than a training objective.
+
+Even setting those differences aside, pairwise MI among responses cannot detect a key failure mode of low diversity: when one response is a blend or interpolation of two others.
+All three pairwise MI values may be near zero (the blend is not especially predictable from either parent alone), yet the set is clearly not diverse.
+Progressive conditioning (Section~\ref{sec:progressive-conditioning}) handles this by conditioning on \emph{all} previous responses simultaneously, so the blend becomes predictable once both parents are in context.
+
+\subsection{The Coherence Problem}\label{sec:coherence-problem}
+
+Low MI (or low average PMI) means responses are approximately statistically independent under $\theta$'s assessment.
+But there are two distinct ways to achieve independence:
+\begin{enumerate}[nosep]
+    \item \textbf{Diverse-coherent}: $\pi$ has broad support over plausible completions, each individually likely under $\theta$.
+    \item \textbf{Random/incoherent}: $\pi$ produces noise; each sample is improbable under $\theta$ but trivially independent.
+\end{enumerate}
+
+Both yield low pairwise MI.
+The distinguishing signal lies in the probability $\theta$ puts on the response without seeing other responses, $h_\theta(r \mid p)$, not in the pairwise structure.
+This motivates decomposing the metric into separate coherence and independence components.\footnote{\citet{tevet2020evaluating} report that in pilot experiments, NLP graduate students rated sets of high-diversity but low-quality responses as low-diversity; they label this a human bias and design their crowdsourcing protocol to suppress it, but we read the same observation as evidence that coherence is part of what ``diversity'' of a generated set actually means.}
+
+\subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
+
+Rather than all-pairs PMI (a metric which cannot recognize the case when response 3 is a mix of response 1 and response 2 as low-diversity), we use the chain rule of mutual information.
+Define:
+\begin{equation}\label{eq:ak}
+    a_k = -\log_2 \theta(r_k \mid r_{<k}, p) \quad \text{for } k = 1, \ldots, n
+\end{equation}
+
+Units: bits.
+Each $a_k$ is the total surprise of the $k$-th response given all previous responses.
+The sequence $(a_1, a_2, \ldots, a_n)$ is the \textbf{progressive conditional surprise curve}.
+In practice, we normalize each $a_k$ by dividing by the byte count $\|r_k\|$ to obtain a per-byte curve (bits/byte); this makes the curve independent of $\theta$'s tokenizer and removes length variation.
+Unless otherwise noted, all reported $a_k$ values and the diversity score $D_{Ca_n}$ are in per-byte units.
+
+Since responses have different lengths, the raw total-bits $a_k$ values for a single ordering reflect both structural learning and length variation.
+Per-byte normalization and averaging over random permutations of the response ordering (Section~\ref{sec:ordering}) remove these effects: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context.
+
+If $\theta$ were the true joint distribution of $\pi$'s outputs, then $\E[a_k]$ would be non-increasing in $k$ by the information-theoretic identity $H(X \mid Y, Z) \leq H(X \mid Y)$.
+Since $a_k$ is a \emph{cross}-entropy under $\theta$ rather than the true conditional entropy, this monotonicity is an empirical property of $\theta$'s in-context learning, not a theorem.
+In practice, we rely on $\theta$ being capable enough that the model-mismatch component does not dominate.
+The monotonicity need not be perfect: mild violations (such as the last-position uptick discussed in Section~\ref{sec:tevet}, where \tevetLastUptickPct\% of Tevet samples have $a_5 > a_4$) add noise to the $a_n$ estimate but do not prevent the metric from discriminating diverse from non-diverse response sets.
+
+The $a_k$ curve is the fundamental object of interest.
+Its shape reveals the structure among the policy's outputs:
+\begin{itemize}[nosep]
+    \item For small $k$, each new response is likely to contain patterns $\theta$ has not yet seen, so $a_k$ remains near $a_1$.
+In practice, cross-mode learning causes $a_k$ to drop even when responses are varied, but less than when they are similar.
+    \item As $k$ grows, $\theta$ begins to recognize recurring structure (shared modes, stylistic regularities, topic patterns) and $a_k$ declines.
+    \item For large $k$, $a_k$ converges to a floor $a_\infty > 0$ reflecting irreducible within-pattern variation that $\theta$ cannot predict from context alone.
+\end{itemize}
+
+This is analogous to a scree plot in PCA: the location of the ``elbow'' reveals when $\theta$ has learned most of the available structure, the floor corresponds to irreducible noise variance, and the initial height reflects the total variance.
+Overlaying $a_k$ curves from different policies on the same axes provides the same kind of immediate visual diagnostic that comparing scree plots does.
+
+\paragraph{Curve shape.} If modes were independent (seeing one mode's response tells $\theta$ nothing about other modes), the curve shape would depend on the ratio $m/n$: sigmoidal with a plateau at high $m/n$, exponential decay at low $m/n$.
+In practice, capable base models exhibit cross-mode learning (Section~\ref{sec:cross-mode-learning}), which violates the independence assumption and produces exponential decay at all $m/n$ ratios.
+The sigmoid prediction holds only for weaker models like GPT-2.
+

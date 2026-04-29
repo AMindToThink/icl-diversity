@@ -1,0 +1,40 @@
+\subsection{Scenario Validation}\label{sec:scenario-validation}
+
+We construct five synthetic scenarios with known diversity structure:
+\begin{enumerate}[nosep]
+    \item \textbf{Pure noise}: Random word salad with no learnable structure.
+    \item \textbf{Multi-incoherent}: Responses from 5 distinct modes, each internally incoherent (scrambled words within a template).
+    \item \textbf{Multi-mode}: Responses from 5 distinct modes, each internally coherent (e.g., recipe, poem, code).
+    \item \textbf{One-mode}: All responses from a single coherent mode (paraphrases of the same content).
+    \item \textbf{Mixed}: A mixture of coherent and incoherent responses.
+\end{enumerate}
+
+Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100 permutations and seed 42.
+
+\begin{table*}[t]
+\centering
+\caption{Scenario validation metrics (mean across 5 prompts, 100 permutations, $n=10$ responses, per-byte).
+We report several candidate scalars: unconditional surprise $a_1$, the floor $a_n$, coherence $C$, our recommended score $D_{Ca_n} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$. $D_{Ca_n}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
+Both $E$ and $C \times E$ go negative for the mixed scenario on GPT-2.}
+\label{tab:scenarios}
+\small
+\input{../results/tables/scenario_validation.tex}
+\end{table*}
+
+\paragraph{Results.} Table~\ref{tab:scenarios} summarizes the metrics.
+Figure~\ref{fig:scenario-curves} shows the $a_k$ curves for all scenarios.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{comparison_v3/comparison_ak_curves_all.png}
+\caption{Progressive conditional surprise curves ($a_k$, per-byte) for all five scenarios, comparing GPT-2 (top row) and Qwen2.5-3B (bottom row).
+In each panel, faint colored curves are individual permutations (100 per prompt), medium colored curves are per-prompt averages, and the bold black curve is the mean across prompts.
+Pure noise curves are flat (no learnable structure); multi-mode curves show progressive decline; one-mode curves decline steeply then flatten.}
+\label{fig:scenario-curves}
+\end{figure*}
+
+The coherence term $C$ correctly separates coherent from incoherent scenarios: $C \approx 0.5$--$0.6$ for multi-mode and one-mode, $C \approx 0.1$--$0.3$ for multi-incoherent, and $C \approx 0.01$ for pure noise.
+The coherence spread $\sigma_\ell$ discriminates mixed from pure scenarios: $\sigma_\ell > 1.0$ for mixed (GPT-2), reflecting the within-set heterogeneity between coherent and incoherent responses.
+
+$C$ consistently improves with model strength (Qwen2.5-3B assigns higher coherence to genuinely coherent text than GPT-2). $D_{Ca_n}$ correctly ranks multi-mode above one-mode on both models, and suppresses pure noise and multi-incoherent via the $C$ factor.
+

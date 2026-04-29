@@ -1,0 +1,79 @@
+\subsection{External Validation}\label{sec:tevet}
+
+We evaluate against Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}, which comprises two diagnostic tests (decTest, conTest) and the McDiv dataset (including the McDiv\_nuggets subset), totalling \tevetMcDivSetCount{} McDiv sets, \tevetMcDivNugSetCount{} McDiv\_nuggets sets, \tevetDecTestSetCount{} decTest sets, and \tevetConTestSetCount{} conTest sets\footnote{Set counts are CSV row totals summed across the three NLG tasks (promptGen/respGen/storyGen) in the released no\_hds splits (with\_hds for conTest, the only split released), which deviate from Tevet and Berant's nominal per-task counts; e.g., conTest shows 200/220/250 rather than a flat 200 per task.} (Tevet and Berant \S6.3--6.4):
+\begin{itemize}[nosep]
+    \item \textbf{McDiv\_nuggets}: 5 responses per set, binary labels (high/low content diversity).
+    \item \textbf{ConTest}: 5 responses per set, binary labels.
+    \item \textbf{DecTest}: 10 responses generated at varying temperatures, labeled by temperature.
+\end{itemize}
+We compute all metrics using Qwen2.5-3B (base) with 50 permutations in completion format.
+For the binary datasets we follow \citet{tevet2020evaluating} in reporting Spearman $\rho$ and OCA (\emph{optimal classification accuracy}: the best accuracy achievable by a one-dimensional threshold separating low- and high-diversity sets), and additionally report ROC AUC (the natural metric for binary classification).
+For DecTest we report Spearman $\rho$ with the labeled temperature.
+
+\paragraph{Caveats.} McDiv\_nuggets has a dataset construction confound: low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than the generic completions in high-diversity sets (see Appendix~\ref{app:confound}).
+
+% Source for all numbers in Tables 5--7:
+% - Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3
+%   → figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+% - Baselines: scripts/compute_tevet_baselines.py (reads Tevet's pre-computed
+%   metrics from diversity-eval/data/with_metrics/)
+
+% Numbers sourced from:
+%   Our metrics: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
+%     → figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+%   Baselines: scripts/compute_tevet_baselines.py
+%     → reads Tevet's pre-computed metrics from diversity-eval/data/with_metrics/
+% Subsets chosen to match Tevet's paper tables:
+%   ConTest (200, with_hds) → Tevet Table 4
+%   McDiv_nuggets (no_hds, ~1K) → Tevet Table 9
+%   McDiv (full, no_hds, 2K) → Tevet Table 8
+
+\begin{table}[t]
+\centering
+\caption{conTest results: Spearman $\rho$ and OCA between a set's diversity class and each metric score.
+Baselines from Tevet's pre-computed metrics; $C \!\times\! a_n$ and $a_n$ are ours (Qwen2.5-3B, 50 permutations, per-byte).
+Best result per task in bold.}
+\label{tab:contest}
+\small
+\input{../results/tables/contest_rho_oca.tex}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{decTest results: Spearman $\rho$ between temperature and each metric score (1000 samples, no\_hds).
+Raw $a_n$ achieves the highest correlation on prompt\_gen and resp\_gen.}
+\label{tab:dectest}
+\small
+\input{../results/tables/dectest_rho.tex}
+\end{table}
+
+\paragraph{Results.} Tables~\ref{tab:contest}--\ref{tab:dectest} compare $C \times a_n$ against Tevet's baseline metrics, reported in the same $\rho$ and OCA that Tevet used.
+On the binary classification tasks (Table~\ref{tab:contest}), $C \times a_n$ is competitive with embedding-based metrics: it achieves $\rho = \tevetMcDivPromptGenCxAnRho{}$ and OCA = \tevetMcDivPromptGenCxAnOCA{} on McDiv prompt\_gen, compared to SentBERT's $\rho = \tevetMcDivPromptGenSentBertRho{}$ and OCA = \tevetMcDivPromptGenSentBertOCA{}.
+For completeness, we also report ROC AUC (the natural metric for binary classification) on the same prompt\_gen rows: $C \times a_n$ reaches \tevetMcDivPromptGenAUC{} on McDiv, \tevetMcDivNugPromptGenCxAnAUC{} on McDiv\_nuggets, and \tevetConTestPromptGenCxAnAUC{} on ConTest.
+SentBERT is generally the strongest baseline, though not always (BERTsts edges it on ConTest prompt\_gen OCA; see Table~\ref{tab:contest}). $C \times a_n$ beats distinct-$n$ decisively on all three McDiv\_nuggets tasks (where distinct-$n$ is near chance) and on all tasks where the label itself is not nearly shuffle-invariant, but trails distinct-$n$ by 1--3 OCA points on ConTest resp\_gen and McDiv resp\_gen/story\_gen.
+Its OCA lag behind SentBERT ranges from \tevetCxAnVsSentBertOCAMinPct\% to \tevetCxAnVsSentBertOCAMaxPct\% across the nine binary tasks.
+On decTest (Table~\ref{tab:dectest}), raw $a_n$ achieves $\rho = \tevetDecTestAnPromptGenRho{}$ on prompt\_gen and $\rho = \tevetDecTestAnRespGenRho{}$ on resp\_gen, matching or exceeding all baselines including distinct-$n$ ($\rho = \tevetDecTestDistinctNPromptGenRho{}$ on prompt\_gen).
+
+\paragraph{Alternative scalars.} Both factors of $D = C \times a_n$ contribute: ablating either one degrades OCA across the nine binary tasks. Raw $a_n$ OCA is \tevetAnVsCxAnOCAMinPct\%--\tevetAnVsCxAnOCAMaxPct\% lower than $C \times a_n$ OCA, and raw $C$ OCA is \tevetCVsCxAnOCAMinPct\%--\tevetCVsCxAnOCAMaxPct\% lower (the negative end of the $C$ range reflects a single McDiv\_nuggets task where $C$ alone narrowly beats the product, consistent with the construction confound discussed below).
+We also tested an alternative score based on the excess entropy $E$ (a measure of total learnable structure in the $a_k$ curve); it failed entirely in this few-draws regime, where the curve stays flat regardless of diversity.
+See Appendix~\ref{app:excess-entropy} for the definition, ROC curves, and a detailed comparison.
+Two ``surprising'' patterns emerge on these binary tasks that have a common explanation rather than a profound one: unconditional surprise $a_1$ has the wrong sign (negative Spearman $\rho$ against the diversity label on every binary task), and raw $C$ alone correlates positively with human diversity labels.
+Both reflect the McDiv construction confound (Appendix~\ref{app:confound}): low-diversity sets are self-selected paraphrases of specific, dramatic endings that are intrinsically less likely under $\theta$, which drives up $a_1$ and drives down $C$ on low-diversity sets.
+The $C$ weighting in $D_{Ca_n}$ thus helps rather than hurts on this benchmark, but for reasons tied to this dataset's construction; we expect $a_n$ to carry most of the signal in settings without such a confound.
+
+% Source: scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
+% comparing C×a_n vs C×a_{n-1} in summary_table.txt
+\paragraph{Last-position uptick.} The mean $a_k$ curve shows a systematic uptick at $k = n$ (the last response position) across McDiv\_nuggets datasets: approximately \tevetLastUptickPct\% of samples (per-byte, across all three tasks and both with/without-HDS variants) have $a_5 > a_4$.
+This anomaly inflates $a_n$ relative to the true $a_\infty$, adding noise to our score.
+As a diagnostic, we evaluated $C \times a_{n-1}$ (using the second-to-last point instead of the last).
+Across McDiv\_nuggets tasks, $C \times a_{n-1}$ is comparable to $C \times a_n$ (sometimes better, sometimes worse), which is striking given that $a_{n-1}$ uses strictly \emph{less} conditioning information (4 prior responses instead of 5).
+Our working hypothesis is that 4 responses genuinely form a learnable pattern (shared format conventions, topic vocabulary, and stylistic regularities that $\theta$ can extract) but the 5th response partially disrupts this pattern by introducing enough novel structure to increase surprise.
+If correct, the uptick reflects a real phenomenon (small response sets exhibit fragile learned patterns) rather than a bug, though it does mean $a_n$ slightly overestimates $a_\infty$ at small $n$.
+
+\paragraph{Mode count experiments.} In the synthetic mode count experiments (Section~\ref{sec:mode-count-scaling}), $C \times a_n$ (aggregated over 1000 independent draws per mode count) increases monotonically with $m$ for both GPT-2 (Pearson $r = \modeCountCxAnPearsonGPT{}$) and Qwen2.5-3B ($r = \modeCountCxAnPearsonQwen{}$).
+The excess-entropy-based alternatives are compared in Appendix~\ref{app:excess-entropy}.
+
+% ---- Model-to-model comparison subsection (generated from
+%      paper/rlhf_experiment.tex; regenerate macros and table via
+%      scripts/rlhf_experiment/5_analyze_and_figures.py and
+%      scripts/rlhf_experiment/5c_cross_model_table.py) ----

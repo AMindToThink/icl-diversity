@@ -61,22 +61,30 @@ def load_csv_rows(csv_path: Path) -> dict[str, dict]:
 
 
 def compute_per_byte_curve(entry: dict) -> list[float] | None:
-    """Mean of (bits_k / bytes_k) across permutations — correct mean-of-ratios."""
+    """Mean-of-ratios per-byte curve across permutations.
+
+    Delegates to :func:`icl_diversity.per_byte.compute_a_k_curve_mor`,
+    the single source of truth for this aggregation (see the
+    ``implement-math`` skill).  Falls back to the precomputed
+    ``a_k_curve_per_byte`` only when per-permutation data is absent —
+    which is exact for n_permutations=1 (MoR ≡ RoM there) but gives
+    the historically-buggy ratio-of-means when applied to a
+    perm-averaged sidecar.
+    """
+    from icl_diversity.per_byte import compute_a_k_curve_mor
+
     perm_curves = entry.get("per_permutation_a_k_curves")
     perm_bytes = entry.get("per_permutation_byte_counts")
     if perm_curves is None or perm_bytes is None:
         return entry.get("a_k_curve_per_byte")
-    n_positions = len(perm_curves[0])
-    per_byte_curve: list[float] = []
-    for k_idx in range(n_positions):
-        ratios = []
-        for p in range(len(perm_curves)):
-            bits = perm_curves[p][k_idx]
-            bc = perm_bytes[p][k_idx]
-            if bc > 0:
-                ratios.append(bits / bc)
-        per_byte_curve.append(sum(ratios) / len(ratios) if ratios else 0.0)
-    return per_byte_curve
+    try:
+        return compute_a_k_curve_mor(perm_curves, perm_bytes)
+    except ValueError:
+        # Degenerate sample (e.g. empty response at some slot in every
+        # permutation).  Dropping it from the dataset is preferable to
+        # imputing 0.0 in the per-byte curve, which would silently bias
+        # downstream means.
+        return None
 
 
 # ---------------------------------------------------------------------------

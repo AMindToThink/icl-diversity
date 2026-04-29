@@ -926,6 +926,7 @@ def _compute_metrics_from_curves(
     unconditional_byte_counts: list[int],
     e_rate: float,
     responses: list[str],
+    a_k_curve_per_byte_precomputed: list[float] | None = None,
 ) -> dict[str, Any]:
     """Compute all derived metrics from curves and pre-computed E_rate.
 
@@ -936,6 +937,13 @@ def _compute_metrics_from_curves(
         unconditional_byte_counts: Byte count per response for unconditional.
         e_rate: Pre-computed E_rate (per-byte excess entropy, Option B).
         responses: The response texts (needed for byte length).
+        a_k_curve_per_byte_precomputed: Optional pre-computed per-byte curve,
+            supplied by the multi-permutation caller as a mean-of-ratios
+            across permutations (the formula the paper specifies — see
+            ``src/icl_diversity/per_byte.py``).  When ``None`` (the
+            single-ordering path, n_permutations=1), we compute the curve
+            from total bits and byte counts here; that is exact for
+            n_permutations=1 because MoR ≡ RoM with a single permutation.
 
     Returns:
         Dict with all metric values.
@@ -945,10 +953,22 @@ def _compute_metrics_from_curves(
     # Eq 6: excess entropy E = sum(a_k - a_n) in total bits
     excess_entropy_E = compute_excess_entropy(a_k_curve_total_bits)
 
-    # Per-byte a_k curve (for plotting and backward compat)
-    a_k_curve_per_byte = [
-        t / b if b > 0 else 0.0 for t, b in zip(a_k_curve_total_bits, a_k_byte_counts)
-    ]
+    # Per-byte a_k curve.  When the caller has multiple permutations
+    # available, it computes a mean-of-ratios curve and passes it in via
+    # ``a_k_curve_per_byte_precomputed`` — that is the paper's definition
+    # (see per_byte.compute_a_k_curve_mor and the implement-math skill).
+    # The fallback below is exact for the single-permutation case
+    # (MoR ≡ RoM when |Σ| = 1) but degenerates into "total-bits curve
+    # rescaled by 1 / mean_response_length" if applied to perm-averaged
+    # bits + byte_counts.  That bug existed for ~6 weeks and is the
+    # reason this parameter now exists.
+    if a_k_curve_per_byte_precomputed is not None:
+        a_k_curve_per_byte = list(a_k_curve_per_byte_precomputed)
+    else:
+        a_k_curve_per_byte = [
+            t / b if b > 0 else 0.0
+            for t, b in zip(a_k_curve_total_bits, a_k_byte_counts)
+        ]
 
     # Mean unconditional surprise (per-byte)
     mean_h = sum(unconditional_per_byte) / n
@@ -1089,9 +1109,16 @@ def _metrics_from_permutations(
 
     e_rate = sum(avg_per_byte[k] - avg_per_byte[-1] for k in range(n))
 
+    # Pass the mean-of-ratios per-byte curve through to the metrics
+    # function so that ``a_k_curve_per_byte``, ``a_n_per_byte``, and
+    # ``diversity_score_D_C_an`` are computed as MoR (the formula the
+    # paper specifies), not RoM (what the prior code path produced when
+    # this argument was missing).  See ``src/icl_diversity/per_byte.py``
+    # and the ``implement-math`` skill for the failure-mode postmortem.
     metrics = _compute_metrics_from_curves(
         avg_total_bits, avg_byte_counts, unconditional_per_byte,
         unconditional_byte_counts, e_rate, responses,
+        a_k_curve_per_byte_precomputed=avg_per_byte,
     )
     metrics["unconditional_total_bits"] = unconditional_total_bits
     metrics["temperature"] = temperature

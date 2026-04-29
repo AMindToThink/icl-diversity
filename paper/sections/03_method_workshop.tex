@@ -1,0 +1,71 @@
+\section{Method}\label{sec:method}
+
+This section defines the three quantities used in the main body: the progressive conditional surprise curve $a_k$, the coherence term $C$, and the scalar score $D_{Ca_n} = C \times a_n$.
+The full information-theoretic motivation, the alternative excess-entropy summary $E$, the coherence-heterogeneity diagnostic $\sigma_\ell$, and the cross-mode learning analysis appear in Appendices~\ref{app:excess-entropy}--\ref{app:qwen3-comparison}.
+
+\subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
+
+Given prompt $p$ and $n$ responses $r_1, \ldots, r_n$ from policy $\pi$, define
+\begin{equation}\label{eq:ak}
+    a_k = -\log_2 \theta(r_k \mid r_{<k}, p) \quad \text{for } k = 1, \ldots, n,
+\end{equation}
+the total surprise of the $k$-th response under base model $\theta$ given the previous $k{-}1$ responses.
+The sequence $(a_1, \ldots, a_n)$ is the \textbf{progressive conditional surprise curve}.
+We normalize each $a_k$ by the byte count $\|r_k\|$ to get a per-byte (bits/byte) curve that is independent of $\theta$'s tokenizer.
+All quantities below are per-byte unless otherwise stated.
+
+The intuition is that as $\theta$ sees more responses from $\pi$, the conditional surprise drops if the responses share patterns ($\theta$'s in-context learning picks up on modes, stylistic regularities, topic patterns) and stays flat if they do not.
+For a policy with rich coherent diversity the curve declines and levels off at a positive floor; for a policy producing one repeated mode the curve drops sharply to near zero; for pure noise the curve stays roughly constant at a high value.
+
+In practice we average $a_k$ over uniformly random permutations of the response ordering (so each position averages over all responses and the curve reflects only how $\theta$'s predictions improve with more context, not which response happened to land in slot $k$).
+We take the metric value to be the last observed point $a_n$.
+No fitting or extrapolation step is involved.
+
+\subsection{The Coherence Term}\label{sec:coherence}
+
+The curve alone is fooled by pure noise: $\theta$ can never predict random tokens from one another, so $a_n$ stays at the high unconditional surprise level and noise would dominate the metric.
+The distinguishing signal lies in how plausible $\theta$ finds each individual response, independent of the others.
+
+Let $h_\theta(r \mid p) = -\frac{1}{\|r\|}\log_2 \theta(r \mid p)$ be the per-byte cross-entropy of response $r$ under $\theta$ conditioned on the prompt alone.
+Define \textbf{coherence} as the geometric mean of the per-byte probabilities:
+\begin{equation}\label{eq:coherence}
+    C = 2^{-\frac{1}{n}\sum_{i=1}^{n} h_\theta(r_i \mid p)} = \frac{1}{\mathrm{PPL}_\theta(\pi, p)},
+\end{equation}
+the reciprocal of the geometric-mean per-byte perplexity\footnote{In our Tevet evaluation with Qwen2.5-3B, the central 90\% (5th to 95th percentile) of per-response bits-per-byte values across \tevetCoherenceRespCount{} responses span $[\tevetCoherenceBpbLow, \tevetCoherenceBpbHigh]$, giving $C \in [\tevetCoherenceCLow, \tevetCoherenceCHigh]$; the mean per-set $C$ across \tevetCoherenceSetCount{} response sets is \tevetCoherenceMeanC.} that $\theta$ assigns to the responses individually.\footnote{For scale, the bits/byte score is the average per-byte cross-entropy $\bar{\ell}$, related to coherence by $C = 2^{-\bar{\ell}}$. GPT-3 davinci on The Pile \citep{gao2020pile} scored $\sim$0.72 bits/byte and GPT-2 XL $\sim$1.05 bits/byte, giving $C \approx 0.61$ and $C \approx 0.49$ respectively; stronger base models reach lower bits/byte and correspondingly higher $C$.}
+Geometric averaging (rather than arithmetic) is what gives $C$ the desired suppression: a single fluent response cannot rescue a set in which the rest are incoherent, because $C$ is driven toward zero by any sample with high per-byte cross-entropy.
+
+\subsection{The Diversity Score}\label{sec:scalar}
+
+The scalar score is the product:
+\begin{equation}\label{eq:D-Can}
+    D_{Ca_n} = C \times a_n \quad \text{(bits/byte).}
+\end{equation}
+It can be read as ``how many bits of surprise per byte remain after $\theta$ has learned what it can from the other responses, weighted by output plausibility.''
+The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}; empirical metric values on synthetic instances of each scenario appear in Appendix~\ref{sec:scenario-validation} (Table~\ref{tab:scenarios}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five appendix scenarios (Appendix~\ref{sec:scenario-validation}).
+The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and one-mode sets (via $a_n$); multi-mode coherent is the intended winner.
+Empirical numbers under GPT-2 and Qwen2.5-3B (Table~\ref{tab:scenarios}) show smaller $a_n$ for multi-mode coherent than this story predicts, since with only a 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and the floor is no longer ``high.'' Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count. This highlights the importance of choosing the length of the response chain. Too short and there's no diversity to pick up, but too long and all diversity can be learned and predicted.
+Practitioners with a clear preference for one factor over the other can reweight (e.g., $C^{\alpha} \times a_n$).}
+\label{tab:edge-cases}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Scenario              & $C$  & $a_n$ & $D_{Ca_n}$       \\
+\midrule
+Pure noise            & low  & high  & low (via $C$)    \\
+Multi-mode incoherent & low  & high  & low (via $C$)    \\
+Multi-mode coherent   & high & high  & \textbf{high}    \\
+One-mode              & high & low   & low (via $a_n$)  \\
+Mixed                 & mid  & high  & mid              \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The score depends on $p$, $\pi$'s responses, and $\theta$.
+Diversity is therefore a property of (responses, prompt, scoring model), not of the policy in isolation: the same response set can score differently under a stronger or weaker $\theta$.
+This is by design: $\theta$'s in-context learning capability is the lens through which diversity is measured, giving the score the potential to improve as base models improve (see Appendix~\ref{app:qwen3-comparison} for a preliminary scaling experiment).
+When comparing policies across a prompt suite, $D_{Ca_n}$ can be averaged over prompts or differenced; see Appendix~\ref{app:aggregation}.
+

@@ -1,0 +1,78 @@
+\section{Practical Considerations}\label{sec:practical}
+
+\subsection{Formatting the Conditioning Context}
+
+Computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a context containing the prompt and previous responses.
+The formatting choice affects results.
+We recommend using a base (non-instruction-tuned) model as $\theta$ and formatting as:
+
+\begin{verbatim}
+    [prompt p]
+
+    Response A: [r_1]
+
+    Response B: [r_2]
+
+    Response C: [r_3]
+\end{verbatim}
+
+This leverages the base model's in-context learning to treat the responses as parallel completions.
+An instruction-tuned model might instead interpret previous responses as conversation turns, confounding the measurement.
+
+\paragraph{Base vs.\ instruction-tuned models.} We use a base (non-instruction-tuned) model as $\theta$ for two reasons.
+First, an instruction-tuned model has had its output distribution shaped by RLHF or similar procedures, so using one as $\theta$ reintroduces the kind of distributional bias we seek to avoid.
+Second, an instruction-tuned $\theta$ may assign systematically different probabilities to text that follows or violates its alignment training, introducing a confound between coherence-as-fluency and coherence-as-alignment that the metric should not conflate.
+Modern base models already exhibit strong in-context learning from pretraining alone, so this choice does not sacrifice ICL capability.
+Optimizing the prompt format to maximally elicit in-context learning from $\theta$ is an interesting direction but out of scope for this paper; we use the neutral ``Response A/B/C'' template throughout.
+
+\subsection{Computational Cost}\label{sec:cost}
+
+Because $\theta$ is a causal language model, the full $a_k$ curve can be computed from a \textbf{single forward pass}.
+Concatenate the prompt and all responses into one sequence:
+
+\begin{verbatim}
+    [prompt p] Response A: [r_1] Response B: [r_2] ... Response N: [r_n]
+\end{verbatim}
+
+The forward pass produces the log-probability of every token conditioned on all preceding tokens.
+The tokens belonging to $r_k$ are conditioned on exactly $p, r_1, \ldots, r_{k-1}$ (plus formatting), which is the conditioning required for $a_k$.
+Partitioning the output log-probabilities by response boundary and summing within each partition yields all $n$ values of $a_k$ simultaneously.
+The cost is a single forward pass over the full concatenation, with FLOPs scaling as $O((|p| + n\bar{L}_{\mathrm{tok}})^2)$ from causal attention, where $\bar{L}_{\mathrm{tok}}$ is the average response length in tokens.
+
+The coherence term $C$ and spread $\sigma_\ell$ additionally require the \emph{unconditional} per-byte cross-entropies $h_\theta(r_i \mid p)$ for each response.
+These cannot be extracted from the concatenated pass, since in that pass $r_i$ for $i > 1$ is conditioned on all prior responses.
+Computing them requires $n$ independent forward passes, each over the short context $(p, r_i)$.
+These passes are embarrassingly parallel and batchable.
+
+In summary:
+\begin{itemize}[nosep]
+    \item $a_k$ curve: 1 forward pass per permutation (long context).
+    \item $C$ and $\sigma_\ell$: $n$ forward passes (short contexts, batchable).
+\end{itemize}
+
+\subsection{Dependence on Sample Ordering}\label{sec:ordering}
+
+The $a_k$ values depend on the ordering of $\{r_i\}$.
+Since raw $a_k$ is in total bits, responses of different lengths produce different values even at the same per-byte rate, making a single ordering's curve jagged.
+Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context.
+We recommend averaging over a moderately large number of random permutations; Section~\ref{sec:practical-findings} provides empirical evidence that $\geq 50$ permutations are needed for reliable rankings.
+
+Per-response normalization by byte count must be performed \emph{before} averaging across permutations, since the byte count depends on which response lands at each position.
+Concretely, the per-byte curve is a mean of per-permutation rates,
+\begin{equation}\label{eq:akbar-mor}
+    \bar{a}_k = \frac{1}{|\Sigma|}\sum_{\sigma \in \Sigma} \frac{a_k^{\sigma}}{\|r_{\sigma(k)}\|},
+\end{equation}
+not a ratio of permutation-averaged bits to permutation-averaged byte counts (which would degenerate, after enough permutations, into the total-bits curve rescaled by the mean response length).
+
+\subsection{Choice of $n$}
+
+The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$, and the choice involves a tradeoff in both directions.
+Too small an $n$ means the curve has not yet stabilized: $a_n$ overestimates $a_\infty$ and $D_{Ca_n}$ is inflated.
+Too large an $n$ means $\theta$ has accumulated enough in-context examples to reduce its surprise even within genuine diversity; for any policy with finitely many distinct modes, $a_n$ continues to decrease toward zero as $\theta$ learns to predict within-mode variation from prior examples.
+We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency.
+A practical choice is $n = 10$--20, which in our experiments suffices for policies where $\theta$'s learning stabilizes within this range.
+This is one reason to report the full $a_k$ curve rather than $D_{Ca_n}$ alone. $D$ is a lossy summary, but the curve shows directly how response surprise evolves at every context size.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SECTION 8: EXPERIMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

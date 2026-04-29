@@ -1,0 +1,13 @@
+\section{Experiments}\label{sec:experiments}
+
+\subsection{Experimental Setup}\label{sec:exp-setup}
+
+We evaluate the metric primarily using Qwen2.5-3B (3B parameters, 128K-token context window) \citep{yang2024qwen25}, with GPT-2 (124M parameters, 1024-token context window) \citep{radford2019language} as a smaller-model comparison point for scenario validation.
+Qwen2.5-3B is used for mode-count scaling, cross-mode learning, and external validation (Sections~\ref{sec:mode-count-scaling}, \ref{sec:cross-mode-learning}, \ref{sec:tevet}).
+The cross-model scaling study (Section~\ref{sec:exp-discussion}) additionally uses the full Llama 3 family for comparison.
+
+All $a_k$ curves are computed using single-pass forward computation (Section~\ref{sec:cost}).
+Unless otherwise noted, we use 100 permutations for scenario validation and 50 permutations for larger-scale experiments.
+Responses are formatted as described in Section~\ref{sec:cost}.
+All code is publicly available.\footnote{\projectGithubUrl}
+
