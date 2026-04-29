@@ -30,7 +30,8 @@ The raw $a_n$ achieves $\rho = \tevetDecTestAnPromptGenRho{}$ on prompt\_gen and
 \begin{table}[t]
 \centering
 \caption{DecTest results: Spearman $\rho$ between sampling temperature and each metric score (1000 samples, no\_hds).
-Reported for parity with Tevet and Berant; the labels here are sampling temperatures rather than human judgements, so DecTest is not part of the framing for $D_{Ca_n}$.}
+Reported for parity with Tevet and Berant; the labels here are sampling temperatures rather than human judgements, so DecTest is not part of the framing for $D_{Ca_n}$.
+That $a_n$ tracks temperature is mechanically unsurprising: $a_n$ is a conditional-entropy quantity, and sampling temperature directly scales the entropy of the policy, so a positive $\rho$ here is a sanity check rather than evidence about creative diversity.}
 \label{tab:dectest}
 \small
 \input{../results/tables/dectest_rho.tex}
