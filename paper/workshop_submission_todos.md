@@ -58,6 +58,40 @@ service to use).
       fails only inside the worktree because `diversity-eval/` is gitignored;
       run from main checkout if in doubt).
 
+## Open paper investigations (for future agent)
+
+- [ ] **Item 6 (edge-case caption hedge) is paused mid-edit.** The original
+      plan-draft caption said "multi-mode coherent is the intended winner in
+      the large-$n$ limit" — this is wrong, because at truly large $n$ every
+      coherent policy has $a_n \to 0$ (every regularity gets learned).
+      The empirical "smaller $a_n$ for multi-mode coherent than the table
+      predicts" is most likely **mechanism 2: mode count too small relative to
+      $n$**. The synthetic uses 3 modes and $n = 10$, i.e. each mode is seen
+      ~3 times, plenty for $\theta$ to learn each one individually.
+      The mode-count scaling experiment (§B.3, `paper/sections/07_3_mode_count.tex`,
+      figure `figures/mode_count/qwen2.5-3b/ak_curves_overlay.png` and Table 6)
+      already shows $a_n$ rising monotonically with $m$ (\modeCountAnMone\ bits
+      at $m=1$ to \modeCountAnMten\ bits at $m=10$). That figure directly
+      supports the "$a_n$ tracks mode count" story and validates mechanism 2.
+
+      Two follow-ups for the next agent:
+      1. **Rewrite Item 6's caption** in `paper/sections/03_method_workshop.tex`
+         (lines 49–51) to hedge along the lines of:
+         "Multi-mode coherent's $a_n$ scales with mode count
+         (Appendix~\ref{sec:mode-count-scaling}); on the 3-mode 10-response
+         synthetic the floor falls below the `high' label because $\theta$
+         has effectively seen each mode several times. Practitioners with a
+         clear preference for one factor over the other can reweight (e.g.,
+         $C^{\alpha} \times a_n$)."
+         Then mirror the practitioner-reweighting sentence to the §5.3
+         enumerate in `paper/sections/05_reporting.tex`.
+      2. **Decide whether to surface the mode-count figure to workshop main
+         body.** It currently lives in the workshop appendix (§B.3). The user
+         flagged it as "a beautiful image" they want findable. Options:
+         (a) leave in appendix and add a forward-pointer from §3.3 caption,
+         (b) move to main body (costs ~0.5 page; budget already at the cap).
+         Decide after rewriting the caption.
+
 ## Post-acceptance follow-ups
 
 - [ ] Mirror anonymized HF dataset back under `AMindToThink` (or wherever the
