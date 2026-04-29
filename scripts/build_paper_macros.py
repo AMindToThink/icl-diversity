@@ -441,6 +441,55 @@ def tevet_macros() -> dict[str, str]:
     return macros
 
 
+def tevet_coherence_distribution_macros() -> dict[str, str]:
+    """Section 5 (Reporting) typical-range-of-$C$ paragraph.
+
+    Reads every per-set sidecar in the qwen25_completion_v3 Tevet run,
+    extracts (a) per-response per-byte cross-entropy from
+    ``unconditional_surprises`` and (b) per-set ``coherence_C``, and emits
+    the 5th/95th percentile of per-response bits/byte (and the corresponding
+    $C = 2^{-\\bar{\\ell}}$ values) plus the mean per-set $C$.
+    """
+    import glob
+    import math
+
+    files = sorted(
+        glob.glob(
+            str(RESULTS / "tevet" / "qwen25_completion_v3" / "**" / "*.icl_curves.qwen25_completion_v3.json"),
+            recursive=True,
+        )
+    )
+    assert files, "No Tevet qwen25_completion_v3 sidecars found"
+    resp_bpb: list[float] = []
+    set_C: list[float] = []
+    for fp in files:
+        with open(fp) as f:
+            d = json.load(f)
+        for k, v in d.items():
+            if k.startswith("__"):
+                continue
+            c = v["metrics"].get("coherence_C")
+            if c is not None and c > 0:
+                set_C.append(c)
+            for s in v.get("unconditional_surprises", []) or []:
+                resp_bpb.append(float(s))
+    assert resp_bpb and set_C, "Empty Tevet distributions"
+    bpb_p5 = float(np.percentile(resp_bpb, 5))
+    bpb_p95 = float(np.percentile(resp_bpb, 95))
+    c_high = 2.0 ** (-bpb_p5)
+    c_low = 2.0 ** (-bpb_p95)
+    mean_c = float(np.mean(set_C))
+    return {
+        "tevetCoherenceBpbLow": _fmt(bpb_p5, 2),
+        "tevetCoherenceBpbHigh": _fmt(bpb_p95, 2),
+        "tevetCoherenceCLow": _fmt(c_low, 2),
+        "tevetCoherenceCHigh": _fmt(c_high, 2),
+        "tevetCoherenceMeanC": _fmt(mean_c, 2),
+        "tevetCoherenceRespCount": str(len(resp_bpb)),
+        "tevetCoherenceSetCount": str(len(set_C)),
+    }
+
+
 def qwen3_macros() -> dict[str, str]:
     """Appendix E + Sec 8.7 Qwen3 comparison numbers, sourced from qwen3_comparison.tex."""
     macros: dict[str, str] = {}
@@ -701,6 +750,7 @@ def main() -> None:
     all_macros.update(symmetry_macros())
     all_macros.update(mode_count_macros())
     all_macros.update(tevet_macros())
+    all_macros.update(tevet_coherence_distribution_macros())
     all_macros.update(qwen3_macros())
     all_macros.update(mode_count_extrema())
     all_macros.update(permutation_sensitivity_macros())
