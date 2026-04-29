@@ -422,49 +422,55 @@ def format_p_macro(p: float | None) -> str:
 
 
 def write_results_table(analysis: dict, out_path: Path) -> None:
-    """One LaTeX table per prompt_set, with per-stage means and H1 tests."""
+    """Single LaTeX table covering both prompt sets, with per-stage means
+    and H1 tests stacked in two panels separated by a heading row.
+    Bonferroni p-values use scientific notation (see `format_p_macro`)
+    so that very-small values are not rounded to `<0.001`."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    lines = []
-    for pset in ["alpacaeval", "nbcurated"]:
+    panel_titles = {
+        "alpacaeval": "AlpacaEval",
+        "nbcurated": "NoveltyBench curated",
+    }
+    lines = [r"\begin{tabular}{lrrr}", r"\toprule"]
+    for i, pset in enumerate(["alpacaeval", "nbcurated"]):
         a = analysis[pset]
         ms = a["stage_means"]["D_Can"]
         tests = a["tests"]["D_Can"]
-        lines.append(r"\begin{tabular}{lrrr}")
-        lines.append(r"\toprule")
-        lines.append(r"Stage & $D = C \cdot a_n$ mean & std & $n$ \\")
+        if i > 0:
+            lines.append(r"\midrule")
+        lines.append(
+            r"\multicolumn{4}{l}{\textbf{" + panel_titles[pset] + r"}} \\"
+        )
         lines.append(r"\midrule")
+        lines.append(r"Stage & $D_{Ca_n}$ mean & std & $n$ \\")
         for s in STAGES:
             v = ms.get(s, {})
             lines.append(
-                f"{STAGE_LABELS[s]} & {safe_num(v.get('mean'))} & "
+                f"\\quad {STAGE_LABELS[s]} & {safe_num(v.get('mean'))} & "
                 f"{safe_num(v.get('std'))} & {v.get('n', 0)} \\\\"
             )
-        lines.append(r"\midrule")
-        lines.append(r"\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\")
+        lines.append(r"\addlinespace")
+        lines.append(
+            r"Contrast & $\Delta$ & $d_z$ & $p_{\mathrm{Bonf}}$ \\"
+        )
         for name, a_s, b_s, _ in H1_CONTRASTS:
             t = tests[name]
             lines.append(
-                f"{STAGE_LABELS[a_s]}$>$ {STAGE_LABELS[b_s]} & "
-                f"$\\Delta={safe_num(t['mean_diff'])}$ & "
-                f"$d_z={safe_num(t['cohen_dz'])}$ & "
-                f"$p={format_p(t['p_bonferroni'])}$ \\\\"
+                f"\\quad {STAGE_LABELS[a_s]}$>${STAGE_LABELS[b_s]} & "
+                f"${safe_num(t['mean_diff'])}$ & "
+                f"${safe_num(t['cohen_dz'])}$ & "
+                f"${format_p_macro(t['p_bonferroni'])}$ \\\\"
             )
         t = tests["Hpa"]
         lines.append(
-            r"\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\"
+            r"\quad DPO$\,\neq\,$Instruct\,(H1$'$) & "
+            f"${safe_num(t['mean_diff'])}$ & "
+            f"${safe_num(t['cohen_dz'])}$ & "
+            f"${format_p_macro(t['p_raw'])}$ \\\\"
         )
-        lines.append(
-            f"DPO $\\neq$ Instruct & "
-            f"$\\Delta={safe_num(t['mean_diff'])}$ & "
-            f"$d_z={safe_num(t['cohen_dz'])}$ & "
-            f"$p={format_p(t['p_raw'])}$ \\\\"
-        )
-        lines.append(r"\bottomrule")
-        lines.append(r"\end{tabular}")
-        lines.append("")
-        lines.append(r"\vspace{0.5em}")
-        lines.append("")
-    out_path.write_text("\n".join(lines))
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    out_path.write_text("\n".join(lines) + "\n")
 
 
 def write_paper_macros(analysis: dict, out_path: Path, name_infix: str = "") -> None:

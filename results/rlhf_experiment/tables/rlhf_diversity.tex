@@ -1,39 +1,31 @@
 \begin{tabular}{lrrr}
 \toprule
-Stage & $D = C \cdot a_n$ mean & std & $n$ \\
+\multicolumn{4}{l}{\textbf{AlpacaEval}} \\
 \midrule
-Base & 0.488 & 0.045 & 200 \\
-SFT & 0.330 & 0.093 & 200 \\
-DPO & 0.290 & 0.068 & 200 \\
-Instruct (RLVR) & 0.285 & 0.071 & 200 \\
+Stage & $D_{Ca_n}$ mean & std & $n$ \\
+\quad Base & 0.488 & 0.045 & 200 \\
+\quad SFT & 0.330 & 0.093 & 200 \\
+\quad DPO & 0.290 & 0.068 & 200 \\
+\quad Instruct (RLVR) & 0.285 & 0.071 & 200 \\
+\addlinespace
+Contrast & $\Delta$ & $d_z$ & $p_{\mathrm{Bonf}}$ \\
+\quad Base$>$SFT & $0.158$ & $1.614$ & $3.7 \times 10^{-31}$ \\
+\quad SFT$>$DPO & $0.040$ & $0.577$ & $1.0 \times 10^{-15}$ \\
+\quad Base$>$Instruct (RLVR) & $0.202$ & $2.526$ & $3.3 \times 10^{-34}$ \\
+\quad DPO$\,\neq\,$Instruct\,(H1$'$) & $0.005$ & $0.222$ & $5.3 \times 10^{-5}$ \\
 \midrule
-\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\
-Base$>$ SFT & $\Delta=0.158$ & $d_z=1.614$ & $p=<0.001$ \\
-SFT$>$ DPO & $\Delta=0.040$ & $d_z=0.577$ & $p=<0.001$ \\
-Base$>$ Instruct (RLVR) & $\Delta=0.202$ & $d_z=2.526$ & $p=<0.001$ \\
-\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\
-DPO $\neq$ Instruct & $\Delta=0.005$ & $d_z=0.222$ & $p=<0.001$ \\
+\multicolumn{4}{l}{\textbf{NoveltyBench curated}} \\
+\midrule
+Stage & $D_{Ca_n}$ mean & std & $n$ \\
+\quad Base & 0.498 & 0.030 & 100 \\
+\quad SFT & 0.384 & 0.089 & 100 \\
+\quad DPO & 0.318 & 0.073 & 100 \\
+\quad Instruct (RLVR) & 0.315 & 0.086 & 100 \\
+\addlinespace
+Contrast & $\Delta$ & $d_z$ & $p_{\mathrm{Bonf}}$ \\
+\quad Base$>$SFT & $0.113$ & $1.232$ & $1.0 \times 10^{-14}$ \\
+\quad SFT$>$DPO & $0.066$ & $0.897$ & $4.7 \times 10^{-13}$ \\
+\quad Base$>$Instruct (RLVR) & $0.183$ & $2.054$ & $1.5 \times 10^{-17}$ \\
+\quad DPO$\,\neq\,$Instruct\,(H1$'$) & $0.004$ & $0.069$ & $0.016$ \\
 \bottomrule
 \end{tabular}
-
-\vspace{0.5em}
-
-\begin{tabular}{lrrr}
-\toprule
-Stage & $D = C \cdot a_n$ mean & std & $n$ \\
-\midrule
-Base & 0.498 & 0.030 & 100 \\
-SFT & 0.384 & 0.089 & 100 \\
-DPO & 0.318 & 0.073 & 100 \\
-Instruct (RLVR) & 0.315 & 0.086 & 100 \\
-\midrule
-\multicolumn{4}{l}{\textbf{H1 tests (paired Wilcoxon, Bonferroni)}} \\
-Base$>$ SFT & $\Delta=0.113$ & $d_z=1.232$ & $p=<0.001$ \\
-SFT$>$ DPO & $\Delta=0.066$ & $d_z=0.897$ & $p=<0.001$ \\
-Base$>$ Instruct (RLVR) & $\Delta=0.183$ & $d_z=2.054$ & $p=<0.001$ \\
-\multicolumn{4}{l}{\textbf{H1' (exploratory two-sided, uncorrected)}} \\
-DPO $\neq$ Instruct & $\Delta=0.004$ & $d_z=0.069$ & $p=0.016$ \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.5em}
