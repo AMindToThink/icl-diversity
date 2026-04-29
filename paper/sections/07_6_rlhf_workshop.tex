@@ -32,6 +32,7 @@ The same scoring pipeline applies to both human-written response sets (Section~\
 \paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint.
 On two prompt sets, \olmoAlpacaN{} AlpacaEval prompts \citep{dubois2024alpacafarm} (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench}, we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
 Base runs raw; SFT / DPO / Instruct receive the prompt through their own chat template.
+Because per-byte cross-entropy in a causal LM decreases with within-response context, we truncate every (stage, prompt) tuple's responses to a common per-prompt UTF-8 byte length before scoring,\footnote{Truncation is applied to the response \emph{string} via \texttt{text.encode("utf-8")[:N].decode("utf-8", errors="ignore")} and the truncated string is then re-tokenised for the forward pass. We deliberately do not truncate at token boundaries: $a_n$ is per-byte, so we need a fixed byte denominator across stages, but tokens-per-byte is tokenizer-dependent and varies across responses with the same byte budget — that variation is harmless because both the bits-numerator and the byte-denominator are computed on the same truncated string.} and drop prompts where that common length falls below 50 bytes (\olmoLmAlpacaN{}/\olmoAlpacaN{} AlpacaEval and \olmoLmNbCuratedN{}/\olmoNbCuratedN{} NB-curated prompts retained; see Section~\ref{sec:limitations}).
 We score each (stage, prompt) group with $D_{Ca_n}$ using Qwen2.5-3B as $\theta$ and 25 permutations.
 For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and SentBERT similarity-to-diversity \citep{reimers2019sbert}.
 
@@ -49,11 +50,11 @@ The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$
 
 \begin{table}[h]
 \centering
-\caption{Per-prompt $D_{Ca_n}$ by OLMo-2-7B stage, with pre-registered paired tests.}
+\caption{Per-prompt $D_{Ca_n}$ by OLMo-2-7B stage on the length-matched subset, with pre-registered paired tests.}
 \label{tab:rlhf-diversity}
 \small
-\IfFileExists{../results/rlhf_experiment/tables/rlhf_diversity.tex}{%
-  \input{../results/rlhf_experiment/tables/rlhf_diversity.tex}%
+\IfFileExists{../results/rlhf_experiment/tables_length_matched/rlhf_diversity.tex}{%
+  \input{../results/rlhf_experiment/tables_length_matched/rlhf_diversity.tex}%
 }{%
   \texttt{[table will appear here after \texttt{5\_analyze\_and\_figures.py} runs]}%
 }
@@ -63,18 +64,18 @@ Table~\ref{tab:rlhf-diversity} reports per-stage means and the pre-registered Wi
 On AlpacaEval and NoveltyBench-curated alike, $D_{Ca_n}$ decreases monotonically across base $\to$ SFT $\to$ DPO $\to$ Instruct (RLVR), and all three pre-registered contrasts (H1a--H1c) are significant after Bonferroni correction.
 Figure~\ref{fig:rlhf-ak-violin} shows the underlying $\bar{a}_k$ curves and per-prompt $D_{Ca_n}$ distributions: each later stage's curve lies below the base curve at every $k \geq 2$, and the per-prompt distribution shifts toward lower $D_{Ca_n}$ as the pipeline advances.
 
-\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}{%
+\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}{%
 \begin{figure*}[h]
 \centering
 \begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval.pdf}
-    \caption{AlpacaEval $\bar{a}_k$ curves.}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}
+    \caption{AlpacaEval $\bar{a}_k$ curves (length-matched).}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/per_prompt_D_violin_alpacaeval.pdf}
-    \caption{Per-prompt $D_{Ca_n}$ by stage.}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/per_prompt_D_violin_alpacaeval_lm.pdf}
+    \caption{Per-prompt $D_{Ca_n}$ by stage (length-matched).}
 \end{subfigure}
-\caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on AlpacaEval. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D_{Ca_n}$ distribution shifts toward lower values as the pipeline advances.}
+\caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on the length-matched AlpacaEval subset. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D_{Ca_n}$ distribution shifts toward lower values as the pipeline advances.}
 \label{fig:rlhf-ak-violin}
 \end{figure*}
 }{}
