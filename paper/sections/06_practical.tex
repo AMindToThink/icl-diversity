@@ -66,14 +66,12 @@ not a ratio of permutation-averaged bits to permutation-averaged byte counts (wh
 
 \subsection{Choice of $n$}
 
-The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$.
+The diversity score depends on $n$ through the estimate $a_n \approx a_\infty$, and the choice involves a tradeoff in both directions.
+Too small an $n$ means the curve has not yet stabilized: $a_n$ overestimates $a_\infty$ and $D_{Ca_n}$ is inflated.
+Too large an $n$ means $\theta$ has accumulated enough in-context examples to reduce its surprise even within genuine diversity; for any policy with finitely many distinct modes, $a_n$ continues to decrease toward zero as $\theta$ learns to predict within-mode variation from prior examples.
 We recommend choosing $n$ large enough that $a_n$ has approximately stabilized (i.e., the curve has reached its floor), and fixing $n$ across all comparisons for consistency.
-A practical choice is $n = 10$--20, which suffices for policies where $\theta$'s learning stabilizes within this range.
-
-\paragraph{Detectable mode weight.} Modes with weight $w \lesssim 1/n$ will rarely appear in the sample, and even when they do, $\theta$ has insufficient examples to learn the pattern.
-As a rough guide, modes with weight below $1/n$ are invisible to the metric.
-For $n = 15$, this means modes contributing less than $\sim$7\% of the probability mass are unlikely to be captured.
-If rare modes are of interest (e.g., when evaluating whether an intervention eliminates low-frequency behaviors), $n$ should be increased accordingly, subject to the context-length constraints discussed above.
+A practical choice is $n = 10$--20, which in our experiments suffices for policies where $\theta$'s learning stabilizes within this range.
+This is one reason to report the full $a_k$ curve rather than $D_{Ca_n}$ alone. $D$ is a lossy summary, but the curve shows directly how response surprise evolves at every context size.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SECTION 8: EXPERIMENTS

@@ -16,10 +16,10 @@ ROC AUC is reported for the binary tasks (McDiv, McDiv\_nuggets, ConTest); only 
 The mean degradation from scaling is small but consistent (mean $\Delta$AUC = $\qwenThreeBinaryMeanDeltaAUC$ across the \qwenThreeBinaryTotal{} binary tasks).
 On the \qwenThreeDecTestTotal{} DecTest tasks (continuous temperature labels), Qwen3-30B-A3B is mildly better on \qwenThreeDecTestWins{} of \qwenThreeDecTestTotal{} (mean $\qwenThreeDecTestMeanDeltaRho$ in Spearman $\rho$, with one tie).
 
-\paragraph{Interpretation.} A natural reading is that the binary McDiv/ConTest labels have low information content: they distinguish only ``high'' vs ``low'' diversity, and this distinction is coarse enough that a 3B base model already captures the relevant signal.
-A larger model has nothing more to extract that the binary label can reward.
-The continuous DecTest labels are noise-free (temperature is the ground truth), so additional metric resolution from a larger model translates into measurable correlation gains.
-If this interpretation is correct, the binary tasks are saturated for our metric and the path to improvement runs through finer-grained labels rather than larger base models.
+\paragraph{Interpretation.} The binary result is a clear negative: scaling from 3B to 30B active parameters does not improve discrimination on McDiv or ConTest.
+We do not have a confident explanation.
+The Qwen3-30B-A3B run was not repeated after a bug fix applied to the primary experiments, so the comparison should be treated as preliminary.
+We leave the question of whether larger base models improve the metric on binary tasks to future work.
 
 \paragraph{Caveat: prompt structure was not optimized.} We made no attempt to optimize the prompt structure used to elicit ICL on these benchmarks; the formatting follows the neutral template from Section~\ref{sec:practical} verbatim.
 A targeted prompt structure (e.g., explicitly framing the responses as ``Five high-diversity continuations,'' or providing in-context exemplars of diverse vs.\ repetitive sets) would likely improve the metric's discriminative power, particularly for the larger model whose ICL capabilities benefit more from carefully constructed contexts.
