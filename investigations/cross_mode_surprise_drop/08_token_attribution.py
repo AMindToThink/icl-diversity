@@ -9,8 +9,18 @@ For selected (mode_i, mode_j) pairs:
 
 Requires: Run 07_pairwise_matrix.py first to identify interesting pairs,
 OR use the default pairs specified below.
+
+Outputs (every run):
+  - figures/token_attribution.json
+  - figures/token_attribution.png                    (all pairs, multi-panel)
+  - figures/token_attribution_paper_subset.png       (3 panels, principled subset)
+  - figures/token_attribution_summary.png            (first-25% bar chart)
+
+Use `--from-json` to skip the GPU forward passes and re-plot from an existing
+token_attribution.json. This is the right path for paper-figure tweaks.
 """
 
+import argparse
 import json
 import math
 import random
@@ -143,9 +153,160 @@ def compute_per_token_log_probs(
 
 
 # ---------------------------------------------------------------------------
+# Plotting & subset selection
+# ---------------------------------------------------------------------------
+def plot_per_pair_panels(results: list[dict], out_path: Path) -> None:
+    """Multi-panel per-pair bar chart: per-token surprise reduction."""
+    n_pairs = len(results)
+    fig, axes = plt.subplots(n_pairs, 1, figsize=(18, 3.5 * n_pairs))
+    if n_pairs == 1:
+        axes = [axes]
+
+    for res, ax in zip(results, axes):
+        delta_mean = np.array(res["per_token_delta_mean"])
+        delta_std = np.array(res["per_token_delta_std"])
+        tokens = res["token_strings"]
+        n = len(delta_mean)
+        x = np.arange(n)
+
+        colors = ["green" if d > 0 else "red" for d in delta_mean]
+        ax.bar(x, delta_mean, color=colors, width=0.8, alpha=0.7)
+        ax.errorbar(
+            x, delta_mean, yerr=delta_std,
+            fmt="none", ecolor="black", elinewidth=0.7, capsize=1.5, capthick=0.7,
+        )
+        ax.axhline(0, color="black", linewidth=0.5)
+
+        ax.set_title(
+            f"{res['context_mode']} → {res['target_mode']}"
+            + (" (same)" if res["is_same_mode"] else "")
+            + f"    total Δ = {res['total_delta_bits']:+.1f} bits",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax.set_ylabel("Surprise reduction (bits)", fontsize=8)
+
+        display_tokens = []
+        for tok in tokens:
+            t = tok.replace("\n", "\\n").replace("\t", "\\t")
+            if not t.strip():
+                t = repr(tok).strip("'")
+            display_tokens.append(t)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            display_tokens,
+            rotation=90,
+            fontsize=5.5,
+            fontfamily="monospace",
+            ha="center",
+        )
+        ax.set_xlim(-0.5, n - 0.5)
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved plot to {out_path}")
+
+
+def plot_first_quarter_summary(results: list[dict], out_path: Path) -> None:
+    """Aggregate bar chart: fraction of surprise reduction in first 25% of tokens."""
+    fig, ax = plt.subplots(figsize=(10, 5))
+    pair_labels = []
+    first_q_fracs = []
+    first_q_frac_stds = []
+    total_deltas = []
+
+    for res in results:
+        label = f"{res['context_mode']}→{res['target_mode']}"
+        if res["is_same_mode"]:
+            label += " (same)"
+        pair_labels.append(label)
+
+        delta_per_sample = np.array(res["per_token_delta_per_sample"])
+        n = delta_per_sample.shape[1]
+        q = n // 4
+
+        sample_totals = delta_per_sample.sum(axis=1)
+        sample_first_q = delta_per_sample[:, :q].sum(axis=1)
+        valid = np.abs(sample_totals) > 0.1
+        if valid.sum() > 0:
+            fracs = sample_first_q[valid] / sample_totals[valid]
+            first_q_fracs.append(float(fracs.mean()))
+            first_q_frac_stds.append(float(fracs.std()))
+        else:
+            first_q_fracs.append(0.0)
+            first_q_frac_stds.append(0.0)
+
+        total_deltas.append(float(np.mean(sample_totals)))
+
+    x = range(len(pair_labels))
+    bars = ax.bar(x, first_q_fracs, yerr=first_q_frac_stds,
+                  color="steelblue", alpha=0.8, capsize=4)
+    ax.axhline(0.25, color="gray", linewidth=1, linestyle="--", label="uniform (25%)")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(pair_labels, rotation=45, ha="right", fontsize=7)
+    ax.set_ylabel("Fraction of surprise reduction in first 25% of tokens")
+    ax.set_title("Where is cross-mode surprise reduction concentrated?")
+    ax.legend()
+
+    for i, (bar, td) in enumerate(zip(bars, total_deltas)):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + first_q_frac_stds[i] + 0.03,
+            f"Δ={td:+.0f}",
+            ha="center",
+            fontsize=6,
+        )
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved summary to {out_path}")
+
+
+def select_paper_subset(results: list[dict]) -> list[dict]:
+    """Principled subset for the paper figure: stratified-median by |Δ|.
+
+    Strata:
+      - same: is_same_mode == True
+      - pos:  is_same_mode == False and total_delta_bits > 0
+      - neg:  is_same_mode == False and total_delta_bits < 0
+
+    Within each stratum, sort by |total_delta_bits| ascending and pick the
+    median. For even-sized strata, pick the lower-median (smaller |Δ|).
+    Documented this way so the selection is reproducible and non-cherry-picked.
+    """
+    strata: dict[str, list[dict]] = {"same": [], "pos": [], "neg": []}
+    for r in results:
+        if r["is_same_mode"]:
+            strata["same"].append(r)
+        elif r["total_delta_bits"] > 0:
+            strata["pos"].append(r)
+        elif r["total_delta_bits"] < 0:
+            strata["neg"].append(r)
+
+    selected: list[dict] = []
+    for label in ("same", "pos", "neg"):
+        items = sorted(strata[label], key=lambda r: abs(r["total_delta_bits"]))
+        if not items:
+            raise ValueError(f"Stratum {label!r} is empty; cannot pick median.")
+        idx = (len(items) - 1) // 2
+        chosen = items[idx]
+        selected.append(chosen)
+        print(
+            f"  paper-subset stratum={label:<4} n={len(items)} "
+            f"chosen={chosen['context_mode']}->{chosen['target_mode']} "
+            f"Δ={chosen['total_delta_bits']:+.1f}"
+        )
+    return selected
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def main() -> None:
+def compute_results() -> list[dict]:
+    """Run the model and compute per-token deltas for all configured pairs."""
     print(f"Loading {MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForCausalLM.from_pretrained(
@@ -242,134 +403,43 @@ def main() -> None:
             "token_strings": uncond_tokens,
         })
 
-    # ------------------------------------------------------------------
-    # Save results
-    # ------------------------------------------------------------------
-    json_path = OUTPUT_DIR / "token_attribution.json"
-    with open(json_path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"\nSaved results to {json_path}")
+    return results
 
-    # ------------------------------------------------------------------
-    # Plot: per-token delta with error bars and token labels on x-axis
-    # ------------------------------------------------------------------
-    n_pairs = len(results)
-    n_cols = 1  # Single column for readability with token labels
-    n_rows = n_pairs
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 3.5 * n_rows))
-    if n_pairs == 1:
-        axes = [axes]
 
-    for idx, (res, ax) in enumerate(zip(results, axes)):
-        delta_mean = np.array(res["per_token_delta_mean"])
-        delta_std = np.array(res["per_token_delta_std"])
-        tokens = res["token_strings"]
-        n = len(delta_mean)
-        x = np.arange(n)
+JSON_PATH = OUTPUT_DIR / "token_attribution.json"
 
-        colors = ["green" if d > 0 else "red" for d in delta_mean]
-        ax.bar(x, delta_mean, color=colors, width=0.8, alpha=0.7)
-        ax.errorbar(
-            x, delta_mean, yerr=delta_std,
-            fmt="none", ecolor="black", elinewidth=0.7, capsize=1.5, capthick=0.7,
-        )
-        ax.axhline(0, color="black", linewidth=0.5)
 
-        ax.set_title(
-            f"{res['context_mode']} → {res['target_mode']}"
-            + (" (same)" if res["is_same_mode"] else "")
-            + f"    total Δ = {res['total_delta_bits']:+.1f} bits",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax.set_ylabel("Surprise reduction (bits)", fontsize=8)
+def main(from_json: bool = False) -> None:
+    if from_json:
+        if not JSON_PATH.exists():
+            raise FileNotFoundError(
+                f"{JSON_PATH} not found; run without --from-json first."
+            )
+        with open(JSON_PATH) as f:
+            results = json.load(f)
+        print(f"Loaded {len(results)} pairs from {JSON_PATH}")
+    else:
+        results = compute_results()
+        with open(JSON_PATH, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved results to {JSON_PATH}")
 
-        # Token labels on x-axis — show every token
-        display_tokens = []
-        for tok in tokens:
-            t = tok.replace("\n", "\\n").replace("\t", "\\t")
-            if not t.strip():
-                t = repr(tok).strip("'")
-            display_tokens.append(t)
-
-        ax.set_xticks(x)
-        ax.set_xticklabels(
-            display_tokens,
-            rotation=90,
-            fontsize=5.5,
-            fontfamily="monospace",
-            ha="center",
-        )
-        ax.set_xlim(-0.5, n - 0.5)
-
-    plt.tight_layout()
-    fig_path = OUTPUT_DIR / "token_attribution.png"
-    plt.savefig(fig_path, dpi=150, bbox_inches="tight")
-    print(f"Saved plot to {fig_path}")
-    plt.close()
-
-    # ------------------------------------------------------------------
-    # Summary plot: fraction of delta in first quarter vs pair, with error bars
-    # ------------------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(10, 5))
-    pair_labels = []
-    first_q_fracs = []
-    first_q_frac_stds = []
-    total_deltas = []
-
-    for res in results:
-        label = f"{res['context_mode']}→{res['target_mode']}"
-        if res["is_same_mode"]:
-            label += " (same)"
-        pair_labels.append(label)
-
-        delta_per_sample = np.array(res["per_token_delta_per_sample"])
-        n = delta_per_sample.shape[1]
-        q = n // 4
-
-        # Per-sample first-quarter fractions
-        sample_totals = delta_per_sample.sum(axis=1)  # (N_PREFIX_SAMPLES,)
-        sample_first_q = delta_per_sample[:, :q].sum(axis=1)  # (N_PREFIX_SAMPLES,)
-        # Avoid division by zero: only compute fraction when |total| > 0.1
-        valid = np.abs(sample_totals) > 0.1
-        if valid.sum() > 0:
-            fracs = sample_first_q[valid] / sample_totals[valid]
-            first_q_fracs.append(float(fracs.mean()))
-            first_q_frac_stds.append(float(fracs.std()))
-        else:
-            first_q_fracs.append(0.0)
-            first_q_frac_stds.append(0.0)
-
-        total_deltas.append(float(np.mean(sample_totals)))
-
-    x = range(len(pair_labels))
-    bars = ax.bar(x, first_q_fracs, yerr=first_q_frac_stds,
-                  color="steelblue", alpha=0.8, capsize=4)
-    ax.axhline(0.25, color="gray", linewidth=1, linestyle="--", label="uniform (25%)")
-    ax.set_xticks(list(x))
-    ax.set_xticklabels(pair_labels, rotation=45, ha="right", fontsize=7)
-    ax.set_ylabel("Fraction of surprise reduction in first 25% of tokens")
-    ax.set_title("Where is cross-mode surprise reduction concentrated?")
-    ax.legend()
-
-    # Annotate with total delta
-    for i, (bar, td) in enumerate(zip(bars, total_deltas)):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + first_q_frac_stds[i] + 0.03,
-            f"Δ={td:+.0f}",
-            ha="center",
-            fontsize=6,
-        )
-
-    plt.tight_layout()
-    fig_path2 = OUTPUT_DIR / "token_attribution_summary.png"
-    plt.savefig(fig_path2, dpi=150, bbox_inches="tight")
-    print(f"Saved summary to {fig_path2}")
-    plt.close()
-
+    plot_per_pair_panels(results, OUTPUT_DIR / "token_attribution.png")
+    print("Selecting paper subset (stratified-median |Δ|):")
+    plot_per_pair_panels(
+        select_paper_subset(results),
+        OUTPUT_DIR / "token_attribution_paper_subset.png",
+    )
+    plot_first_quarter_summary(results, OUTPUT_DIR / "token_attribution_summary.png")
     print("\nDone.")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--from-json",
+        action="store_true",
+        help="Skip the model forward passes; re-plot from existing token_attribution.json.",
+    )
+    args = parser.parse_args()
+    main(from_json=args.from_json)

@@ -166,3 +166,8 @@ claim = "Hitchhiker's Guide to Testing Statistical Significance in NLP. Verified
 key   = "dror2017replicability"
 acl   = "Q17-1033"
 claim = "Replicability Analysis for Natural Language Processing: Testing Significance with Multiple Datasets (Dror, Baumer, Bogomolov, Reichart, TACL 2017). Cited for the multiple-comparison / family-wise correction step (Bonferroni). Dror 2018 explicitly defers its multiple-comparison methodology to this paper; we follow that pointer rather than miscite Dror 2018 for Bonferroni."
+
+[[cite]]
+key   = "berglund2023reversal"
+arxiv = "2309.12288"
+claim = "The Reversal Curse: autoregressive LLMs trained on 'A is B' fail to predict 'B is A.' Cited in cross-mode pairwise-asymmetry discussion to explain why the empirical $|M_{ij} - M_{ji}|$ asymmetry reflects model imperfection rather than asymmetric information structure (since I(X;Y) = I(Y;X) under the true joint)."

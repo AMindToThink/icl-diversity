@@ -1,7 +1,7 @@
 \subsection{Cross-Mode Learning and Curve Shape}\label{sec:cross-mode-learning}
 
-The paper predicts that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate.
-GPT-2 shows this pattern at $m=10$.
+The authors predicted that at high $m$, the $a_k$ curve should be sigmoidal: an initial plateau (early responses come from different modes and are uninformative about each other), followed by decline once mode repetitions accumulate.
+GPT-2 shows hints of this pattern at some $m$ values (e.g. $m=10$).
 Qwen2.5-3B does not: it shows immediate exponential decay at all $m$.
 This section investigates the discrepancy through systematic pairwise analysis.
 
@@ -40,18 +40,18 @@ Qwen shows diagonal dominance with pervasive positive off-diagonal (\crossmodeQw
 
 The sign of the off-diagonal determines the curve shape (Figure~\ref{fig:pairwise-matrices}):
 \begin{itemize}[nosep]
-    \item \textbf{Positive off-diagonal (Qwen)}: Every response helps predict every other response through format calibration and topic priming.
+    \item \textbf{Positive off-diagonal (Qwen)}: Every response in context lowers expected surprise on every other response.
 The $a_k$ curve drops from position 1, producing exponential decay.
-    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively interfere with predictions.
+    \item \textbf{Negative off-diagonal (GPT-2)}: Cross-mode responses actively raise surprise on subsequent responses.
 At $m=10$, the expected first-step net drop under the additive independent-mode model is only $\crossmodeGPTFirstStepDrop$ bits (the \crossmodeGPTDiagGainMten{}-bit diagonal gain from the $1/m$ same-mode chance is largely offset by the $\crossmodeGPTCrossDamageMten$-bit cross-mode damage from the $(m{-}1)/m$ different-mode chance), producing a flat plateau until same-mode repetitions accumulate, the predicted sigmoid.
 \end{itemize}
 
-\paragraph{From pairwise matrix to full curve.} The sign-of-off-diagonal calculation above recovers the qualitative shape difference between Qwen and GPT-2 from pairwise measurements alone.
-Extending to the full $a_k$ curve at $m>1$ requires modeling information overlap across repeated encounters, a structure that pairwise (single-encounter) measurements do not capture.
-Additive and fractional decompositions of the pairwise matrix both fail in instructive ways but neither is load-bearing for our thesis; we omit the details.
+GPT-2 has a larger diagonal and a negative off-diagonal: it gains more from same-mode context but is actively penalised by cross-mode context.
+The two effects are linked, since probability mass that conditioning concentrates on same-mode continuations is mass taken away from other modes; a sharper conditional on the seen mode is necessarily worse on the unseen ones.
+Qwen does the opposite: a smaller diagonal but a positive off-diagonal, distributing its update across modes.
 
 \paragraph{Pairwise asymmetry.} The mean absolute asymmetry $|M_{ij} - M_{ji}|$ is \crossmodeAsymmetryMean{} bits ($\crossmodeAsymmetryRatio\times$ the off-diagonal mean), falsifying the hypothesis that pairwise surprise reduction is symmetric (Figure~\ref{fig:pairwise-symmetry}).
-This reflects different mechanisms: technical/structured modes (code, JSON, math) are highly informative as context (format calibration) but do not benefit proportionally from other modes' context.
+Information-theoretically $I(X;Y) = I(Y;X)$, so this asymmetry cannot reflect asymmetric information structure between modes; it reflects $\theta$'s imperfection as an in-context reasoner. The same content is more useful as context than as target depending on its surface form, mirroring the \emph{reversal curse} observed in autoregressive LLMs trained on ``A is B'' but failing on ``B is A'' \citep{berglund2023reversal}.
 
 \begin{figure}[!htbp]
 \centering
@@ -92,18 +92,20 @@ GPT-2 shows widespread violations of non-negative conditioning (modes in the neg
 Figure~\ref{fig:row-vs-col} compares the two models.
 Qwen shows a tighter row--column relationship (slope = \scalingRCSlopeQwen{}, $R^2 = \scalingRCRsqQwen$) with only \crossmodeQwenNegColCount{} of \crossmodeNumModes{} modes having a negative column mean.
 GPT-2 shows widespread violations of non-negative conditioning (\crossmodeGPTNegColCount{} modes with negative column means) and a barely-existent row--column relationship (slope = \scalingRCSlopeGPT{}, $R^2 = \scalingRCRsqGPT$).
-With only two base models tested, we have suggestive but not conclusive evidence that stronger models better satisfy these information-theoretic properties.
+Across the four Llama models we additionally tested (Section~\ref{sec:exp-discussion}, Figure~\ref{fig:scaling-crossmode}), the fraction of positive off-diagonal entries rises monotonically with size (\scalingFracPosLlamaOneB\% at 1B to \scalingFracPosLlamaSeventyB\% at 70B), and the off-diagonal mean follows the same trend (\scalingOffDiagLlamaOneB{} bits at 1B to \scalingOffDiagLlamaSeventyB{} bits at 70B): the \emph{magnitude} of cross-mode information transfer increases with size.
+The row--column relationship does not: $R^2$ peaks at Llama-3B (\scalingRCRsqLlamaThreeB{}) and degrades at the larger Llamas (\scalingRCRsqLlamaSeventyB{} at 70B), so the \emph{symmetry} of the pairwise matrix does not correspondingly improve.
 
-\paragraph{Token-level mechanisms.} Per-token attribution analysis reveals two mechanisms for cross-mode surprise reduction:
-\begin{itemize}[nosep]
-    \item \textbf{Format calibration} (front-loaded): Seeing any structured response recalibrates the model's expectations about what follows ``Response B:''.
-This effect concentrates in the first few tokens of the target response; the per-pair magnitude varies widely (positive for most cross-mode pairs, negative when the context format actively conflicts with the target).
-    \item \textbf{Topic/vocabulary priming} (distributed): All responses are about rain, so rain-related vocabulary gets primed cross-mode.
-This contribution is spread across the target response rather than concentrated at the start.
-\end{itemize}
+\paragraph{Token-level attribution.} Figure~\ref{fig:token-attribution} shows per-token surprise reduction (in bits) for one pair from each of three strata: same-mode (\texttt{letter $\to$ letter}), cross-mode where conditioning helps (\texttt{math\_stats $\to$ json\_data}), and cross-mode where conditioning hurts (\texttt{scientific\_fact $\to$ haiku}). Pairs were selected by stratified-median total $|\Delta|$.
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{token_attribution_paper_subset.png}
+\caption{Per-token surprise reduction (bits) for three representative context--target pairs (Qwen2.5-3B). Bars are mean reductions across $5$ context samples per pair; error bars are $\pm 1$ standard deviation. Green bars indicate the conditioning context lowered the per-token surprise; red bars indicate it raised it. The three pairs are stratified-median selections (by total $|\Delta|$) from the same-mode, positive cross-mode, and negative cross-mode strata of a $9$-pair pool. Note how in scientific fact to haiku, the early newline triggers the largest surprise. Scientific facts may discuss "still water", but they almost never have a line with three words in it.}
+\label{fig:token-attribution}
+\end{figure*}
 
 \paragraph{Discussion.} The paper's sigmoid prediction assumes modes are approximately independent.
-For capable models, this fails: cross-mode learning (format calibration, topic priming) creates positive information transfer between distinct modes.
-The comparison between GPT-2 and Qwen is suggestive: the stronger model shows behavior closer to information-theoretic ideals.
-If this pattern holds across more models, it would mean the metric's theoretical properties are better satisfied as $\theta$'s ICL capability improves, but confirming this requires testing additional base models of varying sizes.
+For capable models, this fails: cross-mode learning creates positive information transfer between distinct modes.
+The Llama 1B/3B/8B/70B series confirms this scales with model size (Section~\ref{sec:exp-discussion}): the total cross-mode information $\theta$ extracts grows monotonically with size, and with it non-negative conditioning is better satisfied.
+The matrix nevertheless remains asymmetric (row--column $R^2$ peaks at Llama-3B and degrades at the larger Llamas), which under $I(X;Y) = I(Y;X)$ signals that even Llama-70B is an imperfect in-context reasoner.
 
