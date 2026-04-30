@@ -1,7 +1,7 @@
 \section{Method}\label{sec:method}
 
 This section defines the three quantities used in the main body: the progressive conditional surprise curve $a_k$, the coherence term $C$, and the scalar score $D_{Ca_n} = C \times a_n$.
-The full information-theoretic motivation, the alternative excess-entropy summary $E$, the coherence-heterogeneity diagnostic $\sigma_\ell$, and the cross-mode learning analysis appear in Appendices~\ref{app:excess-entropy}--\ref{app:qwen3-comparison}.
+The full information-theoretic motivation, the alternative excess-entropy summary $E$, and the cross-mode learning analysis appear in Appendices~\ref{app:excess-entropy}--\ref{app:qwen3-comparison}.
 
 \subsection{Progressive Conditional Surprise}\label{sec:progressive-conditioning}
 
@@ -20,6 +20,7 @@ For a policy with rich coherent diversity the curve declines and levels off at a
 In practice we average $a_k$ over uniformly random permutations of the response ordering (so each position averages over all responses and the curve reflects only how $\theta$'s predictions improve with more context, not which response happened to land in slot $k$).
 We take the metric value to be the last observed point $a_n$.
 No fitting or extrapolation step is involved.
+The curve $a_k$ is itself informative: its shape distinguishes a one-mode collapse (sharp drop to a low floor) from richer diversity (gradual decline to a higher floor) in ways the endpoint alone obscures.
 
 \subsection{The Coherence Term}\label{sec:coherence}
 
@@ -48,7 +49,7 @@ The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}; e
 \small
 \caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five appendix scenarios (Appendix~\ref{sec:scenario-validation}).
 The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and one-mode sets (via $a_n$); multi-mode coherent is the intended winner.
-Empirical numbers under GPT-2 and Qwen2.5-3B (Table~\ref{tab:scenarios}) show smaller $a_n$ for multi-mode coherent than this story predicts, since with only a 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and the floor is no longer ``high.'' Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count. This highlights the importance of choosing the length of the response chain. Too short and there's no diversity to pick up, but too long and all diversity can be learned and predicted.
+Empirical numbers under GPT-2 and Qwen2.5-3B (Table~\ref{tab:scenarios}) show smaller $a_n$ for multi-mode coherent than this story predicts, since with only 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and the floor is no longer ``high.'' In such ambiguous cases reporting the full $a_k$ curve is more principled than the scalar $a_n$: a different choice of $n$ would reveal the diversity, and showing the curve sidesteps having to pick that $n$ in advance. Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count. This highlights the importance of choosing the length of the response chain. Too short and there's no diversity to pick up, but too long and all diversity can be learned and predicted.
 Practitioners with a clear preference for one factor over the other can reweight (e.g., $C^{\alpha} \times a_n$).}
 \label{tab:edge-cases}
 \begin{tabular}{@{}lccc@{}}

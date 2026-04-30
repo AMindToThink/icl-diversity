@@ -3,8 +3,10 @@
 \subsection{Formatting the Conditioning Context}
 
 Computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a context containing the prompt and previous responses.
-The formatting choice affects results.
-We recommend using a base (non-instruction-tuned) model as $\theta$ and formatting as:
+The formatting choice affects results, and we use two formats depending on whether the responses are best read as parallel answers to the prompt or as continuations of it.
+Both are implemented as \texttt{format\_conditioning\_context} in \texttt{src/icl\_diversity/core.py} and selected via a \texttt{format\_mode} argument throughout the pipeline.
+
+\paragraph{Instruct format.} The default, used for the synthetic scenarios (Appendix~\ref{sec:scenario-validation}), the mode-count experiments (Appendix~\ref{sec:mode-count-scaling}), and the OLMo-2-7B post-training case study (Section~\ref{sec:rlhf-experiment}):
 
 \begin{verbatim}
     [prompt p]
@@ -16,8 +18,20 @@ We recommend using a base (non-instruction-tuned) model as $\theta$ and formatti
     Response C: [r_3]
 \end{verbatim}
 
-This leverages the base model's in-context learning to treat the responses as parallel completions.
-An instruction-tuned model might instead interpret previous responses as conversation turns, confounding the measurement.
+The prompt appears once and each response is introduced by a labelled header (``Response A:'', ``Response B:'', \ldots, with labels rolling over to ``AA'', ``AB'' past ``Z''), encouraging the base model's in-context learning to treat the responses as parallel answers to the same prompt.
+
+\paragraph{Completion format.} Used for the Tevet and Berant evaluation (Section~\ref{sec:tevet}), where each response set is a continuation of a shared narrative prompt rather than an instruction-style answer:
+
+\begin{verbatim}
+    1. [prompt p] [r_1]
+
+    2. [prompt p] [r_2]
+
+    3. [prompt p] [r_3]
+\end{verbatim}
+
+The prompt is repeated immediately before each response so $\theta$ scores $r_k$ in the same prompt-as-context that produced it.
+Per-token log-probabilities are extracted only over the response tokens; the bits accumulated over the repeated prompt prefix are excluded from $a_k$, keeping the bits-numerator and the per-byte denominator both attributable to $r_k$ alone.
 
 \paragraph{Base vs.\ instruction-tuned models.} We use a base (non-instruction-tuned) model as $\theta$ for two reasons.
 First, an instruction-tuned model has had its output distribution shaped by RLHF or similar procedures, so using one as $\theta$ reintroduces the kind of distributional bias we seek to avoid.
@@ -27,28 +41,34 @@ Optimizing the prompt format to maximally elicit in-context learning from $\thet
 
 \subsection{Computational Cost}\label{sec:cost}
 
-Because $\theta$ is a causal language model, the full $a_k$ curve can be computed from a \textbf{single forward pass}.
-Concatenate the prompt and all responses into one sequence:
-
-\begin{verbatim}
-    [prompt p] Response A: [r_1] Response B: [r_2] ... Response N: [r_n]
-\end{verbatim}
-
+Because $\theta$ is a causal language model, the full $a_k$ curve for one response ordering can be computed from a \textbf{single forward pass}.
+The prompt and all responses are concatenated into one sequence (Figure~\ref{fig:single-pass-layout}).
 The forward pass produces the log-probability of every token conditioned on all preceding tokens.
-The tokens belonging to $r_k$ are conditioned on exactly $p, r_1, \ldots, r_{k-1}$ (plus formatting), which is the conditioning required for $a_k$.
-Partitioning the output log-probabilities by response boundary and summing within each partition yields all $n$ values of $a_k$ simultaneously.
-The cost is a single forward pass over the full concatenation, with FLOPs scaling as $O((|p| + n\bar{L}_{\mathrm{tok}})^2)$ from causal attention, where $\bar{L}_{\mathrm{tok}}$ is the average response length in tokens.
 
-The coherence term $C$ and spread $\sigma_\ell$ additionally require the \emph{unconditional} per-byte cross-entropies $h_\theta(r_i \mid p)$ for each response.
+\begin{figure*}[t]
+\centering
+\begin{verbatim}
+[prompt p] Response A: [r_1] Response B: [r_2] ... Response N: [r_n]
+\end{verbatim}
+\caption{Single-pass input layout for computing the full $a_k$ curve.
+The prompt is followed by all $n$ responses with ``Response A/B/C/\ldots'' labels; one forward pass over this sequence yields every $a_k$ value simultaneously, since causal attention conditions the tokens of $r_k$ on exactly $p, r_1, \ldots, r_{k-1}$ (plus formatting).}
+\label{fig:single-pass-layout}
+\end{figure*}
+The tokens belonging to $r_k$ are conditioned on exactly $p, r_1, \ldots, r_{k-1}$ (plus formatting), which is the conditioning required for $a_k$.
+Partitioning the output log-probabilities by response boundary and summing within each partition yields all $n$ values of $a_k$ simultaneously for that ordering, with FLOPs scaling as $O((|p| + n\bar{L}_{\mathrm{tok}})^2)$ from causal attention, where $\bar{L}_{\mathrm{tok}}$ is the average response length in tokens.
+Because we report $\bar{a}_k$ averaged over $|\Sigma|$ random permutations of the response ordering (Section~\ref{sec:ordering}), the total $a_k$-curve cost is $|\Sigma|$ such passes; the permutations are independent and we batch them on a single GPU.
+
+The coherence term $C$ additionally requires the \emph{unconditional} per-byte cross-entropies $h_\theta(r_i \mid p)$ for each response.
 These cannot be extracted from the concatenated pass, since in that pass $r_i$ for $i > 1$ is conditioned on all prior responses.
 Computing them requires $n$ independent forward passes, each over the short context $(p, r_i)$.
-These passes are embarrassingly parallel and batchable.
+These passes are embarrassingly parallel and batchable, and they do not depend on the ordering, so $C$ is computed once per response set regardless of $|\Sigma|$.
 
-In summary:
+In summary, scoring one (prompt, response set) tuple takes:
 \begin{itemize}[nosep]
-    \item $a_k$ curve: 1 forward pass per permutation (long context).
-    \item $C$ and $\sigma_\ell$: $n$ forward passes (short contexts, batchable).
+    \item $a_k$ curve: $|\Sigma|$ forward passes (long context, one per permutation).
+    \item $C$: $n$ forward passes (short contexts, batchable; not multiplied by $|\Sigma|$).
 \end{itemize}
+With $n = 10$ responses and $|\Sigma| = 50$ permutations (our default for larger-scale experiments), this is $50 + 10 = 60$ forward passes per (prompt, response set) tuple; the long-context $|\Sigma|$ passes dominate wall-clock time.
 
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
 

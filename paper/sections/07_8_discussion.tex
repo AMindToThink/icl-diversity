@@ -31,6 +31,7 @@ We interpret this as evidence that the binary human labels are coarse enough to 
 Note also that we did not attempt to optimize the prompt structure used to elicit ICL; targeted prompts could plausibly improve the metric's discriminative power, particularly for larger models.
 
 \paragraph{The framework admits other metrics.} The $a_k$ curve is the primary object of our framework, and $D_{Ca_n} = C \times a_n$ is one natural summary of it among many.
+Reporting the curve directly preserves information that any single scalar (including ours) collapses.
 Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors, or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
 Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
 We have not explored this space systematically; we focus on $D_{Ca_n}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
