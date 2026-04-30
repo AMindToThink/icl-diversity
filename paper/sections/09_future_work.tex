@@ -2,12 +2,9 @@
 
 Several directions remain unexplored.
 
-\paragraph{Dimension-specific prompt structures.} The neutral ``Response A/B/C'' formatting lets $\theta$ attend to whatever inter-response structure it finds most salient.
-An alternative is to use \emph{dimension-specific} framing (e.g., ``Here are several stories in different genres'') that primes $\theta$ to attend to a particular axis of variation.
-Computing diversity scores under multiple framings would yield a \textbf{diversity profile}: a vector of per-dimension scores for the same response set, potentially revealing that an intervention collapses topic diversity while preserving stylistic diversity.
-
 \paragraph{Prompt format optimization.} We use a fixed prompt template throughout and do not attempt to optimize it for ICL elicitation.
-Targeted prompt engineering could improve the metric's discriminative power, particularly for larger base models whose ICL capabilities are more sensitive to formatting.
+Prompt engineering could improve the metric's discriminative power.
+Dimension-specific framings (e.g., ``Here are several stories in different genres'') are one such variant: priming $\theta$ to expect variation along a dimension removes the small portion of the surprise attributable to the mere existence of that variation, but it does not isolate per-dimension diversity, since the rest of the cross-response surprise reduction remains.
 
 \paragraph{Ensembling base models.} A single base model $\theta$ may produce non-monotone $a_k$ curves when pushed out of distribution by long contexts.
 Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure.
