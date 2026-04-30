@@ -1,0 +1,42 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/434 [00:00<?, ?it/s]Loading weights:   0%|          | 1/434 [00:00<04:41,  1.54it/s]Loading weights:  23%|██▎       | 98/434 [00:00<00:01, 174.75it/s]Loading weights:  35%|███▌      | 153/434 [00:01<00:01, 167.25it/s]Loading weights:  44%|████▍     | 190/434 [00:01<00:01, 168.90it/s]Loading weights:  51%|█████     | 220/434 [00:01<00:01, 160.75it/s]Loading weights:  56%|█████▌    | 244/434 [00:01<00:01, 165.04it/s]Loading weights:  62%|██████▏   | 267/434 [00:01<00:00, 167.92it/s]Loading weights:  66%|██████▋   | 288/434 [00:01<00:00, 173.90it/s]Loading weights:  71%|███████   | 309/434 [00:02<00:00, 165.21it/s]Loading weights:  76%|███████▌  | 328/434 [00:02<00:00, 163.55it/s]Loading weights:  81%|████████  | 351/434 [00:02<00:00, 158.42it/s]Loading weights:  86%|████████▋ | 375/434 [00:02<00:00, 170.43it/s]Loading weights:  91%|█████████▏| 397/434 [00:02<00:00, 179.45it/s]Loading weights:  96%|█████████▌| 416/434 [00:02<00:00, 172.11it/s]Loading weights: 100%|██████████| 434/434 [00:02<00:00, 159.15it/s]
+Model: Qwen/Qwen2.5-3B on cuda:1
+Draws: 20, m=10, n=20
+
+  Draw 0: max|diff|=4.19 bits, mean diff=-0.84 bits
+  Draw 1: max|diff|=3.09 bits, mean diff=-0.82 bits
+  Draw 2: max|diff|=3.81 bits, mean diff=-0.71 bits
+
+============================================================
+Aggregate over 20 draws, 20 positions each
+============================================================
+
+Mean SP-MP difference by position (bits):
+  k= 1: -0.097
+  k= 2: +0.567
+  k= 3: +0.044
+  k= 4: +0.509
+  k= 5: +0.163
+  k= 6: -0.519
+  k= 7: -0.153
+  k= 8: -0.294
+  k= 9: -0.584
+  k=10: +0.341
+  k=11: -1.715
+  k=12: -1.234
+  k=13: -2.382
+  k=14: -2.020
+  k=15: -1.451
+  k=16: -2.335
+  k=17: -1.608
+  k=18: -1.549
+  k=19: -2.113
+  k=20: +0.000
+
+Total absolute distortion: 19.7 bits
+SP curve decline (a_1 - a_n): 74.8 bits
+MP curve decline (a_1 - a_n): 74.9 bits
+Distortion as % of MP decline: 26.3%
+
+Mean response length: 156 bytes
+Mean distortion per position: 0.984 bits = 0.0063 bits/byte

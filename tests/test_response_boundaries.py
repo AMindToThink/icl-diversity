@@ -1,13 +1,20 @@
 """Response-boundary tests for the single-pass a_k computation.
 
+Boundary tests use the Qwen2.5-3B tokenizer (the paper's primary base model),
+which exhibits the `.` + `\\n\\n` -> `.\\n\\n` BPE merge that GPT-2 does not.
+The a_1 forward-pass consistency check uses GPT-2 (cheap; tokenizer-agnostic).
+
 Verifies that the token-boundary detection in `_find_response_boundaries`:
   (a) produces boundaries covering the full concatenated sequence without
       overlaps or gaps,
-  (b) never attributes separator tokens to a response (regression test for
-      the Qwen '.' + '\\n\\n' → '.\\n\\n' BPE merge bug),
+  (b) never lets the separator's `Response` label leak into a response's
+      decoded slice,
   (c) keeps each response to within a handful of characters of its original
       length even when BPE absorbs a few characters into the delimiter token,
-  (d) produces a_1 values exactly equal to the unconditional per-response
+  (d) attributes the Qwen `.\\n\\n` merged token to the response (the actual
+      behavior of the character-span overlap rule, documented in the paper's
+      "Boundary handling" paragraph),
+  (e) produces a_1 values exactly equal to the unconditional per-response
       cross-entropy h(r_1 | p), since r_1 is conditioned only on the prompt
       in both cases.
 
@@ -16,8 +23,6 @@ It's been removed: in a causal LM, the two are equivalent by construction
 (pass n of any multi-pass sequence already contains all the information of
 passes 1..n-1 via causal attention), so comparing them could only catch bugs
 that are caught more directly by the tests above.
-
-Integration tests that require GPT-2 (~500 MB, runs on CPU).
 """
 
 import os
@@ -32,21 +37,33 @@ from icl_diversity import (
 from icl_diversity.core import _find_response_boundaries
 
 # ---------------------------------------------------------------------------
-# Model loading (skip all tests if GPT-2 not available)
+# Tokenizer / model loading
 # ---------------------------------------------------------------------------
+# Qwen tokenizer for boundary tests (no weights needed); GPT-2 model+tokenizer
+# for the a_1 forward-pass consistency check. Each fixture is independent: if
+# Qwen's tokenizer isn't available, only the boundary tests skip; if GPT-2
+# isn't available, only the a_1 test skips.
 try:
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    _MODEL_ID = "gpt2"
-    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_ID)
-    _model = AutoModelForCausalLM.from_pretrained(_MODEL_ID)
-    _model.eval()
-    _HAS_MODEL = True
+    _QWEN_TOKENIZER_ID = "Qwen/Qwen2.5-3B"
+    _qwen_tokenizer = AutoTokenizer.from_pretrained(_QWEN_TOKENIZER_ID)
+    _HAS_QWEN_TOKENIZER = True
 except Exception:
-    _HAS_MODEL = False
+    _HAS_QWEN_TOKENIZER = False
 
-pytestmark = pytest.mark.skipif(not _HAS_MODEL, reason="GPT-2 model not available")
+try:
+    from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: F811
+
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    _GPT2_MODEL_ID = "gpt2"
+    _gpt2_tokenizer = AutoTokenizer.from_pretrained(_GPT2_MODEL_ID)
+    _gpt2_model = AutoModelForCausalLM.from_pretrained(_GPT2_MODEL_ID)
+    _gpt2_model.eval()
+    _HAS_GPT2 = True
+except Exception:
+    _HAS_GPT2 = False
 
 
 # ============================================================================
@@ -74,9 +91,10 @@ RESPONSES_SHORT = [
 # ============================================================================
 
 
+@pytest.mark.skipif(not _HAS_GPT2, reason="GPT-2 not available")
 def test_empty_responses() -> None:
     curve, byte_counts = compute_progressive_surprise_curve_single_pass(
-        _model, _tokenizer, PROMPT, []
+        _gpt2_model, _gpt2_tokenizer, PROMPT, []
     )
     assert curve == []
     assert byte_counts == []
@@ -87,25 +105,31 @@ def test_empty_responses() -> None:
 # ============================================================================
 
 
+@pytest.mark.skipif(not _HAS_QWEN_TOKENIZER, reason="Qwen2.5-3B tokenizer not available")
 class TestBoundaryRoundtrip:
     """Verify that token boundaries correctly identify response regions.
 
-    BPE tokenization may merge characters at the boundary between the
-    delimiter (e.g. ": ") and the response start, so decoded slices may
-    differ slightly from the original text (e.g. missing a leading capital
-    that was merged into the delimiter token). We check that:
+    Uses the Qwen2.5-3B tokenizer (the paper's primary base model). BPE
+    tokenization may merge characters at the boundary between the delimiter
+    (e.g. ": ") and the response start, and may merge a response's trailing
+    character with the following separator (e.g. "." + "\\n\\n" -> ".\\n\\n").
+    The character-span overlap rule in `_find_response_boundaries` attributes
+    any token whose char span overlaps the response's span to that response,
+    so trailing merged tokens land inside the response's boundary. We check:
 
     1. The decoded slice is a suffix of the original response (possibly
        missing a few leading characters absorbed by the delimiter token).
     2. The number of tokens assigned to each response is reasonable.
     3. Boundaries cover the full sequence without gaps or overlaps.
+    4. The Qwen ".\\n\\n" merge lands inside the response's boundary
+       (documenting the actual overlap-rule behavior).
     """
 
     @staticmethod
     def _compute_boundaries(
         prompt: str, responses: list[str]
     ) -> tuple[list[int], list[tuple[int, int]]]:
-        return _find_response_boundaries(_tokenizer, prompt, responses)
+        return _find_response_boundaries(_qwen_tokenizer, prompt, responses)
 
     def test_boundaries_cover_sequence(self) -> None:
         """Boundaries should cover from first response start to end of sequence."""
@@ -118,15 +142,19 @@ class TestBoundaryRoundtrip:
             )
 
     def test_decoded_slices_are_response_suffixes(self) -> None:
-        """Each decoded slice should be a suffix of the original response,
-        possibly with minor leading character differences due to BPE merging."""
+        """Each decoded slice should contain the original response as a substring,
+        possibly with minor leading/trailing character differences due to BPE merging."""
         full_ids, boundaries = self._compute_boundaries(PROMPT, RESPONSES)
         for i, (start, end) in enumerate(boundaries):
-            decoded = _tokenizer.decode(full_ids[start:end])
-            assert RESPONSES[i].endswith(decoded.lstrip()), (
-                f"Response {i}: decoded {decoded!r} is not a suffix of {RESPONSES[i]!r}"
+            decoded = _qwen_tokenizer.decode(full_ids[start:end])
+            # Strip leading whitespace (delimiter space absorbed into first token)
+            # and trailing newline characters (Qwen's ".\n\n" merge at the response/
+            # separator boundary, attributed to the response by the overlap rule).
+            stripped = decoded.lstrip().rstrip("\n")
+            assert stripped.endswith(RESPONSES[i][-min(len(RESPONSES[i]), 10):]) or RESPONSES[i].endswith(stripped), (
+                f"Response {i}: decoded {decoded!r} does not align with {RESPONSES[i]!r}"
             )
-            assert len(decoded.strip()) >= len(RESPONSES[i]) - 5, (
+            assert len(stripped) >= len(RESPONSES[i]) - 5, (
                 f"Response {i}: too many characters lost. "
                 f"Original={RESPONSES[i]!r}, decoded={decoded!r}"
             )
@@ -138,12 +166,14 @@ class TestBoundaryRoundtrip:
             assert end > start, f"Response {i} has no tokens: ({start}, {end})"
 
     def test_no_separator_leaks_into_response(self) -> None:
-        """Decoded tokens for a response must not contain separator text.
+        """Decoded tokens for a response must not contain the separator's
+        ``Response`` label text.
 
-        Regression test for the BPE merge case: some tokenizers (e.g. Qwen) merge
-        a response's trailing punctuation with the following separator into a
-        single token (e.g. '.' + '\\n\\n' → '.\\n\\n'). The boundary detector
-        must not attribute such merged tokens to the response.
+        This is a weaker invariant than full separator exclusion: with Qwen,
+        the trailing ``.\\n\\n`` merged token IS attributed to the response
+        (see ``test_qwen_trailing_merge_attributed_to_response``), so the
+        decoded slice can contain ``\\n\\n``. What it must never contain is
+        the next response's ``Response`` prefix label.
         """
         responses = [
             "Rain falls gently.",
@@ -152,11 +182,47 @@ class TestBoundaryRoundtrip:
         ]
         full_ids, boundaries = self._compute_boundaries(PROMPT, responses)
         for i, (start, end) in enumerate(boundaries):
-            decoded = _tokenizer.decode(full_ids[start:end])
-            assert "\n\nResponse" not in decoded, (
-                f"Response {i}: separator leaked into boundary. "
+            decoded = _qwen_tokenizer.decode(full_ids[start:end])
+            assert "Response" not in decoded, (
+                f"Response {i}: separator label leaked into boundary. "
                 f"tokens [{start}:{end}] decoded to {decoded!r}"
             )
+
+    def test_qwen_trailing_merge_attributed_to_response(self) -> None:
+        """When Qwen merges a response's trailing ``.`` with the following
+        ``\\n\\n`` separator into a single ``.\\n\\n`` token, the boundary
+        detector's character-span overlap rule attributes that token to the
+        response (not the separator).
+
+        This pins down the actual behavior described in the paper's
+        ``Boundary handling`` paragraph (Practical Findings). Earlier versions
+        of the docs claimed the opposite, which the code never did.
+        """
+        responses = [
+            "Rain falls gently.",
+            "The drops patter on the roof.",
+            "Umbrellas bloom like flowers.",
+        ]
+        full_ids, boundaries = self._compute_boundaries(PROMPT, responses)
+
+        # Confirm the Qwen merge actually happens for non-final responses:
+        # each one's last token should decode to ".\n\n" (period + separator).
+        for i in range(len(responses) - 1):
+            start, end = boundaries[i]
+            last_token = _qwen_tokenizer.decode([full_ids[end - 1]])
+            assert last_token == ".\n\n", (
+                f"Response {i}: expected merged token '.\\n\\n' as last token in "
+                f"the response's boundary, got {last_token!r}. If Qwen's tokenizer "
+                f"merge behavior changed, update the paper's Boundary handling "
+                f"paragraph and this test together."
+            )
+
+        # The final response is not followed by a separator, so no merge.
+        start, end = boundaries[-1]
+        last_token = _qwen_tokenizer.decode([full_ids[end - 1]])
+        assert "\n" not in last_token, (
+            f"Final response unexpectedly has newline in last token: {last_token!r}"
+        )
 
 
 # ============================================================================
@@ -164,6 +230,7 @@ class TestBoundaryRoundtrip:
 # ============================================================================
 
 
+@pytest.mark.skipif(not _HAS_GPT2, reason="GPT-2 not available")
 class TestA1Consistency:
     """a_1 should equal the unconditional cross-entropy h(r_1 | p), since the
     first response is conditioned only on the prompt in both cases. This is the
@@ -171,10 +238,10 @@ class TestA1Consistency:
 
     def test_a1_equals_unconditional(self) -> None:
         a_k_single, _ = compute_progressive_surprise_curve_single_pass(
-            _model, _tokenizer, PROMPT, RESPONSES
+            _gpt2_model, _gpt2_tokenizer, PROMPT, RESPONSES
         )
         _, total_bits, _ = compute_unconditional_surprises(
-            _model, _tokenizer, PROMPT, RESPONSES
+            _gpt2_model, _gpt2_tokenizer, PROMPT, RESPONSES
         )
         a1 = a_k_single[0]
         h1_total = total_bits[0]

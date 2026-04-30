@@ -6,6 +6,8 @@ Where scenarios do shift rank, it is between adjacent scenarios with similar $D_
 We use \permSensHighPerm{} permutations throughout for scenario-level experiments; we have not swept intermediate values, so we cannot pinpoint a minimum that is both cheap and reliable.
 The coherence term $C$ is permutation-invariant by construction and unaffected.
 
-\paragraph{Boundary handling.} When a tokenizer produces a single token spanning a response and the following separator (e.g., Qwen's \texttt{.\textbackslash n\textbackslash n}), our boundary detector attributes the merged token to the separator; the response's trailing character contributes to its byte count but not to its cross-entropy.
+\paragraph{Boundary handling.} When Qwen merges a response's final \texttt{.} with the following \texttt{\textbackslash n\textbackslash n} into a single \texttt{.\textbackslash n\textbackslash n} token, our boundary detector (which uses a character-span overlap rule) attributes that token to the response, not the separator.
+The response's cross-entropy therefore includes a small contribution from predicting the upcoming separator alongside its own characters; the byte-count denominator remains the response's literal byte length.
+We have not measured the magnitude of this bias on our reported numbers.
 Boundary correctness is verified by \texttt{tests/test\_response\_boundaries.py}.
 
