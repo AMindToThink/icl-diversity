@@ -8,13 +8,14 @@ For Qwen2.5-3B: $n=\modeCountNResponses$ responses, \modeCountNDraws{} random dr
 \includegraphics[width=\columnwidth]{mode_count/qwen2.5-3b/ak_curves_overlay.png}
 \caption{Mode count scaling on Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws).
 The $a_k$ curves fan out with increasing $m$: higher floors, slower convergence.
-All curves are exponential (no sigmoidal plateau), even at $m=\modeCountMMax$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).}
+All curves are exponential (no sigmoidal plateau), even at $m=\modeCountMMax$, due to cross-mode learning (Section~\ref{sec:cross-mode-learning}).
+Shaded bands around each curve are $\pm 1$ standard error of the mean across the \modeCountNDraws{} random draws of mode assignments (i.e., the across-draw standard deviation divided by $\sqrt{\modeCountNDraws}$); they are narrow because averaging over \modeCountNDraws{} draws sharply reduces the across-draw spread.}
 \label{fig:mode-count}
 \end{figure}
 
 \paragraph{Key findings.} Figure~\ref{fig:mode-count} shows the $a_k$ curves.
-The floor $a_n$ increases monotonically with $m$ (\modeCountAnMone{} bits at $m=1$ to \modeCountAnMten{} bits at $m=10$; see Table~\ref{tab:mode-count}), reflecting more irreducible entropy remaining after full conditioning.
-This is exactly the behavior $D_{Ca_n} = C \times a_n$ needs: the floor tracks mode count directly.
+$a_n$ increases monotonically with $m$ (\modeCountAnMone{} bits at $m=1$ to \modeCountAnMten{} bits at $m=10$; see Table~\ref{tab:mode-count}), reflecting that with more modes there are fewer same-mode repetitions within $n$ responses, so each response remains more surprising even after $\theta$ has seen the others.
+This is exactly the behavior $D_{Ca_n} = C \times a_n$ needs: $a_n$ tracks mode count directly.
 All curves are purely exponential (no sigmoidal plateau), even at $m=10$; Section~\ref{sec:cross-mode-learning} investigates why.
 For a detailed comparison of the excess-entropy-based scores on this data, including the sigmoid fit parameters and the non-monotonicity of $\hat{E}_n$, see Appendix~\ref{app:excess-entropy}.
 
