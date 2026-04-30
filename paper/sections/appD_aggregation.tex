@@ -18,8 +18,3 @@ To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the differenc
 
 $\Delta D_{Ca_n}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?''
 No division is involved, so $\Delta D_{Ca_n}$ is stable even when either policy's score is near zero.
-
-\paragraph{Why not a ratio?} The relative measure $D(\pi_2) / D(\pi_1)$ is appealing (``what fraction of diversity survived?'') but requires division by $D(\pi_1)$, which is near zero for any constrained prompt.
-Clamping the denominator introduces a hyperparameter.
-The absolute difference avoids these issues.
-
