@@ -2,7 +2,7 @@
 
 A diversity metric should be tested against human judgements on a standardized eval; \citet{tevet2020evaluating} provide both.
 Their McDiv and ConTest datasets pair human-grounded diversity labels with a fixed comparison protocol (Spearman $\rho$ and OCA: \emph{optimal classification accuracy}, the best accuracy achievable by a one-dimensional threshold separating low- and high-diversity sets), the standard methodology for ranking diversity metrics against human judgements.
-The response sets are written by Mechanical Turk workers, and for the McDiv\_nuggets subset the high/low label is fixed by the construction protocol itself: a worker writes five different continuations (the high-diversity set), then self-selects one of those continuations and paraphrases it five times (the low-diversity set; see Appendix~\ref{app:confound} for the full protocol and a construction-confound caveat).
+The response sets are written by Mechanical Turk workers, and for both McDiv\_nuggets and ConTest the high/low label is fixed by the construction protocol itself: a worker writes five different continuations (the high-diversity set), then self-selects one of those continuations and paraphrases it five times preserving content but varying form (the low-diversity set; see Appendix~\ref{app:confound} for the full protocol and a construction-confound caveat).
 We run $D_{Ca_n}$ through this evaluation pipeline.
 
 \paragraph{Setup.} We use Qwen2.5-3B (base) with 50 permutations in completion format on the released no\_hds splits: \tevetMcDivSetCount{} McDiv sets, \tevetMcDivNugSetCount{} McDiv\_nuggets sets, and \tevetConTestSetCount{} ConTest sets, each with 5 worker-written responses per set and a binary high/low diversity label.
