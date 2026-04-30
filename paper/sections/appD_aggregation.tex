@@ -8,12 +8,12 @@ Switching the implementation to the form in Eq.~\eqref{eq:akbar-mor} shifts the 
 The diversity score $D_{Ca_n}$ is defined relative to a single prompt $p$.
 To summarize a policy's diversity across a prompt suite $P = \{p_1, \ldots, p_M\}$, one can average:
 \begin{equation}
-    \bar{D}_{a_\infty}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{Ca_n}(\pi, p_j)
+    \bar{D}_{Ca_n}(\pi) = \frac{1}{M}\sum_{j=1}^{M} D_{Ca_n}(\pi, p_j)
 \end{equation}
 
 To compare two policies $\pi_1$ and $\pi_2$, the natural scalar is the difference:
 \begin{equation}
-    \Delta D_{Ca_n} = \bar{D}_{a_\infty}(\pi_1) - \bar{D}_{a_\infty}(\pi_2)
+    \Delta D_{Ca_n} = \bar{D}_{Ca_n}(\pi_1) - \bar{D}_{Ca_n}(\pi_2)
 \end{equation}
 
 $\Delta D_{Ca_n}$ answers ``how much more plausibility-weighted residual diversity does $\pi_1$ have than $\pi_2$, on average across prompts?''

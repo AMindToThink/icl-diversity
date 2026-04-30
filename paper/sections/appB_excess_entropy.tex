@@ -1,12 +1,13 @@
 \section{Excess Entropy and the \texorpdfstring{$C \times E$}{C x E} Score}\label{app:excess-entropy}
 
 This appendix develops the excess entropy $E$, an alternative summary of the $a_k$ curve that is theoretically interesting (connecting to the excess entropy of computational mechanics \citep{crutchfield2003regularities} and to the total correlation) but empirically inferior to $D_{Ca_n}$ on the external benchmarks of Section~\ref{sec:tevet}.
-We include it here for theoretical completeness and to explain the empirical comparisons that motivate our preference for $D_{Ca_n}$.
+We tried both the last-point estimator $\hat E_n$ and a sigmoid-extrapolated projected floor for $a_\infty$ (Section~\ref{app:excess-entropy-def}); we stopped using $E$ when it became clear it cannot distinguish diverse from non-diverse response sets in the few-draws regime where modes do not repeat within $n$ samples.
+We include it here for theoretical completeness, as a null result, and to explain the empirical comparisons that motivate our preference for $D_{Ca_n}$.
 
 \subsection{The Excess Entropy}\label{app:excess-entropy-def}
 
-Neither the running average $\bar{a}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is a satisfactory single scalar.
-The running average converges to $a_\infty$ (the uninteresting residual floor), losing sensitivity to the learnable structure above it.
+Neither the running average $\bar{a}_n = \frac{1}{n}\sum_k a_k$ nor the total correlation $\TC_n$ is an ideal choice for a single scalar.
+The running average converges to $a_\infty$ (the uninteresting residual floor), losing sensitivity to the learnable structure above it. $D_{Ca_n}$ inherits this problem, but it has demonstrated its utility experimentally.
 The total correlation grows linearly in $n$ and never saturates, because each new term contributes approximately $-\log_2 \theta(r \mid p) - a_\infty > 0$ for large $k$.
 
 The solution is to isolate the signal above the noise floor.
@@ -22,7 +23,7 @@ The practical difference between Riemann and trapezoidal sums over $\sim$15 poin
 Units: bits.
 This is the total learnable structural information in the progressive conditioning process, above the irreducible residual noise.
 It converges whenever $\theta$'s surprise at new responses eventually stabilizes (since $a_k \to a_\infty$ and the excess $e_k = a_k - a_\infty$ decays to zero).
-The ``structure'' captured by $E$ is not limited to discrete mode identity: it includes any inter-response regularity that $\theta$ can learn from context, such as shared stylistic patterns, vocabulary, topic constraints, and formatting conventions.
+The ``structure'' captured by $E$ is not limited to discrete mode identity: it includes any inter-response regularity to which $\theta$ assigns lower conditional surprise.
 
 In practice, $a_\infty$ is unknown.
 We estimate it as $a_n$ (the last observed value) and compute:
@@ -164,7 +165,7 @@ Third, it makes the noise floor $a_\infty$ ambiguous: unclear whether it should 
 \subsection{Limitations of $C \times E$}
 
 $C \times E$ inherits two limitations from $E$.
-First, $E$ measures learnable \emph{structure} (recurring patterns that $\theta$ can extract from seeing multiple responses) rather than continuous spread.
+First, $E$ measures \emph{recurrence}: surprise reduction as multiple responses accumulate, rather than continuous spread.
 A policy that draws from a broad, roughly continuous distribution of coherent outputs has $a_k \approx a_1$ for all $k$, yielding $E \approx 0$ despite maximal diversity.
 Second, $E$ is near-zero in the few-draws regime: with only 5--10 responses and no repeated modes, $\theta$ finds little learnable structure regardless of diversity, so $C \times E$ carries almost no signal.
 These limitations are the reason $D_{Ca_n}$ is preferred as the primary score: $a_\infty$ is the \emph{level} of the floor, which differs meaningfully between diverse and non-diverse response sets even when the curve stays nearly flat.
