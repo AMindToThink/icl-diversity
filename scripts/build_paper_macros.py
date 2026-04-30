@@ -1,5 +1,7 @@
 r"""Build `results/tables/paper_macros.tex` — the authoritative source of every
-inline numeric scalar referenced in prose in `paper/in_context_diversity_metric.tex`.
+inline numeric scalar referenced in prose in `paper/main_icml_workshop.tex`
+(the original `paper/archive/in_context_diversity_metric.tex` also `\input`s
+this file, but is archived).
 
 This script reads ONLY from existing data files (no recomputation from raw data
 besides trivial aggregations) and emits `\newcommand` definitions for every

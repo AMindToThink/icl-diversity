@@ -25,6 +25,15 @@ paper/*.fls
 paper/*.log
 paper/*.out
 paper/*.synctex.gz
+# Same patterns under paper/archive/ for the archived original paper.
+paper/archive/*.aux
+paper/archive/*.bbl
+paper/archive/*.blg
+paper/archive/*.fdb_latexmk
+paper/archive/*.fls
+paper/archive/*.log
+paper/archive/*.out
+paper/archive/*.synctex.gz
 
 # Preview PDF built by `latexmk paper/rlhf_experiment_preview.tex` — it's
 # purely a build artifact for verifying the standalone RLHF section
@@ -32,8 +41,9 @@ paper/*.synctex.gz
 paper/rlhf_experiment_preview.pdf
 
 # pdftotext-style plaintext dumps of the paper (stale the moment they're
-# written; regenerable with `pdftotext paper/in_context_diversity_metric.pdf`)
+# written; regenerable with `pdftotext paper/main_icml_workshop.pdf`)
 paper/*.txt
+paper/archive/*.txt
 
 # stdout captures from `uv run python scripts/compute_icl_metrics_for_tevet.py`
 # (HTTP traffic + progress bars; kept locally if the user wants to scroll back,

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Implementation of the ICL (in-context learning) diversity metric from `paper/in_context_diversity_metric.pdf`. The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
+Implementation of the ICL (in-context learning) diversity metric from `paper/main_icml_workshop.pdf` (the original journal-track draft is archived under `paper/archive/`). The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
 
 The primary a_k curve is in **total bits**. Per-byte normalized quantities (E_rate, C, D_rate) provide tokenizer-agnostic comparisons. D = C × E is the primary diversity score in bits; D_rate = C × E_rate is the per-byte variant.
 

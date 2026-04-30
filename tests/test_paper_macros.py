@@ -20,7 +20,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = PROJECT_ROOT / "scripts" / "build_paper_macros.py"
 OUTPUT = PROJECT_ROOT / "results" / "tables" / "paper_macros.tex"
-PAPER_TEX = PROJECT_ROOT / "paper" / "in_context_diversity_metric.tex"
+PAPER_TEX = PROJECT_ROOT / "paper" / "main_icml_workshop.tex"
 
 
 @pytest.fixture(scope="module")

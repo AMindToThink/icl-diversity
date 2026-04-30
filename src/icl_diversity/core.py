@@ -3,7 +3,8 @@ ICL (In-Context Learning) Diversity Metric.
 
 Measures diversity of LLM outputs using a trusted base model's token-level
 log-probabilities via progressive conditional surprise. The metric is described
-in detail in `in_context_diversity_metric.tex`.
+in detail in `paper/main_icml_workshop.tex` (the original journal-track
+wrapper is archived at `paper/archive/in_context_diversity_metric.tex`).
 
 Key idea: if a base model theta can predict response r_k more easily after
 seeing responses r_1..r_{k-1}, then those responses share structure (low
