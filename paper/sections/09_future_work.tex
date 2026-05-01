@@ -10,6 +10,11 @@ Dimension-specific framings (e.g., ``Here are several stories in different genre
 Ensembling multiple base models at the token level (averaging softmax probabilities) could stabilize the estimates while preserving the autoregressive structure.
 Our codebase supports token-level ensembling, but we have not yet validated it experimentally.
 
+\paragraph{Disagreement cases with other metrics.}
+We report aggregate correlations with embedding-based and reference metrics on Tevet's tasks (Section~\ref{sec:tevet}) but do not look at \emph{which} response sets the metrics rank differently.
+Identifying prompts or response sets where $C \times a_n$ disagrees with SentBERT, distinct-$n$, or McDiv is the most direct way to characterise what each metric is actually measuring; the disagreements are where the choice of metric matters.
+We expect two regimes to drive disagreement: response sets that share arbitrary rare patterns a base model can pick up on but that fall outside what a fixed sentence embedder represents (where $C \times a_n$ should detect repetition that embeddings miss), and response sets where one response is a mixture of two others (where progressive conditioning credits the mixture for being predictable from its components, while pairwise embedding-distance averages do not).
+
 \paragraph{Total-bits variants of $D$.}
 We report $D_{Ca_n} = C \times a_n$ in bits/byte for length control, normalising by bytes rather than tokens so that scores remain tokenizer-agnostic.
 The implementation also exposes $a_n$ in total bits, which is likewise tokenizer-agnostic but not length-controlled.
