@@ -12,7 +12,7 @@ We exploit the in-context learning capability described by \citet{brown2020langu
 The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of the $k$-th response given the previous $k{-}1$) captures this signal directly, and its last point is $a_n$ (Section~\ref{sec:progressive-conditioning}).
 A separate coherence term $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity that $\theta$ assigns to each response individually, prevents pure noise from registering as ``diverse'' (Section~\ref{sec:coherence}).
 The product $D_{Ca_n} = C \times a_n$ is the score; it is plausibility-weighted residual diversity in bits per byte.
-We validate it against Tevet and Berant's human-grounded diversity benchmark (Section~\ref{sec:tevet}) and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:rlhf-experiment}), and release a working open-source implementation alongside.\footnote{Code link withheld for double-blind review; see anonymous mirror in supplementary materials.}
+We validate it against Tevet and Berant's human-grounded diversity benchmark (Section~\ref{sec:tevet}) and on the OLMo-2-7B post-training pipeline (Section~\ref{sec:rlhf-experiment}), and release a working open-source implementation alongside.\footnote{Code and data: \projectGithubUrl}
 The metric measures diversity as $\theta$ perceives it: outputs differing only in ways $\theta$ cannot distinguish in context appear less diverse.
 This relativity gives the metric the potential to tighten as base models improve (see Appendix~\ref{app:qwen3-comparison} for a preliminary scaling experiment).
 
