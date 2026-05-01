@@ -75,20 +75,6 @@ The continuation (``Joel fired the cook...'') is predictable, yielding low per-t
 The specific ending (``He scored winner'') is inherently more surprising to the base model, despite being labeled ``low diversity.''}\label{fig:confound-low}
 \end{figure*}
 
-\subsection{Label Contamination}
-
-In addition to the construction confound, we found that the McDiv\_nuggets CSVs contain duplicate sample IDs with \emph{conflicting labels}: the same response set appears once labeled as high diversity and once as low diversity.
-Table~\ref{tab:contamination} shows the extent of this contamination across the three generation tasks.
-
-\begin{table}[!htbp]
-\centering
-\caption{Number of sample IDs appearing with both high- and low-diversity labels in the McDiv\_nuggets (with HDS) CSVs.}\label{tab:contamination}
-\input{../results/tables/confound_contamination.tex}
-\end{table}
-
-These duplicates introduce noise into any correlation analysis: the same $\bar{a}_k$ curve is counted as evidence for \emph{both} labels, diluting the signal.
-We did not remove these duplicates from our analysis, to maintain consistency with prior work.
-
 \subsection{Implications}
 
 The construction confound (low-diversity sets are paraphrases of specific dramatic endings rather than a random subsample of low-diversity content) lifts the entire $\bar{a}_k$ curve on low-diversity sets, since their content is intrinsically surprising under $\theta$ at every $k$, and pushes $C$ down because the same content is less coherent.

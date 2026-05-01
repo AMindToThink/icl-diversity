@@ -10,11 +10,7 @@ The primary metric $D_{Ca_n} = C \times a_n$ uses the curve's endpoint $a_n$: as
 Section~\ref{sec:tevet} shows this combination is what discriminates diverse from non-diverse response sets in the few-draws regime, while $a_1$ alone (the level) and $E$ (the integrated drop, defined below) each underperform.
 
 We thought that $E$'s learnable structure would be interesting and track diversity.
-Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:\footnote{The excess entropy $E = \sum_k (a_k - a_\infty)$ is defined as a discrete sum over integer response indices, since ``conditioning on 3.5 responses'' has no direct meaning.
-However, a continuous extension exists: consider conditioning on a random subset of size $\alpha n$ for $\alpha \in [0,1]$, yielding a continuous curve $\bar{a}(\alpha)$.
-The discrete $\bar{a}_k$ would be samples at $\alpha = k/n$, and $E$ would correspond to integrating this curve (in which case trapezoidal integration would be more faithful than Riemann sums).
-We treat $E$ as the discrete sum throughout, but note that the continuous interpretation remains an open question, particularly in connection to the continuous excess entropy literature.
-The practical difference between Riemann and trapezoidal sums over $\sim$15 points is small.}
+Following the concept of excess entropy from computational mechanics \citep{crutchfield2003regularities}, define the \textbf{excess entropy}:
 \begin{equation}\label{eq:excess}
     E = \sum_{k=1}^{\infty}\bigl(a_k - a_\infty\bigr)
 \end{equation}
@@ -151,16 +147,13 @@ Combining $E$ with the coherence term $C$ (Section~\ref{sec:coherence}) yields s
 \begin{equation}\label{eq:D-total}
     C \times E \quad \text{(bits)} \qquad \text{or} \qquad C \times E_{\mathrm{rate}} \quad \text{(bits/byte)}.
 \end{equation}
-The first weights total structural information by per-byte plausibility; the second normalizes per byte so long and short responses are treated equally.
+The first measures total structural information, and the second normalizes per byte so long and short responses are treated equally.
 
 \subsection{Why Not Weight Excess Entropy Inside the Sum?}\label{app:why-not-weight}
 
 A natural alternative to reporting $E$ and $C$ separately is to weight the terms within $E$ by coherence, computing $E_w = \sum_k w_k \cdot (a_k - a_\infty)$ where $w_k = 2^{-h_\theta(r_k \mid p)}$.
 This would suppress contributions from incoherent modes directly at the point of measurement.
-We considered and rejected this approach for three reasons.
-First, it breaks the information-theoretic interpretation: $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to Crutchfield and Feldman's excess entropy, and inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process.
-Second, the weights are not independent of what they weight: both $w_k$ and $e_k$ are derived from the same response scored by the same model, and an incoherent response from a novel mode has both high $e_k$ and low $w_k$, which partially cancel in ways that lack a clean characterization.
-Third, it makes the noise floor $a_\infty$ ambiguous: unclear whether it should also be weighted, and if so by what.
+We considered and rejected this approach because it breaks the information-theoretic interpretation. $E = \sum_k e_k$ has a clean meaning as the total structural information above the noise floor, connected to Crutchfield and Feldman's excess entropy, and inserting weights makes $E_w$ a hybrid quantity that is not the excess entropy of any well-defined process.
 
 \subsection{Limitations of $C \times E$}
 

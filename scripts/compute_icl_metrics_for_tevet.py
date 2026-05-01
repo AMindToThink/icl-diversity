@@ -70,11 +70,18 @@ def resolve_parallel_samples(value: str, model: object) -> int:
 
 
 def dedup_rows(rows: list[dict]) -> list[dict]:
-    """Remove rows whose sample_id appears with conflicting label_value.
+    """DEACTIVATED. Do not call.
 
-    Some McDiv_nuggets CSVs contain the same sample_id with both label=0
-    and label=1. This removes ALL rows for such conflicting IDs (keeping
-    neither), since the correct label is ambiguous.
+    Originally written to remove rows whose sample_id appears with
+    conflicting label_value, on the belief that McDiv_nuggets contained the
+    same response set under both labels. On re-checking the released data
+    (2026-04-30 / 2026-05-01), conflicting-label rows always have the same
+    context but fully disjoint response sets — they are the surviving
+    fragment of Tevet's ConTest pair structure, not duplicate datapoints.
+    Removing them would destroy intentional signal rather than denoise.
+
+    Kept for git-history continuity. The --dedup CLI flag now hard-fails
+    rather than calling this. See investigations/tevet_overlap_followup.md.
 
     Returns the filtered list (may be shorter than input).
     """
@@ -812,8 +819,11 @@ def main() -> None:
     parser.add_argument(
         "--dedup",
         action="store_true",
-        help="Remove samples with conflicting labels (same sample_id, different label_value). "
-             "Appends '-dedup' to the run tag.",
+        help="DEACTIVATED. Originally removed rows with conflicting labels. "
+             "On the released data, conflicting-label rows are Tevet's pair "
+             "structure (same prompt, distinct response sets), not duplicates. "
+             "Passing this flag now exits with an error. See "
+             "investigations/tevet_overlap_followup.md.",
     )
     parser.add_argument(
         "--migrate-from-sidecars",
@@ -821,6 +831,14 @@ def main() -> None:
         help="Migrate existing untagged sidecar data to new tagged format (no GPU needed)",
     )
     args = parser.parse_args()
+
+    if args.dedup:
+        sys.exit(
+            "--dedup is deactivated. Conflicting-label rows in McDiv_nuggets "
+            "are Tevet's intentional pair structure (same prompt, distinct "
+            "response sets), not duplicates; removing them destroys signal. "
+            "See investigations/tevet_overlap_followup.md."
+        )
 
     logging.basicConfig(
         level=logging.INFO,

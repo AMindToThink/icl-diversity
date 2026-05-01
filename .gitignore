@@ -25,6 +25,7 @@ paper/*.fls
 paper/*.log
 paper/*.out
 paper/*.synctex.gz
+paper/*.synctex(busy)
 # Same patterns under paper/archive/ for the archived original paper.
 paper/archive/*.aux
 paper/archive/*.bbl
@@ -34,6 +35,7 @@ paper/archive/*.fls
 paper/archive/*.log
 paper/archive/*.out
 paper/archive/*.synctex.gz
+paper/archive/*.synctex(busy)
 
 # Preview PDF built by `latexmk paper/rlhf_experiment_preview.tex` — it's
 # purely a build artifact for verifying the standalone RLHF section
