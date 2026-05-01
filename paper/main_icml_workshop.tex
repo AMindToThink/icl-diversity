@@ -12,6 +12,12 @@
 
 \documentclass{article}
 
+% pdf.js (used by anonymous.4open.science) renders default URW Times Type 1
+% fonts with broken kerning. cmap + T1 fontenc switch to encodings that
+% pdf.js handles correctly. Must come before microtype/icml2026.
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{subcaption}
