@@ -171,3 +171,8 @@ claim = "Replicability Analysis for Natural Language Processing: Testing Signifi
 key   = "berglund2023reversal"
 arxiv = "2309.12288"
 claim = "The Reversal Curse: autoregressive LLMs trained on 'A is B' fail to predict 'B is A.' Cited in cross-mode pairwise-asymmetry discussion to explain why the empirical $|M_{ij} - M_{ji}|$ asymmetry reflects model imperfection rather than asymmetric information structure (since I(X;Y) = I(Y;X) under the true joint)."
+
+[[cite]]
+key   = "brown2020language"
+arxiv = "2005.14165"
+claim = "GPT-3, 'Language Models are Few-Shot Learners' (Brown et al., NeurIPS 2020). Introduced and named 'in-context learning' as a paradigm: at inference time the model is conditioned on a natural-language task description plus zero or more demonstration examples and produces completions, with no gradient updates (§1, §2.1, Figure 1.1). Direct quote from Section 1 / Figure 1.1: 'we use the term in-context learning to describe the inner loop of this process, which occurs within the forward-pass upon each sequence.' Cited in Motivation as describing the in-context-learning capability our metric exploits to detect distributional regularities across response samples; framing makes clear we use ICL as a measurement lens, not as the few-shot-prompting setup Brown et al. study. Verified 2026-05-01 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/2005.14165 (claim SUPPORTED; subagent noted 'described' is the most modest defensible verb; 'named' or 'popularized' would also be defensible — user explicitly preferred 'described')."

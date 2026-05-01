@@ -8,6 +8,7 @@ No embedding model, no reference corpus, no human labels, no auxiliary classifie
 The metric uses only the per-token probabilities $\theta$ already produces.
 
 The intuition is that if responses from a policy $\pi$ are diverse, seeing one should not help $\theta$ predict the next; if they are repetitive or constrained to a few modes, conditioning on earlier responses should sharply reduce $\theta$'s surprise at later ones.
+We exploit the in-context learning capability described by \citet{brown2020language}, applied here as a measurement lens rather than as a few-shot-prompting setup.
 The progressive conditional surprise curve $a_k$ (the per-byte cross-entropy of the $k$-th response given the previous $k{-}1$) captures this signal directly, and its last point is $a_n$ (Section~\ref{sec:progressive-conditioning}).
 A separate coherence term $C = 1/\mathrm{PPL}_\theta(\pi, p)$, the reciprocal of the geometric-mean per-byte perplexity that $\theta$ assigns to each response individually, prevents pure noise from registering as ``diverse'' (Section~\ref{sec:coherence}).
 The product $D_{Ca_n} = C \times a_n$ is the score; it is plausibility-weighted residual diversity in bits per byte.
