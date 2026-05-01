@@ -20,3 +20,6 @@ We report $D_{Ca_n} = C \times a_n$ in bits/byte for length control, normalising
 The implementation also exposes $a_n$ in total bits, which is likewise tokenizer-agnostic but not length-controlled.
 A hybrid scalar $C \times a_n^{\text{bits}}$ rewards length (longer responses have more positions at which to be surprising), which some practitioners may want; characterising when each variant is the appropriate measurement target is left to future work.
 
+\paragraph{Optimizing generators against $D$.}
+We use $C \times a_n$ as an evaluation-time diagnostic, but it could in principle serve as a training or decoding objective. Future work could fine-tune or sample from a generator $\pi$ with the goal of maximizing $C \times a_n$ under a fixed base model $\theta$ to push $\pi$ toward response sets that are both coherent and diverse.
+
