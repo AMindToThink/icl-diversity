@@ -87,11 +87,11 @@ Table~\ref{tab:contamination} shows the extent of this contamination across the 
 \end{table}
 
 These duplicates introduce noise into any correlation analysis: the same $\bar{a}_k$ curve is counted as evidence for \emph{both} labels, diluting the signal.
-We did not remove these duplicates from our analysis, so the correlations reported here are conservative.
+We did not remove these duplicates from our analysis, to maintain consistency with prior work.
 
 \subsection{Implications}
 
-This confound does not invalidate McDiv\_nuggets for evaluating diversity metrics, but it does introduce a systematic bias: any metric based on per-response surprise will tend to assign higher values to the low-diversity group, counteracting the expected positive correlation between the metric and the diversity label.
-Metrics that compare \emph{across} responses within a set (like excess entropy $E$) are less affected because the confound is approximately constant across positions $k$: it shifts the entire $\bar{a}_k$ curve vertically without changing its shape.
-Per-byte normalization amplifies the confound because shorter low-diversity responses get higher bits-per-byte values.
+The construction confound (low-diversity sets are paraphrases of specific dramatic endings rather than a random subsample of low-diversity content) lifts the entire $\bar{a}_k$ curve on low-diversity sets, since their content is intrinsically surprising under $\theta$ at every $k$, and pushes $C$ down because the same content is less coherent.
+$a_1$'s upward shift opposes the diversity label; $C$'s downward shift happens to align with it (a confound artifact, not coherence genuinely tracking diversity).
+At $a_n$, the diversity signal we are measuring overrides the confound's upward pull: paraphrases collapse to predictable once $\theta$ has seen the others while genuinely diverse responses do not, so $a_n$ ends up lower on low-diversity sets and $C \times a_n$ tracks the label despite the confound (Section~\ref{sec:tevet}).
 
