@@ -1,5 +1,5 @@
 Measuring the diversity of creative outputs is central to evaluating post-training mode collapse, comparing decoding strategies, and quantifying creative behavior in both AI and human writing.
-We propose $D_{Ca_n} = C \times a_n$: a per-byte score read off the per-token log-probabilities of a base model $\theta$ in a \emph{single forward pass} per permutation, with no embedding model, no reference corpus, and no human labels.
+We propose the ``Decan'' metric, $D_{Ca_n} = C \times a_n$: a per-byte score read off the per-token log-probabilities of a base model $\theta$ in a \emph{single forward pass} per permutation, with no embedding model, no reference corpus, and no human labels.
 This approach is grounded in information theory, makes use of language model in-context learning to detect a wide range of similarities between any number of inputs, and obviates the need to train a special-purpose model.
 The same pipeline scores AI samples and human-written response sets, with diversity treated as a property of (responses, prompt, scoring model).
 On Tevet and Berant's human-grounded McDiv benchmark, $D_{Ca_n}$ reaches OCA \tevetMcDivPromptGenCxAnOCA{} on McDiv prompt\_gen, outperforming the lexical baseline distinct-$n$ (\tevetMcDivPromptGenDistinctNOCA{}) and within 5 points of the strongest embedding baseline (SentBERT, \tevetMcDivPromptGenSentBertOCA{}).
