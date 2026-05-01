@@ -13,7 +13,13 @@ Behavior:
   Success is judged by (a) the absence of fatal-error markers in the latexmk
   output ("Emergency stop", "Fatal error occurred", "no output PDF file
   produced"), (b) the presence of a positive marker ("Output written on" or
-  "are up-to-date"), and (c) the PDF file existing on disk.
+  "are up-to-date"), (c) the PDF file existing on disk, AND (d) a post-build
+  check that the rendered PDF contains zero `??` placeholders and that the
+  .log has zero "LaTeX Warning: Reference/Citation ... undefined" lines.
+  If (d) fails, the script automatically runs one additional latexmk pass
+  (no clean) to let the now-populated .aux settle outstanding cross-refs;
+  if the issue persists, the build is judged FAILED and the user is told
+  to re-run with --force.
 
   The latexmk *exit code* is intentionally NOT used as the primary signal,
   because `pdflatex -interaction=nonstopmode` returns 1 on benign warnings
@@ -39,12 +45,11 @@ Caveats / known limitations:
     along with everything else, and latexmk does not always run enough
     pdflatex passes after rebuilding the .bbl to fully resolve all
     cross-references — the resulting PDF may have ?-placeholder citations
-    or refs even though the build is judged successful. The script will
-    flag this case via "[latexmk warnings; see log]" but does not fix it.
-    Workaround: re-run without --force, which will run additional pdflatex
-    passes against the now-populated .aux/.bbl and settle the refs. Use
-    --force only when you actually suspect aux corruption that the
-    auto-retry path didn't catch.
+    or refs. The post-build resolution check (item (d) above) now catches
+    this and runs an extra pass automatically. If even the extra pass
+    can't resolve everything, the build is judged FAILED rather than
+    silently shipping a broken PDF. Use --force only when you actually
+    suspect aux corruption that the default-mode retry path didn't catch.
   - "[latexmk warnings; see log]" means a PDF was produced but pdflatex
     emitted warnings on its final pass — typically undefined refs/cites,
     missing characters, or hbox overfulls. Investigate by greping the
@@ -74,6 +79,7 @@ import contextlib
 import errno
 import fcntl
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -101,6 +107,17 @@ FATAL_LOG_MARKERS = (
 SUCCESS_LOG_MARKERS = (
     "Output written on",          # fresh build produced a PDF
     "are up-to-date",             # nothing to do; existing PDF kept
+)
+
+# Matches lines like:
+#   LaTeX Warning: Reference `eq:foo' on input line 42 undefined on input line 99.
+#   LaTeX Warning: Citation `bar2024' on page 3 undefined on input line 99.
+# pdflatex emits one of these for every \ref/\cite that didn't resolve. If the
+# .log has any of these we know the rendered PDF has at least one `??` (or
+# bibliography style equivalent) regardless of what pdftotext can extract.
+UNDEFINED_LOG_RE = re.compile(
+    r"^LaTeX Warning: (?:Reference|Citation) `[^']+' .* undefined",
+    re.MULTILINE,
 )
 
 
@@ -147,6 +164,59 @@ def looks_successful(output: str, pdf_path: Path) -> bool:
     if not pdf_path.exists():
         return False
     return any(marker in output for marker in SUCCESS_LOG_MARKERS)
+
+
+def count_pdf_unresolved(pdf_text: str) -> int:
+    """Count `??` placeholder pairs in extracted PDF text.
+
+    LaTeX renders unresolved `\\ref{}` (and some `\\cite{}` styles) as `??`.
+    A clean prose `?` is unaffected; this counts only consecutive `??`.
+    """
+    return pdf_text.count("??")
+
+
+def count_log_undefined(log_text: str) -> int:
+    """Count `LaTeX Warning: Reference/Citation '...' undefined` lines in a .log."""
+    return len(UNDEFINED_LOG_RE.findall(log_text))
+
+
+def extract_pdf_text(pdf_path: Path) -> str:
+    """Run `pdftotext <pdf> -` and return stdout. Empty string on failure.
+
+    pdftotext ships with poppler-utils alongside pdfinfo, which the script
+    already requires. If pdftotext is missing we fall back to empty text
+    (the log-based check still catches undefined refs); the startup probe
+    in main() warns the user when pdftotext is absent.
+    """
+    try:
+        result = subprocess.run(
+            ["pdftotext", str(pdf_path), "-"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return ""
+    return result.stdout if result.returncode == 0 else ""
+
+
+def check_resolution(pdf_path: Path, log_path: Path) -> tuple[int, int]:
+    """Post-build verification.
+
+    Returns (pdf_qq_count, log_undefined_count). Either > 0 means the build
+    shipped a PDF with unresolved `\\ref`/`\\cite`. Both checks are run because
+    they catch overlapping but not identical failure modes:
+      - pdftotext + `??`: catches anything LaTeX rendered as `??`, including
+        the case where a stale .aux made latexmk decide "no rerun needed"
+        and pdflatex consequently emitted no warning on the final pass.
+      - log scan: catches undefined cites that some bib styles render as
+        `[?]` rather than `??`, plus any pass-where-pdflatex-did-warn.
+    """
+    pdf_text = extract_pdf_text(pdf_path)
+    pdf_qq = count_pdf_unresolved(pdf_text)
+    log_text = log_path.read_text(errors="replace") if log_path.exists() else ""
+    log_undef = count_log_undefined(log_text)
+    return pdf_qq, log_undef
 
 
 def pdf_status(pdf_path: Path) -> str:
@@ -219,6 +289,7 @@ def rebuild_one(tex_path: Path, force_clean: bool) -> bool:
     tex_dir = tex_path.parent
     tex_name = tex_path.name
     pdf_path = tex_path.with_suffix(".pdf")
+    log_path = tex_path.with_suffix(".log")
 
     print(f"→ {tex_path}", flush=True)
 
@@ -242,8 +313,42 @@ def rebuild_one(tex_path: Path, force_clean: bool) -> bool:
                 print(tail(output, 20), file=sys.stderr)
                 return False
 
+            # Post-build cross-reference resolution check. latexmk's "rerun if
+            # .aux changed" heuristic occasionally ships a PDF with `??`
+            # placeholders even though the build appears successful (the bug
+            # that produced anon-submission's 6b40e79: 53 `??` across 17 pages
+            # with no warning suffix). Run an extra latexmk pass to let any
+            # outstanding refs settle; if they don't, treat as build failure.
+            pdf_qq, log_undef = check_resolution(pdf_path, log_path)
+            if pdf_qq or log_undef:
+                print(
+                    f"  unresolved cross-refs after first build: "
+                    f"{pdf_qq} '??' in PDF, {log_undef} 'undefined' warning(s) in log; "
+                    f"running another latexmk pass ...",
+                    flush=True,
+                )
+                rc, output = run_latexmk_pdf(tex_dir, tex_name)
+                pdf_qq, log_undef = check_resolution(pdf_path, log_path)
+                if pdf_qq or log_undef:
+                    print(
+                        f"  FAILED: extra pass did not resolve cross-refs. "
+                        f"PDF still has {pdf_qq} '??' placeholder(s); "
+                        f"log still has {log_undef} 'Reference/Citation undefined' warning(s).",
+                        file=sys.stderr,
+                    )
+                    print(
+                        f"  Inspect: grep -nE \"LaTeX Warning: (Reference|Citation)\" {log_path}",
+                        file=sys.stderr,
+                    )
+                    print(
+                        f"  Workaround: re-run with --force to wipe .aux/.bbl and rebuild from scratch:",
+                        file=sys.stderr,
+                    )
+                    print(f"    {sys.argv[0]} --force {tex_path}", file=sys.stderr)
+                    return False
+
             # latexmk rc!=0 with a produced PDF means non-fatal warnings
-            # (undefined refs, missing fonts, etc). Surface this so the user
+            # (missing fonts, hbox overfulls, etc). Surface this so the user
             # can investigate, but treat the build as successful.
             warn_suffix = "  [latexmk warnings; see log]" if rc != 0 else ""
             print(f"  OK  {pdf_status(pdf_path)}{warn_suffix}", flush=True)
@@ -272,6 +377,12 @@ def main() -> None:
     if not shutil.which("latexmk"):
         print("Error: latexmk is not installed or not on PATH", file=sys.stderr)
         sys.exit(2)
+    if not shutil.which("pdftotext"):
+        print(
+            "Warning: pdftotext not on PATH; the post-build `??`-in-PDF check will "
+            "be skipped. Install poppler-utils to enable it.",
+            file=sys.stderr,
+        )
 
     tex_paths: list[Path] = []
     for arg in args.tex_files:
