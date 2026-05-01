@@ -93,6 +93,23 @@ REPRODUCIBLE_ENV = {
     "FORCE_SOURCE_DATE": "1",
 }
 
+# FOLLOW-UP (Matthew, 2026-05-01): the FATAL_LOG_MARKERS / SUCCESS_LOG_MARKERS
+# string-matching heuristic predates the post-build artifact check
+# (check_resolution: PDF has no `??`, log has no "Reference/Citation undefined")
+# and is now arguably redundant. The artifact check is strictly stronger:
+# trusting "PDF exists + zero ?? + zero undefined-ref warnings" subsumes
+# trusting "latexmk's stdout said 'Output written on'". A simpler version of
+# this script would be ~3 steps: run `latexmk -pdf -interaction=nonstopmode`,
+# verify the three artifact properties, fail loudly on any mismatch — no
+# looks_successful(), no looks_fatal(), no auto-retry-on-clean. That cleanup
+# would delete ~50 lines and clarify the mental model from "five heuristics
+# stacked in a tower" to "tex in, pdf out, verified". Deferred because (a)
+# the current script works and the user just shipped a paper with it, and
+# (b) the auto-retry-on-clean path catches a different real failure (truly
+# corrupt aux that one extra latexmk pass cannot fix) and removing it
+# without first verifying that case is now rare would risk regression. Pick
+# this up in a quiet week, with a regression test that covers the
+# corrupt-aux case before deleting the retry logic.
 FATAL_LOG_MARKERS = (
     "Emergency stop",
     "Fatal error occurred",
