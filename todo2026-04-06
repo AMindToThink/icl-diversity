@@ -1,4 +1,0 @@
-Implement the changes described at the top of the paper.
-Consider what we really still need to do. I care more about publishability and making the case that the technique makes sense than optimizing until SotA Shi already thinks that our setup has been shown to work, even with the uptick at k=5. I am eager to move on from this project, but I want it to be publishable, first.
-Consider switching to "shannons" instead of "bits". "shannons" might be more accurate for what I'm trying to do.
-Deferred: Small sweep over temperature values to find what works best for C x a_n. I expect slightly higher temperature to work better by decreasing variance, but that remains to be seen.

@@ -87,7 +87,7 @@ NB-curated SFT is the most extreme — for many prompts, $L_{\text{prompt}}$ (th
 
 ## Handoff
 
-Raise any blockers against Matthew. When the re-run finishes, report:
+Raise any blockers with the lead investigator. When the re-run finishes, report:
 
 1. Per-stage $D$ means (raw vs length-matched) for both prompt sets.
 2. Effect sizes ($d_z$) and Bonferroni-corrected $p$-values for the three pre-registered contrasts (H1a, H1b, H1c) under length-matched scoring.

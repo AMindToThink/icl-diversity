@@ -1,8 +1,0 @@
-/home/cs29824/matthew/icl-diversity/scripts/rlhf_experiment/5_analyze_and_figures.py:1: SyntaxWarning: invalid escape sequence '\i'
-  """Analyze RLHF-diversity results: tests, figures, paper macros, TeX section.
-/home/cs29824/matthew/icl-diversity/scripts/rlhf_experiment/5_analyze_and_figures.py:316: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
-  ax.legend(fontsize=8)
-/home/cs29824/matthew/icl-diversity/scripts/rlhf_experiment/5_analyze_and_figures.py:316: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
-  ax.legend(fontsize=8)
-[analyze] 756 ICL rows, 0 baseline rows
-[analyze] wrote analysis_length_matched.json, tables_length_matched/, figures/, paper_macros_rlhf_lenmatched.tex

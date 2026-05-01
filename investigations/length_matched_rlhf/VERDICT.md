@@ -1,7 +1,7 @@
 # Length-matched RLHF re-run — verdict
 
 **Date:** 2026-04-25
-**Investigator:** Claude (under Matthew)
+**Investigator:** Claude (under the lead author)
 **Source spec:** `investigations/length_matched_rlhf/README.md`
 
 ## TL;DR

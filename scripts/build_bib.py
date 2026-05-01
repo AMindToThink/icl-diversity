@@ -45,7 +45,7 @@ TOML_PATH = PROJECT_ROOT / "paper" / "refs_ids.toml"
 BIB_PATH = PROJECT_ROOT / "paper" / "refs.bib"
 
 REQUEST_TIMEOUT = 20  # seconds
-USER_AGENT = "icl-diversity-build-bib/1.0 (matthewkhoriaty@gmail.com)"
+USER_AGENT = "icl-diversity-build-bib/1.0"
 INTER_REQUEST_DELAY = 0.5  # be polite to free APIs
 
 
