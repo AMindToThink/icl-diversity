@@ -300,6 +300,7 @@ def tevet_macros() -> dict[str, str]:
     # McDiv full prompt_gen: $C \!\times\! a_n$ (ours)
     rho_cxan, oca_cxan = parse_row(r"$C \!\times\! a_n$ (ours)", r"McDiv (full, no\_hds, $\sim$2K)")
     rho_sb, oca_sb = parse_row("SentBERT", r"McDiv (full, no\_hds, $\sim$2K)")
+    rho_dn, oca_dn = parse_row(r"distinct-$n$", r"McDiv (full, no\_hds, $\sim$2K)")
     # These cells may contain LaTeX like "\textbf{+0.729}"; strip it.
     def clean(s: str) -> str:
         s = re.sub(r"\\textbf\{([^}]+)\}", r"\1", s)
@@ -309,6 +310,8 @@ def tevet_macros() -> dict[str, str]:
     macros["tevetMcDivPromptGenCxAnOCA"] = clean(oca_cxan)
     macros["tevetMcDivPromptGenSentBertRho"] = clean(rho_sb)
     macros["tevetMcDivPromptGenSentBertOCA"] = clean(oca_sb)
+    macros["tevetMcDivPromptGenDistinctNRho"] = clean(rho_dn)
+    macros["tevetMcDivPromptGenDistinctNOCA"] = clean(oca_dn)
 
     # Full summary_table.txt parse for McDiv_nuggets prompt_gen (no_hds) AUC (used in abstract/App B).
     summary = (PROJECT_ROOT / "figures" / "tevet_validation" / "c_ainf_analysis_v3" / "summary_table.txt").read_text()
