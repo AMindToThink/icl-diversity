@@ -1,12 +1,15 @@
 \section{Dataset Construction Confounds in McDiv}\label{app:confound}
 
+\sloppy  % long quoted excerpts overflow the column otherwise
+\emergencystretch=3em
+
 When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}, we observed that the mean $\bar{a}_1$ curve (per-byte) for the ``low diversity'' group starts \emph{above} the ``high diversity'' group in the story\_gen task (Figure~\ref{fig:confound-a1-dist}).
 Since $a_1$ measures the surprise of the first response conditioned only on the prompt (before any other responses appear in context), this gap cannot reflect diversity.
 It is a confound in the dataset construction.
 
 \subsection{Mechanism}
 
-The McDiv\_nuggets protocol (Tevet and Berant \S6.4) pairs a low-diversity set with each high-diversity set as follows.
+The McDiv protocol (Tevet and Berant \S6.4), from which McDiv\_nuggets is sampled (Tevet and Berant Appendix C.2 specifies McDiv\_nuggets as the 3K subset of McDiv on which distinct-$n$ correlates at zero), pairs a low-diversity set with each high-diversity set as follows.
 Workers first write five \emph{different} continuations (the high-diversity set).
 The same worker is then asked to \emph{self-select one} of their own five responses and paraphrase it five times, preserving content while varying form (the low-diversity set).
 Tevet and Berant do not characterize the distribution of which responses workers self-select.

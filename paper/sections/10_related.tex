@@ -1,4 +1,4 @@
-\section{Related Concepts}\label{sec:related}
+\section{Related Work}\label{sec:related}
 
 \paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
 We found it empirically inferior to $D_{Ca_n}$ on Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}.
@@ -28,5 +28,5 @@ More recent work has revisited the meta-evaluation problem.
 NoveltyBench \citep{zhang2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples), conceptually close to our mode count.
 However, their ground truth is itself a trained classifier (79\% accuracy), making it unclear whether correlation with their labels validates a metric or merely measures agreement between two model-based scores.
 \citet{zhang2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
-\citet{guo2024linguistic} benchmark linguistic diversity of LLMs, extending Tevet and Berant's framework to a broader set of generation tasks.
+\citet{guo2024linguistic} benchmark linguistic diversity of LLMs, building on Tevet and Berant's framework with a broader set of generation tasks.
 

@@ -14,7 +14,7 @@ We chose $C \times a_n$ (rather than alternative summaries such as $C \times E$;
 The Tevet numbers in Section~\ref{sec:tevet} may therefore be optimistically biased: the scalar form was selected with visibility into those results.
 The OLMo-2-7B post-training experiment (Section~\ref{sec:rlhf-experiment}) was scored after the metric form was fixed and provides independent validation; the synthetic mode-count experiments (Section~\ref{sec:mode-count-scaling}) informally influenced the choice (had they failed, we would likely have revised the metric) and so are not strictly independent.
 
-\paragraph{External benchmark performance is near the level of the strongest baseline.}
+\paragraph{External benchmark performance trails the strongest baseline.}
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% OCA across the nine binary tasks (Section~\ref{sec:tevet}); scaling the base model to Qwen3-30B-A3B-Base did not close the gap (Appendix~\ref{app:qwen3-comparison}).
 We position $C \times a_n$ as a principled complement to embedding-based metrics, not a replacement.
 

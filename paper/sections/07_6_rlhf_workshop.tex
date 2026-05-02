@@ -30,11 +30,11 @@ This section evaluates $D_{Ca_n}$ on real policies: we sample from four post-tra
 The same scoring pipeline applies to both human-written response sets (Section~\ref{sec:tevet}) and the policy-sampled sets here, so $\theta$ is held fixed across the two evaluations.
 
 \paragraph{Setup.} We sample from the four released stages of the OLMo-2-1124-7B pipeline \citep{olmo2024olmo2}: the pretrained base model, its SFT checkpoint, the DPO checkpoint trained on preference data, and the final RLVR-tuned Instruct checkpoint.
-On two prompt sets, \olmoAlpacaN{} AlpacaEval prompts \citep{dubois2024alpacafarm} (seed=42 subsample of 805) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench}, we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
+On two prompt sets, \olmoAlpacaN{} AlpacaFarm evaluation prompts \citep{dubois2024alpacafarm} (seed=42 subsample of the 805-prompt set later adopted by AlpacaEval) and \olmoNbCuratedN{} curated NoveltyBench prompts \citep{zhang2025noveltybench}, we draw $K{=}10$ responses per prompt per stage (temperature 1.0, top-$p$ 1.0, $\texttt{max\_new\_tokens}{=}100$).
 Base runs raw; SFT / DPO / Instruct receive the prompt through their own chat template.
 Because per-byte cross-entropy in a causal LM decreases with within-response context, we truncate every (stage, prompt) tuple's responses to a common per-prompt UTF-8 byte length before scoring,\footnote{Truncation is applied to the response \emph{string} via \texttt{text.encode("utf-8")[:N].decode("utf-8", errors="ignore")} and the truncated string is then re-tokenised for the forward pass. We deliberately do not truncate at token boundaries: $a_n$ is per-byte, so we need a fixed byte denominator across stages, but tokens-per-byte is tokenizer-dependent and varies across responses with the same byte budget — that variation is harmless because both the bits-numerator and the byte-denominator are computed on the same truncated string.} and drop prompts where that common length falls below 50 bytes (\olmoLmAlpacaN{}/\olmoAlpacaN{} AlpacaEval and \olmoLmNbCuratedN{}/\olmoNbCuratedN{} NB-curated prompts retained; see Section~\ref{sec:limitations}).
 We score each (stage, prompt) group with $D_{Ca_n}$ using Qwen2.5-3B as $\theta$ and 25 permutations.
-For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and SentBERT similarity-to-diversity \citep{reimers2019sbert}.
+For comparison we also compute Kirk et al.'s EAD and distinct-$n$ (averaged over $n{=}1\ldots5$) and a SentBERT-embedding \citep{reimers2019sbert} similarity-to-diversity reduction.
 
 \paragraph{Hypotheses.} We pre-register three one-sided paired Wilcoxon signed-rank tests \citep{dror2018hitchhiker} with family-wise Bonferroni correction across the three contrasts \citep{dror2017replicability} ($\alpha = 0.05/3$):
 
@@ -50,7 +50,7 @@ The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$
 
 \begin{table}[h]
 \centering
-\caption{Per-prompt $D_{Ca_n}$ by OLMo-2-7B stage on the length-matched subset, with pre-registered paired tests.}
+\caption{Per-prompt $D_{Ca_n}$ by OLMo-2-7B stage on the length-matched subset, with pre-registered paired tests. Reported $p$-values for H1a--H1c are Bonferroni-corrected ($\times 3$); the H1$'$ row (marked $^{*}$) is an uncorrected, two-sided exploratory comparison whose direction we had no prior expectation for, and is not a load-bearing claim.}
 \label{tab:rlhf-diversity}
 \small
 \IfFileExists{../results/rlhf_experiment/tables_length_matched/rlhf_diversity.tex}{%
@@ -96,7 +96,7 @@ Per-prompt $D_{Ca_n}$ also agrees with the lexical (EAD) and semantic (SentBERT)
 A cross-model comparison on the same NoveltyBench-curated prompts is deferred to a longer venue.
 
 \paragraph{Released artefacts.} The \olmoAlpacaN$\,+\,$\olmoNbCuratedN{} prompts $\times$ 4 stages $\times$ $K{=}10$ generations are released as a public dataset under \texttt{results/rlhf\_experiment/} in the project repository.
-To our knowledge this is the first public release of $K\!\ge\!10$ sampled responses across a paired SFT/DPO/RL pipeline, filling a gap that blocked direct diversity replication of \citet{kirk2023rlhf} (whose $K{=}16$ generations were logged only to a private W\&B project).
+To our knowledge this is the first public release of $K\!\ge\!10$ sampled responses across a paired SFT/DPO/RL pipeline, filling a gap that blocked direct diversity replication of \citet{kirk2023rlhf} (whose $K{=}16$ generations were not publicly released).
 
 % --- macro fallbacks (only fire if the generated files are absent) ---
 \providecommand{\olmoAlpacaN}{200}

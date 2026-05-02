@@ -449,22 +449,36 @@ def tevet_macros() -> dict[str, str]:
 def tevet_coherence_distribution_macros() -> dict[str, str]:
     """Section 5 (Reporting) typical-range-of-$C$ paragraph.
 
-    Reads every per-set sidecar in the qwen25_completion_v3 Tevet run,
-    extracts (a) per-response per-byte cross-entropy from
-    ``unconditional_surprises`` and (b) per-set ``coherence_C``, and emits
-    the 5th/95th percentile of per-response bits/byte (and the corresponding
-    $C = 2^{-\\bar{\\ell}}$ values) plus the mean per-set $C$.
-    """
-    import glob
-    import math
+    Reads the per-set sidecars for the **same canonical headline splits**
+    used by the Section 5 setup paragraph (McDiv no_hds + McDiv_nuggets
+    no_hds + ConTest with_hds), extracts (a) per-response per-byte
+    cross-entropy from ``unconditional_surprises`` and (b) per-set
+    ``coherence_C``, and emits the 5th/95th percentile of per-response
+    bits/byte (and the corresponding $C = 2^{-\\bar{\\ell}}$ values) plus
+    the mean per-set $C$.
 
-    files = sorted(
-        glob.glob(
-            str(RESULTS / "tevet" / "qwen25_completion_v3" / "**" / "*.icl_curves.qwen25_completion_v3.json"),
-            recursive=True,
-        )
-    )
-    assert files, "No Tevet qwen25_completion_v3 sidecars found"
+    Scope is restricted to the same files driving \\tevetMcDivSetCount,
+    \\tevetMcDivNugSetCount, \\tevetConTestSetCount so that the response /
+    set counts reported in the footnote match the prose in
+    sections/07_5_tevet_workshop.tex (canonical "5 worker-written
+    responses per set"). DecTest and the ``with_hds`` McDiv_nuggets /
+    DecTest variants are intentionally excluded here.
+    """
+    canonical_relpaths = [
+        "McDiv/mcdiv_all_no_hds_prompt_gen.icl_curves.qwen25_completion_v3.json",
+        "McDiv/mcdiv_all_no_hds_resp_gen.icl_curves.qwen25_completion_v3.json",
+        "McDiv/mcdiv_all_no_hds_story_gen.icl_curves.qwen25_completion_v3.json",
+        "McDiv_nuggets/mcdiv_nuggets_no_hds_prompt_gen.icl_curves.qwen25_completion_v3.json",
+        "McDiv_nuggets/mcdiv_nuggets_no_hds_resp_gen.icl_curves.qwen25_completion_v3.json",
+        "McDiv_nuggets/mcdiv_nuggets_no_hds_story_gen.icl_curves.qwen25_completion_v3.json",
+        "conTest/con_test_200_with_hds_prompt_gen.icl_curves.qwen25_completion_v3.json",
+        "conTest/con_test_200_with_hds_resp_gen.icl_curves.qwen25_completion_v3.json",
+        "conTest/con_test_200_with_hds_story_gen.icl_curves.qwen25_completion_v3.json",
+    ]
+    base = RESULTS / "tevet" / "qwen25_completion_v3"
+    files = [str(base / rp) for rp in canonical_relpaths]
+    for fp in files:
+        assert Path(fp).exists(), f"Missing canonical Tevet sidecar: {fp}"
     resp_bpb: list[float] = []
     set_C: list[float] = []
     for fp in files:
