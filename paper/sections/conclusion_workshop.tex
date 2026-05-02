@@ -1,0 +1,7 @@
+\section{Conclusion}\label{sec:conclusion}
+
+$D_{Ca_n} = C \times a_n$ is an information-theoretic diversity metric that uses a base model's in-context learning to detect similarities between arbitrary numbers of responses in a single forward pass.
+It requires no embedding model, no reference corpus, no human labels, and no special-purpose training.
+The same pipeline scores AI samples and human-written sets.
+On Tevet and Berant's human-grounded benchmark it is near the level of the strongest sentence-embedding baseline.
+On the OLMo-2-7B post-training pipeline it drops across the base $\to$ SFT $\to$ DPO/RLVR stages, tracking the diversity loss attributed to RLHF-style training.

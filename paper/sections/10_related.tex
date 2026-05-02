@@ -22,7 +22,7 @@ They detect this collapse using within-prompt reward standard deviation as an ea
 The $a_k$ framework provides a text-level alternative: collapse should appear as a drop in $a_n$ on the agent's own outputs, independent of reward structure. A downside of using the $a_k$ framework is that it is unconnected from a downstream task. Responses can both be "diverse" as measured by $a_k$-based metrics and fail uniformly.
 
 \paragraph{Diversity evaluation benchmarks.}
-\citet{tevet2020evaluating} introduced the first systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels.
+\citet{tevet2020evaluating} introduced a systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels.
 We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.
 More recent work has revisited the meta-evaluation problem.
 NoveltyBench \citep{zhang2025noveltybench} defines diversity through pairwise functional equivalence rather than binary labels, training a DeBERTa classifier to group generations into equivalence classes and computing a \emph{Distinct}$_k$ score (the number of meaningfully different outputs in $k$ samples), conceptually close to our mode count.
