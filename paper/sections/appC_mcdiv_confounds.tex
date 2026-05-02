@@ -1,8 +1,5 @@
 \section{Dataset Construction Confounds in McDiv}\label{app:confound}
 
-\sloppy  % long quoted excerpts overflow the column otherwise
-\emergencystretch=3em
-
 When validating against the McDiv\_nuggets benchmark \citep{tevet2020evaluating}, we observed that the mean $\bar{a}_1$ curve (per-byte) for the ``low diversity'' group starts \emph{above} the ``high diversity'' group in the story\_gen task (Figure~\ref{fig:confound-a1-dist}).
 Since $a_1$ measures the surprise of the first response conditioned only on the prompt (before any other responses appear in context), this gap cannot reflect diversity.
 It is a confound in the dataset construction.
