@@ -1,5 +1,10 @@
 .env
 __pycache__/
+
+# One-off audit notes for workshop submission readiness; not part of the repo.
+workshop-problems.md
+claude-plan.md
+
 *.py[cod]
 *.egg-info/
 dist/

@@ -18,10 +18,10 @@ Best result per task in bold.}
 \input{../results/tables/contest_rho_oca.tex}
 \end{table*}
 
-\paragraph{Headline result.} On the binary tasks $D_{Ca_n}$ is competitive with the strongest embedding baseline (Table~\ref{tab:contest}).
+\paragraph{Headline result.} On the binary tasks $D_{Ca_n}$ is near the level of the strongest embedding baseline (Table~\ref{tab:contest}).
 On McDiv prompt\_gen, $D_{Ca_n}$ reaches $\rho = \tevetMcDivPromptGenCxAnRho{}$ and OCA = \tevetMcDivPromptGenCxAnOCA{}, against SentBERT's $\rho = \tevetMcDivPromptGenSentBertRho{}$ and OCA = \tevetMcDivPromptGenSentBertOCA{}; the corresponding ROC AUC is \tevetMcDivPromptGenAUC{}.
 Across the nine binary tasks, $D_{Ca_n}$'s OCA lags SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\%; it beats distinct-$n$ decisively on all three McDiv\_nuggets tasks (where distinct-$n$ is near chance) and trails it by 1--3 OCA points on three of the nine tasks where the labels are nearly shuffle-invariant.
-The headline takeaway is that an information-theoretic, embedding-free metric is competitive with a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
+The headline takeaway is that an information-theoretic, embedding-free metric is near the level of a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
 
 \paragraph{DecTest, included for completeness.} Tevet and Berant also release DecTest (Table~\ref{tab:dectest}), a diagnostic where the ``label'' is the sampling temperature used to generate each response set rather than a human judgement.
 We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity.
