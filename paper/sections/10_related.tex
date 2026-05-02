@@ -1,25 +1,7 @@
 \section{Related Work}\label{sec:related}
 
-\paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
-We found it empirically inferior to $D_{Ca_n}$ on Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}.
-
-\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects this framework to the standard language modeling evaluation metric.
-The primary diversity score $D_{Ca_n} = C \times a_n$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
-
-\paragraph{Coherence as a signal.} Our coherence term $C$ uses the base model's predictive distribution as an unsupervised quality signal.
-This connects to a broader line of work using model-internal coherence without external supervision: \citet{qiu2026selfimprovement} show theoretically that feedback-free self-improvement methods work by optimizing coherence (compressibility of context-to-behavior mappings), and \citet{wen2025unsupervised} use internal coherence maximization to elicit capabilities from language models.
-Our metric leverages a related insight: the base model's ability to compress responses in context provides a meaningful signal about their diversity structure.
-
-\paragraph{Embedding-based diversity.} \citet{du2019boosting} introduced the embedding-based approach, clustering sentence embeddings of generated responses with $k$-means and reporting cluster inertia as the diversity score; subsequent work has explored alternative geometric statistics over embedded responses.
-These approaches are complementary to ours: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model.
-The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
-
 \paragraph{Sampling diversity metrics.} Work on decoding-time diversity typically operates at the surface level: $n$-gram overlap \citep{li2016diversity} and self-BLEU \citep{zhu2018texygen}.
 Our metric operates at the distributional level and can distinguish policies that produce lexically varied but semantically redundant outputs.
-
-\paragraph{Output collapse in RL training.} \citet{wang2025ragen} document an ``Echo Trap'' pattern during multi-turn agent RL: early-stage agents produce varied symbolic reasoning, then collapse to deterministic templates as training proceeds.
-They detect this collapse using within-prompt reward standard deviation as an early-warning signal, a proxy that relies on the reward distinguishing degenerate outputs from diverse ones.
-The $a_k$ framework provides a text-level alternative: collapse should appear as a drop in $a_n$ on the agent's own outputs, independent of reward structure. A downside of using the $a_k$ framework is that it is unconnected from a downstream task. Responses can both be "diverse" as measured by $a_k$-based metrics and fail uniformly.
 
 \paragraph{Diversity evaluation benchmarks.}
 \citet{tevet2020evaluating} introduced a systematic framework for evaluating diversity metrics, with their McDiv benchmark providing human-labeled response sets at two diversity levels.
@@ -30,3 +12,20 @@ However, their ground truth is itself a trained classifier (79\% accuracy), maki
 \citet{zhang2025commonsense} conduct a meta-evaluation of diversity metrics for constrained commonsense generation, using GPT-4o as an annotator in place of crowd workers.
 \citet{guo2024linguistic} benchmark linguistic diversity of LLMs, building on Tevet and Berant's framework with a broader set of generation tasks.
 
+\paragraph{Perplexity.} The coherence term $C = 1/\mathrm{PPL}$ (Section~\ref{sec:coherence}) connects our framework to the standard language modeling evaluation metric.
+The primary diversity score $D_{Ca_n} = C \times a_n$ operates in bits/byte, weighting the residual surprise floor by output plausibility.
+
+\paragraph{Coherence as a signal.} Our coherence term $C$ uses the base model's predictive distribution as an unsupervised quality signal.
+This connects to a broader line of work using model-internal coherence without external supervision: \citet{qiu2026selfimprovement} show theoretically that feedback-free self-improvement methods work by optimizing coherence (compressibility of context-to-behavior mappings), and \citet{wen2025unsupervised} use internal coherence maximization to elicit capabilities from language models.
+Our metric leverages a related insight: the base model's ability to compress responses in context provides a meaningful signal about their diversity structure.
+
+\paragraph{Embedding-based diversity.} \citet{du2019boosting} introduced the embedding-based approach, clustering sentence embeddings of generated responses with $k$-means and reporting cluster inertia as the diversity score; subsequent work has explored alternative geometric statistics over embedded responses.
+These approaches are complementary to ours: they capture semantic distance in a learned representation space, while our metric captures statistical independence under a generative model.
+The approaches may disagree when $\theta$'s in-context learning captures structure invisible to the embedding model, or vice versa.
+
+\paragraph{Output collapse in RL training.} \citet{wang2025ragen} document an ``Echo Trap'' pattern during multi-turn agent RL: early-stage agents produce varied symbolic reasoning, then collapse to deterministic templates as training proceeds.
+They detect this collapse using within-prompt reward standard deviation as an early-warning signal, a proxy that relies on the reward distinguishing degenerate outputs from diverse ones.
+The $a_k$ framework provides a text-level alternative: collapse should appear as a drop in $a_n$ on the agent's own outputs, independent of reward structure. A downside of using the $a_k$ framework is that it is unconnected from a downstream task. Responses can both be "diverse" as measured by $a_k$-based metrics and fail uniformly.
+
+\paragraph{Excess entropy.} The $a_k$ curve also admits an excess-entropy summary related to the computational mechanics literature \citep{crutchfield2003regularities}; see Appendix~\ref{app:excess-entropy}.
+We found it empirically inferior to $D_{Ca_n}$ on Tevet and Berant's diversity-eval benchmark \citep{tevet2020evaluating}.
