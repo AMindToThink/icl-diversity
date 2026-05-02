@@ -86,7 +86,7 @@ claim = "Diversity-eval benchmark. Two diagnostic tests (decTest §3.1/6.3; conT
 key   = "crutchfield2003regularities"
 arxiv = "cond-mat/0102181"
 doi   = "10.1063/1.1530990"
-claim = "Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 48). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 13, 25-54, 2003)."
+claim = "Excess entropy from computational mechanics: E = sum_L [h_mu(L) - h_mu] (Section III.B, Eq. 50; verified 2026-05-01 by verify-citation-claims subagent — earlier annotation said Eq. 48 in error, Eq. 48 is the channel-capacity decomposition). Actual title: 'Regularities Unseen, Randomness Observed: Levels of Entropy Convergence' (Chaos 13, 25-54, 2003)."
 
 [[cite]]
 key   = "zhu2018texygen"

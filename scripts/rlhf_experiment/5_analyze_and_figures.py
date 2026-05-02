@@ -462,11 +462,13 @@ def write_results_table(analysis: dict, out_path: Path) -> None:
                 f"${format_p_macro(t['p_bonferroni'])}$ \\\\"
             )
         t = tests["Hpa"]
+        # H1' is exploratory and uncorrected; the asterisk flags this in the
+        # otherwise Bonferroni-labelled column. Caption explains.
         lines.append(
             r"\quad DPO$\,\neq\,$Instruct\,(H1$'$) & "
             f"${safe_num(t['mean_diff'])}$ & "
             f"${safe_num(t['cohen_dz'])}$ & "
-            f"${format_p_macro(t['p_raw'])}$ \\\\"
+            f"${format_p_macro(t['p_raw'])}^{{*}}$ \\\\"
         )
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")

@@ -210,7 +210,7 @@ Table~\ref{tab:mode-count} and Figure~\ref{fig:metrics-vs-m} show the details.
 \begin{table}[!htbp]
 \centering
 \caption{Mode count scaling metrics for Qwen2.5-3B ($n=\modeCountNResponses$, \modeCountNDraws{} draws). $E_{\mathrm{fit}}$ is the sigmoid-extrapolated excess entropy; $a_n$ is the mean floor at $k=\modeCountNResponses$; $\sigma_\ell$ is per-byte coherence spread; $k_0$ is the sigmoid inflection point.
-Confidence intervals are 95\% bootstrap.}
+Confidence intervals are 95\% bootstrap. The high-$m$ rows ($m{\ge}8$) have $E_{\mathrm{fit}}$ CIs spanning more than half the mean and should be read as preliminary; the trend direction is robust but the point values are imprecise.}
 \label{tab:mode-count}
 \small
 \input{../results/tables/mode_count_scaling.tex}
