@@ -209,44 +209,71 @@ Both single-venue branches also delete `paper/CHANGES_FROM_WORKSHOP.md` (this fi
 
 **Git history.** Per author decision, **history is left as-is** — AMindToThink-authored commits inherited from `main` are visible via `git log` on the public GitHub repo. anonymous.4open.science strips `.git/` before serving, so reviewers going through that proxy see no history. Risk is anyone who finds the public repo by other means. If that risk needs closing later, the cleanup is `git checkout --orphan` on each anon branch and force-push.
 
-### Before each submission — checklist
+### Submission flow — two-cycle, chicken-and-egg
 
-1. **Rebuild the wrapper's PDF on the target branch.** This matters especially for `anon-icml-workshop`: the committed `main_icml_workshop.pdf` is **stale** — commit `7a73f7c` updated three shared section files (`07_4_cross_mode.tex`, `08_limitations_workshop.tex`, `appE_qwen3_comparison.tex` for Qwen3 + Llama citations) and only rebuilt `main_neurips.pdf`. Use the deterministic helper:
+The `\projectGithubUrl` macro must contain the anonymous.4open.science URL before submission, but anonymous.4open.science only gives you that URL *after* you submit a GitHub branch URL to it. So submission is two cycles: push placeholder → submit GitHub URL to the proxy → get hash → swap macro → push real URL.
 
-    ```bash
-    # On anon-icml-workshop
-    uv run python .claude-tools/rebuild-latex.py --force paper/main_icml_workshop.tex
-    # On anon-neurips (cheap sanity check; should be byte-identical to committed)
-    uv run python .claude-tools/rebuild-latex.py --force paper/main_neurips.tex
-    ```
+**Cycle A — initial rebuild + push (placeholder URL).**
 
-    The helper sets `SOURCE_DATE_EPOCH=1700000000` + `FORCE_SOURCE_DATE=1` so two consecutive rebuilds are byte-identical. Verified working in this session.
+On `anon-icml-workshop`, the committed `main_icml_workshop.pdf` is **stale**: commit `7a73f7c` updated three shared section files (`07_4_cross_mode.tex`, `08_limitations_workshop.tex`, `appE_qwen3_comparison.tex` for Qwen3 + Llama citations) and rebuilt only `main_neurips.pdf`. Rebuild it. (`anon-neurips`'s PDF was already rebuilt earlier this session.)
 
-2. **Strip PDF metadata after the final rebuild.** `latexmk` writes hyperref-derived `/Author`, `/Creator`, `/Title`, `/Subject` etc. on every build. Run pypdf scrub on the rebuilt PDF (and on figure PDFs if any matplotlib `Author` metadata is present):
+```bash
+git checkout anon-icml-workshop
 
-    ```bash
-    uv run --with pypdf python <<'EOF'
-    from pypdf import PdfReader, PdfWriter
-    from pathlib import Path
-    pdfs = sorted(set(Path("figures").rglob("*.pdf")) | set(Path("paper").glob("main_*.pdf")))
-    for p in pdfs:
-        if not p.exists(): continue
-        r = PdfReader(str(p)); w = PdfWriter(clone_from=r)
-        w.add_metadata({k: "" for k in ("/Author","/Creator","/Title","/Subject","/Keywords","/Producer")})
-        tmp = p.with_suffix(".pdf.scrubtmp")
-        with open(tmp, "wb") as f: w.write(f)
-        tmp.replace(p)
-    EOF
-    ```
+# 1. Deterministic rebuild
+uv run python .claude-tools/rebuild-latex.py --force paper/main_icml_workshop.tex
 
-3. **Commit the rebuilt + scrubbed PDF** with the Anonymous identity:
+# 2. Strip PDF metadata (hyperref/pdfTeX writes /Author etc. on every build)
+uv run --with pypdf python <<'EOF'
+from pypdf import PdfReader, PdfWriter
+from pathlib import Path
+pdfs = sorted(set(Path("figures").rglob("*.pdf")) | set(Path("paper").glob("main_*.pdf")))
+for p in pdfs:
+    if not p.exists(): continue
+    r = PdfReader(str(p)); w = PdfWriter(clone_from=r)
+    w.add_metadata({k: "" for k in ("/Author","/Creator","/Title","/Subject","/Keywords","/Producer")})
+    tmp = p.with_suffix(".pdf.scrubtmp")
+    with open(tmp, "wb") as f: w.write(f)
+    tmp.replace(p)
+EOF
 
-    ```bash
-    git -c user.name="Anonymous" -c user.email="anonymous@example.com" \
-        commit -m "rebuild PDF and scrub metadata"
-    ```
+# 3. Commit + push (Anonymous identity)
+git add paper/main_icml_workshop.pdf
+git -c user.name="Anonymous" -c user.email="anonymous@example.com" \
+    commit -m "rebuild PDF and scrub metadata"
+git push origin anon-icml-workshop
+```
 
-4. **Push the branch**, then submit the GitHub URL (e.g. `github.com/AMindToThink/icl-diversity/tree/anon-neurips`) to anonymous.4open.science. The proxy returns a stable mirror URL with a 4-character hash suffix; the paper macro `\projectGithubUrl` (if it exists) can be updated to that anon URL in a follow-up commit.
+**Get the anon URL.** Submit `https://github.com/AMindToThink/icl-diversity/tree/anon-icml-workshop` to anonymous.4open.science. It returns a mirror URL like `https://anonymous.4open.science/r/icl-diversity-XXXX/` (4-char hash). **In your browser, open that URL and verify `paper/` shows only `main_icml_workshop.{tex,pdf}`** — no `main_neurips.*`, no `CHANGES_FROM_WORKSHOP.md`. If both papers are visible, anonymous.4open.science is mirroring `anon-submission` instead of `anon-icml-workshop` — re-submit the workshop-branch GitHub URL to get a fresh hash.
+
+**Cycle B — bake the real URL into the PDF.**
+
+The placeholder lives at `paper/main_icml_workshop.tex:53`:
+
+```latex
+\newcommand{\projectGithubUrl}{\url{https://anonymous.4open.science/r/icl-diversity-67E6/}}
+```
+
+Replace `67E6` with the real 4-char hash, then rerun all of Cycle A (rebuild → scrub → commit → push). The final `main_icml_workshop.pdf` then has the real URL rendered in 5 places (footnote 1 of motivation, "Released artefacts", Limitations release line, etc.).
+
+**Worked example: NeurIPS submission earlier in this session.** Anon URL `icl-diversity-E8DD`. Edit was `paper/main_neurips.tex:46` (`67E6` → `E8DD`); deterministic rebuild took ~28s; scrub left only deterministic build constants in metadata (`/CreationDate D:20231114221320Z` from `SOURCE_DATE_EPOCH=1700000000`, `/PTEX.Fullbanner` for pdfTeX version). Final commit on `anon-neurips`: `b62b4dc anon: set anonymous.4open.science URL (E8DD) and rebuild`. The supp zip was then re-built (see below).
+
+### Supplementary zip (NeurIPS only — ICML workshops don't usually need one)
+
+NeurIPS supp-zip layout: top-level `.python-version`, `CLAUDE.md`, `README.md`, `pyproject.toml`, `uv.lock`; dirs `results/{rlhf_experiment,tables,tevet}` (only those three results subdirs), `scripts/`, `src/`, `tests/`. **No `paper/`, no `figures/`.**
+
+```bash
+git archive --format=zip -o ../icl-diversity-neurips-supp.zip anon-neurips \
+  .python-version CLAUDE.md README.md pyproject.toml uv.lock \
+  results/rlhf_experiment results/tables results/tevet \
+  scripts src tests
+# Sanity: scrub markers gone, no paper/, expected size ~27 MB
+unzip -p ../icl-diversity-neurips-supp.zip CLAUDE.md \
+  | grep -cE '2026-04-(21|24|25|30)|3848fe5|c2767df|600ce77|6b40e79|main_icml_workshop'   # → 0
+unzip -l ../icl-diversity-neurips-supp.zip | grep '^.*paper/' | head -3   # → empty
+```
+
+For ICML workshops most venues don't accept a separate supp zip — the camera-ready PDF + the anon-4open mirror cover everything. If the venue does require one, mirror the structure above against `anon-icml-workshop` instead.
 
 ### Things deliberately NOT changed in this session
 
