@@ -62,23 +62,7 @@ The DPO-vs-RLVR comparison is reported as an exploratory two-sided contrast (H1$
 
 Table~\ref{tab:rlhf-diversity} reports per-stage means and the pre-registered Wilcoxon contrasts on both prompt sets.
 On AlpacaEval and NoveltyBench-curated alike, $D_{Ca_n}$ decreases monotonically across base $\to$ SFT $\to$ DPO $\to$ Instruct (RLVR), and all three pre-registered contrasts (H1a--H1c) are significant after Bonferroni correction.
-Figure~\ref{fig:rlhf-ak-violin} shows the underlying $\bar{a}_k$ curves and per-prompt $D_{Ca_n}$ distributions: each later stage's curve lies below the base curve at every $k \geq 2$, and the per-prompt distribution shifts toward lower $D_{Ca_n}$ as the pipeline advances.
-
-\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}{%
-\begin{figure*}[h]
-\centering
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}
-    \caption{AlpacaEval $\bar{a}_k$ curves (length-matched).}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/per_prompt_D_violin_alpacaeval_lm.pdf}
-    \caption{Per-prompt $D_{Ca_n}$ by stage (length-matched).}
-\end{subfigure}
-\caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on the length-matched AlpacaEval subset. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D_{Ca_n}$ distribution shifts toward lower values as the pipeline advances.}
-\label{fig:rlhf-ak-violin}
-\end{figure*}
-}{}
+The underlying $\bar{a}_k$ curves and per-prompt $D_{Ca_n}$ distributions are visualised in Appendix~\ref{app:rlhf-cross-metric} (Figure~\ref{fig:rlhf-ak-violin}): each later stage's curve lies below the base curve at every $k \geq 2$, and the per-prompt distribution shifts toward lower $D_{Ca_n}$ as the pipeline advances.
 
 \paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function.
 Per-prompt $D_{Ca_n}$ also agrees with the lexical (EAD) and semantic (SentBERT) baselines on the same length-matched subset, confirming the metrics see the same diversity-loss signal (Appendix~\ref{app:rlhf-cross-metric}, Figure~\ref{fig:rlhf-metric-scatter}).

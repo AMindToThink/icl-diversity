@@ -17,7 +17,7 @@ Each scenario contains 10 responses per prompt, 5 prompts per scenario, with 100
 We report several candidate scalars: unconditional surprise $a_1$, the curve's last point $a_n$, coherence $C$, our recommended score $D_{Ca_n} = C \times a_n$ (\textbf{bold}), the excess entropy $E$ (Appendix~\ref{app:excess-entropy}), $C \times E$, and the coherence spread $\sigma_\ell$ (the standard deviation of the per-byte cross-entropies $\{h_\theta(r_i \mid p)\}_{i=1}^n$). $D_{Ca_n}$ correctly ranks multi-mode above one-mode and suppresses incoherent scenarios via $C$.
 Both $E$ and $C \times E$ go negative for the mixed scenario on GPT-2.
 Mixed empirically scores the highest $D_{Ca_n}$ on both models, exceeding multi-mode coherent rather than landing at the ``mid'' position Table~\ref{tab:edge-cases} predicts; this is not the intended ranking.
-The coherence spread $\sigma_\ell$ flags this case in its intended diagnostic role (the largest $\sigma_\ell$ across scenarios on both models), reflecting the within-set heterogeneity between coherent and incoherent responses, and practitioners who want a sharper Mixed penalty can reweight (e.g., $C^{\alpha} \times a_n$ with $\alpha > 1$).}
+The coherence spread $\sigma_\ell$ flags this case in its intended diagnostic role (the largest $\sigma_\ell$ across scenarios on both models), reflecting the within-set heterogeneity between coherent and incoherent responses; reweighting variants such as $C^{\alpha} \times a_n$ are discussed in Section~\ref{sec:exp-discussion}.}
 \label{tab:scenarios}
 \small
 \input{../results/tables/scenario_validation.tex}

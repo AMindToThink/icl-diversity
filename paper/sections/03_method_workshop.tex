@@ -44,25 +44,27 @@ The scalar score is the product:
     D_{Ca_n} = C \times a_n \quad \text{(bits/byte).}
 \end{equation}
 It can be read as ``how many bits of surprise per byte remain after $\theta$ has learned what it can from the other responses, weighted by output plausibility.''
-The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}; empirical metric values on synthetic instances of each scenario appear in Appendix~\ref{sec:scenario-validation} (Table~\ref{tab:scenarios}).
+The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}, alongside empirical $D_{Ca_n}$ on synthetic instances of each scenario under two base models (full per-metric breakdown in Appendix~\ref{sec:scenario-validation}, Table~\ref{tab:scenarios}).
 
 \begin{table}[t]
 \centering
 \small
-\caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five appendix scenarios (Appendix~\ref{sec:scenario-validation}).
+\caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five synthetic scenarios (Appendix~\ref{sec:scenario-validation}), with empirical $D_{Ca_n}$ values under GPT-2 (124M) and Qwen2.5-3B base.
 The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and one-mode sets (via $a_n$); multi-mode coherent is the intended winner.
-Empirical numbers under GPT-2 and Qwen2.5-3B (Table~\ref{tab:scenarios}) show smaller $a_n$ for multi-mode coherent than this story predicts, since with only 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and $a_n$ is no longer high. In such ambiguous cases reporting the full $a_k$ curve is more principled than the scalar $a_n$: a different choice of $n$ would reveal the diversity, and showing the curve sidesteps having to pick that $n$ in advance. Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count. This highlights the importance of choosing the length of the response chain. Too short and there's no diversity to pick up, but too long and all diversity can be learned and predicted.
-Practitioners with a clear preference for one factor over the other can reweight (e.g., $C^{\alpha} \times a_n$).}
+Empirical numbers show smaller $a_n$ for multi-mode coherent than this story predicts: with only 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and $a_n$ is no longer high. In such ambiguous cases reporting the full $a_k$ curve is more principled than the scalar $a_n$: a different choice of $n$ would reveal the diversity, and showing the curve sidesteps having to pick that $n$ in advance. Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count.
+Mixed empirically scores highest (via a high $a_n$) rather than the predicted ``mid'' position; reweighting strategies are discussed in Section~\ref{sec:exp-discussion}.}
 \label{tab:edge-cases}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Scenario              & $C$  & $a_n$ & $D_{Ca_n}$       \\
+                      & \multicolumn{3}{c}{Predicted}            & \multicolumn{2}{c}{Empirical $D_{Ca_n}$} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-6}
+Scenario              & $C$  & $a_n$ & $D_{Ca_n}$              & GPT-2  & Qwen2.5-3B \\
 \midrule
-Pure noise            & low  & high  & low (via $C$)    \\
-Multi-mode incoherent & low  & high  & low (via $C$)    \\
-Multi-mode coherent   & high & high  & \textbf{high}    \\
-One-mode              & high & low   & low (via $a_n$)  \\
-Mixed                 & mid  & high  & mid              \\
+Pure noise            & low  & high  & low (via $C$)           & \scenarioPureNoiseGptDCan{}        & \scenarioPureNoiseQwenDCan{}        \\
+Multi-mode incoherent & low  & high  & low (via $C$)           & \scenarioMultiIncoherentGptDCan{}  & \scenarioMultiIncoherentQwenDCan{}  \\
+Multi-mode coherent   & high & high  & \textbf{high}           & \scenarioMultiModeGptDCan{}        & \scenarioMultiModeQwenDCan{}        \\
+One-mode              & high & low   & low (via $a_n$)         & \scenarioOneModeGptDCan{}          & \scenarioOneModeQwenDCan{}          \\
+Mixed                 & mid  & high  & mid                     & \textbf{\scenarioMixedGptDCan{}}   & \textbf{\scenarioMixedQwenDCan{}}   \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -23,4 +23,15 @@ Reporting the curve directly preserves information that any single scalar (inclu
 Alternative scalars could be derived from the same curve to capture different desiderata: weighted sums of $a_k - a_\infty$ (emphasizing early or late positions), the slope or curvature at a specific $k$ (measuring how quickly $\theta$ learns), curve-shape descriptors, or coherence-weighted variants that combine $C$ with quantities other than $a_n$.
 Different applications may warrant different choices; for instance, a policy-comparison setting might prefer a metric sensitive to \emph{changes} in the curve shape, while a ranking setting needs a single well-behaved scalar.
 We have not explored this space systematically; we focus on $D_{Ca_n}$ because it empirically works well across regimes and has a clean information-theoretic interpretation, but we expect the framework to support a family of related metrics with complementary properties.
+One untested family is coherence-reweighting: a practitioner with a clear preference for sharper Mixed penalisation could replace $C \times a_n$ with $C^{\alpha} \times a_n$ for $\alpha > 1$ to drive low-coherence sets toward zero faster.
+We have not evaluated such variants on the Tevet or OLMo experiments and so make no empirical claim about them.
+
+\paragraph{Bits/byte vs.\ total bits, and the length-matching consequence.}
+A separate choice within the framework is whether to report total bits (length-dependent but tokenizer-agnostic) or per-byte bits/byte (also tokenizer-agnostic, with length scaled out).
+We default to bits/byte for the headline diversity score, but per-byte quantities are not invariant to response length: in a causal LM, longer responses give $\theta$ more within-response context to predict later tokens, lowering per-byte surprise.
+For the OLMo-2-7B experiment (Section~\ref{sec:rlhf-experiment}) raw response length is not monotone across stages, so we score the length-matched subset as the headline analysis: every response in a (stage, prompt) tuple is truncated to a common per-prompt UTF-8 byte length (the minimum across all 40 responses) before scoring.
+$111/300$ prompts had a per-prompt common length below 50 bytes -- driven by the base model on AlpacaEval (no instruction-following prior) and by SFT on NB-curated short-answer prompts -- and were dropped because length-matching them would compare essentially-empty fragments.
+The headline numbers therefore condition on the $150/200$ AlpacaEval and $39/100$ NB-curated prompts where length-matching is well-defined; the dropped prompts are themselves a stage-specific behavioural signal we are not measuring here.
+We also verified that the monotone $D$ drop holds on the un-truncated $200+100$ prompt sets, with all three pre-registered H1 contrasts remaining Bonferroni-significant at $p<10^{-13}$ on both prompt sets.
+Full numbers and reproduction commands are in \path{investigations/length_matched_rlhf/VERDICT.md}.
 

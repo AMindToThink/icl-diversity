@@ -1,7 +1,23 @@
 \section{Cross-Metric Agreement on the OLMo-2-7B RLHF Experiment}\label{app:rlhf-cross-metric}
 
-The RLHF case study (Section~\ref{sec:rlhf-experiment}) reports the headline monotone $D_{Ca_n}$ drop in Table~\ref{tab:rlhf-diversity} and Figure~\ref{fig:rlhf-ak-violin}.
-Figure~\ref{fig:rlhf-metric-scatter} plots $D_{Ca_n}$ against the lexical (EAD) and semantic (SentBERT) baselines on the same length-matched subset, confirming that the three metrics see the same diversity-loss signal.
+The RLHF case study (Section~\ref{sec:rlhf-experiment}) reports the headline monotone $D_{Ca_n}$ drop in Table~\ref{tab:rlhf-diversity}.
+Figure~\ref{fig:rlhf-ak-violin} below visualises the underlying $\bar{a}_k$ curves and per-prompt $D_{Ca_n}$ distributions for the same length-matched subset, and Figure~\ref{fig:rlhf-metric-scatter} plots $D_{Ca_n}$ against the lexical (EAD) and semantic (SentBERT) baselines, confirming that the three metrics see the same diversity-loss signal.
+
+\IfFileExists{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}{%
+\begin{figure*}[h]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/ak_curves_overlay_alpacaeval_lm.pdf}
+    \caption{AlpacaEval $\bar{a}_k$ curves (length-matched).}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{../figures/rlhf_experiment/per_prompt_D_violin_alpacaeval_lm.pdf}
+    \caption{Per-prompt $D_{Ca_n}$ by stage (length-matched).}
+\end{subfigure}
+\caption{Progressive conditional surprise curves and per-prompt diversity distributions across the four OLMo-2-7B stages on the length-matched AlpacaEval subset. Each later stage's $\bar{a}_k$ curve lies below the base curve at every $k \geq 2$; the per-prompt $D_{Ca_n}$ distribution shifts toward lower values as the pipeline advances.}
+\label{fig:rlhf-ak-violin}
+\end{figure*}
+}{}
 
 \IfFileExists{../figures/rlhf_experiment/metric_correlation_scatter_alpacaeval_lm.pdf}{%
 \begin{figure*}[!htbp]
