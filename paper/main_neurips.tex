@@ -98,7 +98,9 @@
 \input{sections/appE_qwen3_comparison}
 \input{sections/appF_rlhf_cross_metric}
 
-\newpage
+% \clearpage (not \newpage) flushes all pending appendix floats so the
+% checklist comes after them, not before.
+\clearpage
 \input{checklist.tex}
 
 \end{document}

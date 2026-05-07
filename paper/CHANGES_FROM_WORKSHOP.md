@@ -5,6 +5,19 @@ Branch: `anon-submission`.
 
 The NeurIPS variant `paper/main_neurips.tex` reuses the same `paper/sections/*.tex` content files as the ICML workshop wrapper `paper/main_icml_workshop.tex`, so most edits below appear in **both** PDFs. Edits that apply to the NeurIPS wrapper only are flagged with **(neurips wrapper only)**.
 
+## Citation additions (per Q12 audit) and figures-after-checklist fix
+
+**Q12 license-claim audit (2026-05-07).** A subagent verified the Q12 "Licenses for existing assets" answer against the actual paper text. Three real issues were found and fixed:
+
+- **Qwen3-30B-A3B-Base** was used (Appendix~\ref{app:qwen3-comparison}, §Limitations) but uncited. Added `[[cite]] yang2025qwen3` in `refs_ids.toml` (`arxiv:2505.09388`, Qwen3 Technical Report; `skip_authors = ["Qwen Team", "Qwen"]` to keep natbib short-label as "Yang et al."). Cited at first mention in `08_limitations_workshop.tex` line 16 and `appE_qwen3_comparison.tex` line 3.
+- **Llama 1B/3B/8B/70B** used in the cross-mode scaling experiment but uncited and missing from Q12. Subagent-verified that `arXiv:2407.21783` (The Llama 3 Herd of Models) covers 8B/70B but **not** 1B/3B (paper line 141: "a herd of three multilingual language models with 8B, 70B, and 405B"). The 1B/3B were released only via the Llama 3.2 Meta blog post; no arXiv technical report exists. Added two entries: `grattafiori2024llama3` (arxiv:2407.21783) and `meta2024llama32` (manual, blog URL). Cited together at first mention in `07_4_cross_mode.tex` line 95.
+- **AlpacaEval prompts** in Q12 was the wrong name; the body cites `dubois2024alpacafarm`. Q12 wording rewritten to "AlpacaFarm/AlpacaEval prompts".
+- **Hugging Face Transformers and PyTorch** were claimed in the previous Q12 but not cited anywhere in the paper. Removed from Q12 entirely; the paper does not need to separately cite standard ML infrastructure.
+
+Q12 was also rewritten to inline-cite each asset (`\citep{...}`) rather than make a vague "all are cited" claim, and to qualify the license blanket statement: most assets are Apache-2.0 / MIT / research licenses, but Llama 3 and Llama 3.2 are released under the bespoke Meta Llama Community License (more restrictive but permits research use).
+
+**Figures-after-checklist fix.** `paper/main_neurips.tex` had `\newpage \input{checklist.tex}` before the closing `\end{document}`; LaTeX float-queued ~10 appendix figures past the checklist heading because `\newpage` does not flush pending floats. Replaced with `\clearpage`, which forces all pending floats to be placed before the new page. After the fix, all 18 figures appear before "NeurIPS Paper Checklist" in the rendered PDF.
+
 ## Wrapper / style
 
 - **(neurips wrapper only)** Created `paper/main_neurips.tex`. Single-column NeurIPS layout via `\usepackage{neurips_2026}` (no track option = anonymous double-blind with line numbers).

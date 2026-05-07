@@ -175,4 +175,31 @@ claim = "The Reversal Curse: autoregressive LLMs trained on 'A is B' fail to pre
 [[cite]]
 key   = "brown2020language"
 arxiv = "2005.14165"
-claim = "GPT-3, 'Language Models are Few-Shot Learners' (Brown et al., NeurIPS 2020). Introduced and named 'in-context learning' as a paradigm: at inference time the model is conditioned on a natural-language task description plus zero or more demonstration examples and produces completions, with no gradient updates (§1, §2.1, Figure 1.1). Direct quote from Section 1 / Figure 1.1: 'we use the term in-context learning to describe the inner loop of this process, which occurs within the forward-pass upon each sequence.' Cited in Motivation as describing the in-context-learning capability our metric exploits to detect distributional regularities across response samples; framing makes clear we use ICL as a measurement lens, not as the few-shot-prompting setup Brown et al. study. Verified 2026-05-01 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/2005.14165 (claim SUPPORTED; subagent noted 'described' is the most modest defensible verb; 'named' or 'popularized' would also be defensible — user explicitly preferred 'described')."
+claim = "GPT-3, 'Language Models are Few-Shot Learners' (Brown et al., NeurIPS 2020). Introduced and named 'in-context learning' as a paradigm: at inference time the model is conditioned on a natural-language task description plus zero or more demonstration examples and produces completions, with no gradient updates (§1, §2.1, Figure 1.1). Direct quote from Section 1 / Figure 1.1: 'we use the term in-context learning to describe the inner loop of this process, which occurs within the forward-pass upon each sequence.' Cited in Motivation as describing the in-context-learning capability our metric exploits to detect distributional regularities across response samples; framing makes clear we use ICL as a measurement lens, not as the few-shot-prompting setup Brown et al. study. Verified 2026-05-01 by verify-citation-claims subagent against https://ar5iv.labs.arxiv.org/html/2005.14165 (claim SUPPORTED; subagent noted 'described' is the most modest defensible verb; 'named' or 'popularized' would also be defensible -- user explicitly preferred 'described')."
+
+[[cite]]
+key   = "yang2025qwen3"
+arxiv = "2505.09388"
+# Same corporate-author fix as yang2024qwen25 above.
+skip_authors = ["Qwen Team", "Qwen"]
+claim = "Qwen3 Technical Report (Yang et al., May 2025). Introduces the Qwen3 family ranging 0.6B-235B parameters, including the Qwen3-30B-A3B mixture-of-experts variant (30B total / 3B active per token, 128 experts with 8 active) used as the scaling-ablation base model in Appendix~\\ref{app:qwen3-comparison}. Subagent-verified 2026-05-07 against https://arxiv.org/abs/2505.09388: paper explicitly introduces the 30B-A3B MoE variant alongside Qwen3-235B-A22B."
+
+[[cite]]
+key   = "grattafiori2024llama3"
+arxiv = "2407.21783"
+claim = "The Llama 3 Herd of Models (Llama Team / Aaron Grattafiori et al., Meta AI, July 2024; v3 Nov 2024). Introduces the Llama 3 family of dense multilingual language models at 8B, 70B, and 405B parameters (paper \\S1: 'a herd of three multilingual language models with 8B, 70B, and 405B'). Cited in the cross-mode scaling experiment (Sections~\\ref{sec:cross-mode-learning} and \\ref{sec:exp-discussion}) for the 8B and 70B sizes we use. The smaller 1B and 3B sizes were released later in Llama 3.2 (Sep 2024, blog-only); see separate \\citep{meta2024llama32}. Verified 2026-05-07 by direct read of arXiv:2407.21783 line 141."
+
+[[cite]]
+key   = "meta2024llama32"
+manual = true
+entry = """\
+@misc{meta2024llama32,
+  author       = {{Meta AI}},
+  title        = {Llama 3.2: Revolutionizing Edge {AI} and Vision with Open, Customizable Models},
+  year         = {2024},
+  month        = sep,
+  howpublished = {Meta AI Blog},
+  url          = {https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/}
+}
+"""
+claim = "Meta AI's announcement of the Llama 3.2 release (September 25, 2024), which introduced the lightweight 1B and 3B Llama variants used in our cross-mode scaling experiment alongside the 8B and 70B sizes from the earlier Llama 3 Herd paper. Manual entry: there is no standalone arXiv technical report for Llama 3.2; the canonical authoritative source is the Meta AI blog at https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/. Subagent-verified 2026-05-07 (web search confirms no Llama 3.2 arXiv paper exists; Meta's own model cards for Llama-3.2-1B and Llama-3.2-3B point back to the Herd paper plus the blog)."
