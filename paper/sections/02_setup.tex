@@ -16,7 +16,7 @@ We define the \textbf{cross-entropy} (total surprise) of a response $r$ under $\
 \end{equation}
 where $r^t$ is the $t$-th token and $r^{<t}$ the preceding tokens.
 Units: bits.\footnote{Throughout, ``bits'' refers to self-information in $\log_2$ units, identical to the ``shannon'' (Sh) of IEC 80000-13.
-We use ``bits'' to match standard usage in the information-theory literature.} This is the total surprise of the response, a property of the string itself, independent of $\theta$'s tokenizer (since the chain rule yields the same total regardless of how the sequence is factored).
+We use ``bits'' to match standard usage in the information-theory literature.} This is the total surprise of the response under $\theta$, a function of the string and of $\theta$'s distribution but not of $\theta$'s tokenizer (since the chain rule yields the same total regardless of how the sequence is factored).
 
 Similarly, the \textbf{conditional cross-entropy} given previous responses $r_{<k} = (r_1, \ldots, r_{k-1})$ is $-\log_2 \theta(r_k \mid r_{<k}, p)$ (bits).
 
@@ -25,7 +25,8 @@ For the coherence term and diversity scores (Sections~\ref{sec:coherence} and \r
     h_\theta(r \mid p) = \frac{-\log_2 \theta(r \mid p)}{\|r\|}
 \end{equation}
 Units: bits/byte.
-Normalizing by byte count rather than token count makes this rate independent of $\theta$'s tokenizer, enabling comparisons across base models with different vocabularies.
+We adopt this per-byte rate because it works better than total bits in our experiments; we have not investigated why.
+Normalising by byte count rather than token count keeps the rate independent of $\theta$'s tokenizer when comparing base models with different vocabularies.
 
 In practice, computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a formatted context containing the prompt and all previous responses (see Section~\ref{sec:practical}).
 

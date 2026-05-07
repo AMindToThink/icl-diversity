@@ -45,6 +45,102 @@ The user can decide whether to port these back to `main_icml_workshop.pdf`:
 
 Items 2-4 are content reorganisations that would shorten §Limitations in the ICML version too; if the workshop is also tight on pages this is useful even outside the NeurIPS context. The ICML workshop is two-column, so the page budget arithmetic is different; verify space saving before committing.
 
+## Method Table 1: bolding made strictly predictive
+
+Removed the `\textbf{}` from the Mixed empirical cells. The only bolded entry in the table is now "high" in the Predicted-$D_{Ca_n}$ column (multi-mode coherent), the row the table is designed to predict as the winner. Empirical columns no longer have bolding, sidestepping the stale-prone hand-coded "empirical winner" semantic that previously double-bolded Mixed.
+
+## Reframe: positioning shift from "we propose $D_{Ca_n}$" to "we propose an ICL-based diversity-measurement approach, of which $D_{Ca_n}$ is the working instance"
+
+Author motivation: the metric $D_{Ca_n}$ is one scalar the team found to work; the actual contribution is the ICL-based-diversity approach itself. Repo name `icl-diversity` reflects this. Earlier framing read as advocating $D_{Ca_n}$ as if it were the contribution. Subagent surveyed every section for advocacy-style sentences and recommended a tier-1/tier-2 list.
+
+Phrasing pattern used (per author's preference): "a new approach to measuring diversity using in-context learning, of which Decan ($D_{Ca_n} = C \times a_n$) is the working instance we evaluate." The author rejected "family of metrics" because only one instance has been validated.
+
+**Tier 1 (sets the paper's framing)**:
+- `abstract_workshop.tex` line 2: full reframe of the "We propose..." sentence.
+- `conclusion_workshop.tex` lines 3-4: mirror reframe of the "is an information-theoretic diversity metric" sentence; "It requires no..." became "The approach requires no...".
+- `01_motivation_workshop.tex` line 9: reframe of "We propose a metric, Decan or...".
+- `01_motivation_workshop.tex` line 11: "The metric uses only..." → "The approach uses only...".
+- `01_motivation_workshop.tex` line 17: "The product...is the score" → "The product...is the working scalar we adopt".
+
+**Tier 2 (light "metric" → "approach/framework" softening)**:
+- `07_5_tevet_workshop.tex` line 23: "an information-theoretic, embedding-free metric reaches..." → "an ICL-based diversity metric reaches...".
+- `07_6_rlhf_workshop.tex` line 67: "an information-theoretic metric that needs neither..." → "an ICL-based diversity metric that needs neither...".
+- `10_related.tex` line 4: "Our metric operates at the distributional level..." → "Our approach operates...".
+- `10_related.tex` line 20: "Our metric leverages a related insight..." → "Our framework leverages...".
+
+Specific numerical-result sentences (e.g., "$D_{Ca_n}$ reaches OCA 0.846") and per-experiment instance-specific claims were left as-is. The §07_8 "framework admits other metrics" appendix paragraph (already framed at framework level) was left untouched. All edits are in shared sections; both wrappers see them.
+
+Net body-content cost of all nine reframes: ~6 PDF lines. Body still fits in 9 pages with ~25 lines of headroom on page 9.
+
+## §5 OLMo discussion: dropped "deferred to a longer venue" sentence
+
+The Discussion paragraph at the end of §5 ended with "A cross-model comparison on the same NoveltyBench-curated prompts is deferred to a longer venue." The author flagged that this future-work promise is unreliable (work on the paper is contingent on reviewer feedback), so the sentence has been removed. The TeX comment block at lines 69-79 of `07_6_rlhf_workshop.tex` is left intact as internal documentation that the cross-model macros exist; it does not render.
+
+## §4 Tevet headline: cherry-pick caveat for McDiv prompt_gen
+
+The Headline-result paragraph (`07_5_tevet_workshop.tex`) cited McDiv prompt_gen as the headline number without flagging that this is the row where $D_{Ca_n}$ does best of the nine binary tasks. Inserted "where $D_{Ca_n}$ performs best" inline so the framing matches the abstract (`abstract_workshop.tex` already says "the McDiv prompt\_gen set where it performs best"). Smallest faithful edit; no other claim shifts.
+
+## §4 Tevet setup: forward pointer to the completion-format definition
+
+The Tevet setup paragraph (`07_5_tevet_workshop.tex`) used the term "completion format" without defining it; the definition lives in the Practical Considerations appendix (`06_practical.tex`, subsection "Formatting the Conditioning Context"). Two edits:
+1. Added `\label{sec:formatting}` to the appendix subsection so it can be referenced.
+2. Inserted a brief parenthetical "(Appendix~\ref{sec:formatting})" after the first use of "completion format" in §4.
+
+Shared-section edits; both wrappers see them.
+
+## Method Table 1 caption: added one-sentence pointer to the Qwen incoherent-vs-coherent flip
+
+Appended one short sentence to the end of the existing Table 1 caption: "On Qwen2.5-3B, multi-mode incoherent also outranks multi-mode coherent; Section~\ref{sec:scalar} discusses." This is just a forward pointer to the §3.3 paragraph (also added this session) where the finding is discussed; the caption itself does not now carry the claim. Shared-section edit; both wrappers see it.
+
+## Method §3.3 (`03_method_workshop.tex`): added Qwen-vs-GPT-2 ICL-power example after Table 1
+
+Added a 3-sentence paragraph after the line "$\theta$'s in-context learning capability is the lens through which diversity is measured", concretising the abstract claim that stronger base models tighten the metric. Specifically: notes that Qwen2.5-3B scores multi-mode incoherent above multi-mode coherent (reversing the predicted ranking, with all four numbers macro-imported), points to Figure~\ref{fig:scenario-curves} where Qwen's $\bar{a}_k$ curve drops over $k$ on the multi-mode incoherent scenario as the mechanism (Qwen's ICL recognises the shared template structure as a learnable pattern despite within-response scrambling), and observes that GPT-2's weaker ICL fits the predicted ordering on this row. Closes with the recommendation to use stronger base models when possible. Shared-section edit; both wrappers see it.
+
+## Appendix Table 5 (`tab:scenarios`): tightened column padding to fix overfull right margin
+
+The 15-column scenario-validation table (`07_2_scenario_validation.tex`) was overfull by 88.4pt (~1.22 inches, ~22% of the 5.5-inch text column) at the default `\tabcolsep=6pt` even with `\small`. The wrap was a `table*` so the table did not run off the page, but it extended noticeably into the right margin. Reduced `\tabcolsep` to `2pt` only inside this `table*` block (with a paired `\setlength{\tabcolsep}{6pt}` after `\input` to restore the article default for any subsequent tables). The math: 15 columns × 2 padding sides × 4pt savings = 120pt, which clears the 88.4pt overflow with ~32pt headroom. Single Overfull warning at line 812 of `main_neurips.log` is gone after the fix; no other layout side-effects observed. Pure typography fix; no content change.
+
+## Em-dash removed from `07_6_rlhf_workshop.tex` footnote (per "no em-dashes in public writing")
+
+The footnote about UTF-8 byte truncation contained one Unicode em-dash separating two ideas about tokenizer dependence. Replaced with a sentence break (`. That variation is harmless...`). No claim shift.
+
+## Method §3.2 (`03_method_workshop.tex`): softened motivation for the geometric form
+
+The line that motivated the geometric mean ("Geometric averaging (rather than arithmetic) is what gives $C$ the desired suppression: a single fluent response cannot rescue a set in which the rest are incoherent...") had two over-claims that the empirical Mixed scenario in Table 1 contradicts: "desired suppression" (the Mixed row scores highest of all five, so the suppression is empirically incomplete) and "cannot rescue" (it can; we observe it).
+
+Rewritten as: "Perplexity is a standard metric of incoherence, and the geometric form is intended to suppress sets containing incoherent responses: a single sample with high per-byte cross-entropy drives $C$ toward zero, limiting the rescue effect of any single fluent response on an otherwise incoherent set."
+
+Changes:
+- Lead motivation switched from "geometric averaging gives C the desired suppression" to "perplexity is a standard metric of incoherence" — appeals to a known concept rather than a property of our specific formula.
+- "Desired" → "intended to" — hedges the empirical claim.
+- "Cannot rescue" → "limiting the rescue effect" — honest about empirical incompleteness while still describing what the formula mathematically does.
+
+This edit is in a shared section file; both wrappers see it.
+
+## Setup section: corrected overclaim about cross-entropy and bits/byte rationale
+
+In `02_setup.tex`:
+
+- Line 19 used to call the total cross-entropy "a property of the string itself, independent of $\theta$'s tokenizer." The first half overstates: the total cross-entropy depends on the string *and* on $\theta$'s distribution. Rewritten as "a function of the string and of $\theta$'s distribution but not of $\theta$'s tokenizer (since the chain rule yields the same total regardless of how the sequence is factored)." Tokenizer-independence claim retained because it remains correct.
+- Line 28 used to motivate the per-byte rate as "makes this rate independent of $\theta$'s tokenizer, enabling comparisons across base models with different vocabularies." That framing was misleading: total bits (Eq.~\ref{eq:total-xent}) is *already* tokenizer-independent, so the per-byte vs total-bits choice is not driven by tokenizer-independence. The actual reason we use bits/byte is empirical, not theoretical, and we have not investigated why. Rewritten to say so plainly: "We adopt this per-byte rate because it works better than total bits in our experiments; we have not investigated why. Normalising by byte count rather than token count keeps the rate independent of $\theta$'s tokenizer when comparing base models with different vocabularies." (The second sentence answers a separate, smaller question — why use bytes rather than tokens as the denominator — for which tokenizer-independence is the correct rationale.)
+
+The same overclaim survives at `03_method_workshop.tex` line 14: "We normalize each $a_k$ by the byte count $\|r_k\|$ to get a per-byte (bits/byte) curve that is independent of $\theta$'s tokenizer." Like line 28 of setup, this frames bits/byte as the path to tokenizer-independence; bits would already give that. Not changed in this commit because the user's directive was scoped to the setup section. Suggested replacement, if you want it: "We normalise each $a_k$ by the byte count $\|r_k\|$ for an empirically better-behaved rate (bits/byte); see Section~\ref{sec:setup-notation}."
+
+## Appendix A "Diversity evaluation benchmarks" (`10_related.tex`): McDiv-validation sentence repointed to body section first, and retracted "label contamination" claim removed
+
+The "Diversity evaluation benchmarks" paragraph previously read: `We use McDiv for validation (Appendix~\ref{app:confound}), though we identify data quality issues including label contamination and a construction confound.` Two problems:
+
+1. **Wrong target.** The parenthetical pointed only to the confound appendix (Appendix~F in NeurIPS, `appC_mcdiv_confounds.tex`), not to where the validation results actually live (Section~\ref{sec:tevet} = `07_5_tevet_workshop.tex`). The reader was being sent to the caveat before locating the validation itself.
+2. **Retracted claim.** The "label contamination" half of "data quality issues including label contamination and a construction confound" was no longer supported. An earlier session interpreted McDiv\_nuggets rows that share a context but have disjoint response sets as duplicate-label contamination, then later determined those were the surviving fragment of Tevet's ConTest pair structure (high-div / low-div response sets keyed to the same prompt), not contamination. The corresponding `--dedup` flag and "Label Contamination" appendix subsection were removed at that point; this sentence in Related Work was the last live reference to the retracted claim. (See project memory `project_tevet_dedup.md` and `investigations/tevet_overlap_followup.md` for the trail.)
+
+Rewritten as: `We use McDiv for validation (Section~\ref{sec:tevet}), though we identify a construction confound in how its low-diversity sets are produced (Appendix~\ref{app:confound}).` Body section is named first; the appendix is reached as the follow-up; the retracted contamination claim and the now-singular "data quality issues" plural are gone. Both labels resolve in both wrappers (in the workshop, `sec:tevet` is also a Section in the body, just before the appendices), so the prose is correct in both PDFs. Shared-section edit; both wrappers see it.
+
+## Appendix B.3 "Dependence on Sample Ordering" (`06_practical.tex`): broadened the source-of-jaggedness explanation
+
+The opening of Appendix B.3 attributed the jaggedness of a single ordering's $a_k$ curve solely to length differences across responses: `Since raw $a_k$ is in total bits, responses of different lengths produce different values even at the same per-byte rate, making a single ordering's curve jagged. Averaging over random permutations removes this length effect: each position averages over all responses...`. This is too narrow. Even at matched lengths the curve is jagged, because individual responses differ in how surprising they are to $\theta$ given whichever responses happen to precede them; the length story is one special case of that more general dependence (and it does not apply to the per-byte curve, where length is divided out).
+
+Rewritten as: `Individual responses differ in how surprising they are to $\theta$ given the responses that precede them, so $a_k$ depends on which response sits at position $k$ and which others precede it, making a single ordering's curve jagged. Averaging over random permutations removes this dependence: each position averages over many choices of response and preceding context, so the curve reflects only how $\theta$'s predictions improve with more context.` Single mechanism; no claim added; no claim retracted; just broadened from the length-only framing. Shared-section edit; both wrappers see it.
+
 ## Heads-up / latent issues for a future session
 
 These are real problems left behind by this NeurIPS pass. None block submission, but each is worth fixing in a calmer session.

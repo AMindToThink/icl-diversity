@@ -5,7 +5,7 @@ Their McDiv and ConTest datasets pair human-grounded diversity labels with a fix
 The response sets are written by Mechanical Turk workers, and for both McDiv\_nuggets and ConTest the high/low label is fixed by the construction protocol itself: a worker writes five different continuations (the high-diversity set), then self-selects one of those continuations and paraphrases it five times preserving content but varying form (the low-diversity set; see Appendix~\ref{app:confound} for the full protocol and a construction-confound caveat).
 We run $D_{Ca_n}$ through this evaluation pipeline.
 
-\paragraph{Setup.} We use Qwen2.5-3B (base) with 50 permutations in completion format on the released splits: \tevetMcDivSetCount{} McDiv sets (no\_hds), \tevetMcDivNugSetCount{} McDiv\_nuggets sets (no\_hds), and \tevetConTestSetCount{} ConTest sets (with\_hds), each with 5 worker-written responses per set and a binary high/low diversity label.
+\paragraph{Setup.} We use Qwen2.5-3B (base) with 50 permutations in completion format (Appendix~\ref{sec:formatting}) on the released splits: \tevetMcDivSetCount{} McDiv sets (no\_hds), \tevetMcDivNugSetCount{} McDiv\_nuggets sets (no\_hds), and \tevetConTestSetCount{} ConTest sets (with\_hds), each with 5 worker-written responses per set and a binary high/low diversity label.
 We follow Tevet and Berant in reporting Spearman $\rho$ and OCA, and additionally report ROC AUC (the natural metric for binary classification).
 
 \begin{table*}[t]
@@ -19,8 +19,8 @@ Best result per task in bold.}
 \end{table*}
 
 \paragraph{Headline result.} On the binary tasks $D_{Ca_n}$ clearly tracks diversity, with OCA between \tevetCxAnVsSentBertOCAMinPct\% and \tevetCxAnVsSentBertOCAMaxPct\% behind SentBERT (Table~\ref{tab:contest}).
-On McDiv prompt\_gen, $D_{Ca_n}$ reaches $\rho = \tevetMcDivPromptGenCxAnRho{}$ and OCA = \tevetMcDivPromptGenCxAnOCA{}, against SentBERT's $\rho = \tevetMcDivPromptGenSentBertRho{}$ and OCA = \tevetMcDivPromptGenSentBertOCA{}; the corresponding ROC AUC is \tevetMcDivPromptGenAUC{}.
-The headline takeaway is that an information-theoretic, embedding-free metric reaches close to a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
+On McDiv prompt\_gen, where $D_{Ca_n}$ performs best, it reaches $\rho = \tevetMcDivPromptGenCxAnRho{}$ and OCA = \tevetMcDivPromptGenCxAnOCA{}, against SentBERT's $\rho = \tevetMcDivPromptGenSentBertRho{}$ and OCA = \tevetMcDivPromptGenSentBertOCA{}; the corresponding ROC AUC is \tevetMcDivPromptGenAUC{}.
+The headline takeaway is that an ICL-based diversity metric reaches close to a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
 
 \paragraph{DecTest, included for completeness.} Tevet and Berant also release DecTest (Table~\ref{tab:dectest}), a diagnostic where the ``label'' is the sampling temperature used to generate each response set rather than a human judgement.
 We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity.

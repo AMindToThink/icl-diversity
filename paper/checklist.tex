@@ -112,7 +112,7 @@
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The metric requires only forward passes through a base language model. Section~\ref{sec:cost} reports the cost as $|\Sigma|+n$ forward passes per (prompt, response set), batchable on a single GPU (one A100/H100-class accelerator suffices for Qwen2.5-3B; the Qwen3-30B-A3B-Base ablation in Appendix~\ref{app:qwen3-comparison} used multi-GPU \texttt{device\_map="auto"} float16 inference, see \texttt{scripts/run\_scenarios.py}); no training was performed in this work.
+    \item[] Justification: The metric requires only forward passes through a base language model. Section~\ref{sec:cost} reports the cost as $|\Sigma|+n$ forward passes per (prompt, response set). Local experiments (Qwen2.5-3B base, GPT-2) ran on a workstation with 2$\times$ Quadro RTX 8000 GPUs (48 GB VRAM each); each individual experiment completed in at most a few hours. The Qwen3-30B-A3B-Base ablation (Appendix~\ref{app:qwen3-comparison}) was run through the Tinker API rather than on local hardware; total Tinker API spend across all 30B runs (including those reported in the paper) was under \$17. No model training was performed in this work.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.

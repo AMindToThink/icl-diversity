@@ -14,7 +14,7 @@ The OLMo-2-7B post-training experiment (Section~\ref{sec:rlhf-experiment}) was s
 
 \paragraph{External benchmark performance trails the strongest baseline.}
 On Tevet and Berant's diversity-eval benchmark, $C \times a_n$ trails SentBERT by \tevetCxAnVsSentBertOCAMinPct\%--\tevetCxAnVsSentBertOCAMaxPct\% OCA across the nine binary tasks (Section~\ref{sec:tevet}); scaling the base model to Qwen3-30B-A3B-Base did not close the gap (Appendix~\ref{app:qwen3-comparison}).
-We position $C \times a_n$ as a principled complement to embedding-based metrics, not a replacement.
+We position ICL-based diversity metrics (of which $D_{Ca_n}$ is one instance we found to work well) as a principled complement to embedding-based metrics, not a replacement.
 
 \paragraph{Length-matching drops short-response prompts.}
 Reporting in bits/byte (rather than total bits) makes per-byte cross-entropy not invariant to response length, so the OLMo-2-7B experiment scores a length-matched subset and drops $111/300$ prompts whose common per-prompt byte length falls below $50$~bytes; full mechanics and the un-truncated robustness check are in Section~\ref{sec:exp-discussion}.

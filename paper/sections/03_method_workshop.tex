@@ -35,7 +35,7 @@ Define \textbf{coherence} as the geometric mean of the per-byte probabilities:
     C = 2^{-\frac{1}{n}\sum_{i=1}^{n} h_\theta(r_i \mid p)} = \frac{1}{\mathrm{PPL}_\theta(\pi, p)},
 \end{equation}
 the reciprocal of the geometric-mean per-byte perplexity\footnote{In our Tevet evaluation with Qwen2.5-3B, the central 90\% (5th to 95th percentile) of per-response bits-per-byte values across \tevetCoherenceRespCount{} responses span $[\tevetCoherenceBpbLow, \tevetCoherenceBpbHigh]$, giving $C \in [\tevetCoherenceCLow, \tevetCoherenceCHigh]$; the mean per-set $C$ across \tevetCoherenceSetCount{} response sets is \tevetCoherenceMeanC.} that $\theta$ assigns to the responses individually.\footnote{For scale, the bits/byte score is the average per-byte cross-entropy $\bar{\ell}$, related to coherence by $C = 2^{-\bar{\ell}}$. GPT-3 davinci on The Pile \citep{gao2020pile} scored $\sim$0.72 bits/byte and GPT-2 XL $\sim$1.05 bits/byte, giving $C \approx 0.61$ and $C \approx 0.49$ respectively; stronger base models reach lower bits/byte and correspondingly higher $C$.}
-Geometric averaging (rather than arithmetic) is what gives $C$ the desired suppression: a single fluent response cannot rescue a set in which the rest are incoherent, because $C$ is driven toward zero by any sample with high per-byte cross-entropy.
+Perplexity is a standard metric of incoherence, and the geometric form is intended to suppress sets containing incoherent responses: a single sample with high per-byte cross-entropy drives $C$ toward zero, limiting the rescue effect of any single fluent response on an otherwise incoherent set.
 
 \subsection{The Diversity Score}\label{sec:scalar}
 
@@ -52,7 +52,7 @@ The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}, a
 \caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five synthetic scenarios (Appendix~\ref{sec:scenario-validation}), with empirical $D_{Ca_n}$ values under GPT-2 (124M) and Qwen2.5-3B base.
 The product correctly suppresses pure noise and incoherent multi-mode (via $C$) and one-mode sets (via $a_n$); multi-mode coherent is the intended winner.
 Empirical numbers show smaller $a_n$ for multi-mode coherent than this story predicts: with only 3 distinct modes in a set of 10 responses, $\theta$'s in-context learning identifies them and $a_n$ is no longer high. In such ambiguous cases reporting the full $a_k$ curve is more principled than the scalar $a_n$: a different choice of $n$ would reveal the diversity, and showing the curve sidesteps having to pick that $n$ in advance. Appendix~\ref{sec:mode-count-scaling} shows $a_n$ rising with mode count.
-Mixed empirically scores highest (via a high $a_n$) rather than the predicted ``mid'' position; reweighting strategies are discussed in Section~\ref{sec:exp-discussion}.}
+Mixed empirically scores highest (via a high $a_n$) rather than the predicted ``mid'' position; reweighting strategies are discussed in Section~\ref{sec:exp-discussion}. On Qwen2.5-3B, multi-mode incoherent also outranks multi-mode coherent; Section~\ref{sec:scalar} discusses.}
 \label{tab:edge-cases}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -64,7 +64,7 @@ Pure noise            & low  & high  & low (via $C$)           & \scenarioPureNo
 Multi-mode incoherent & low  & high  & low (via $C$)           & \scenarioMultiIncoherentGptDCan{}  & \scenarioMultiIncoherentQwenDCan{}  \\
 Multi-mode coherent   & high & high  & \textbf{high}           & \scenarioMultiModeGptDCan{}        & \scenarioMultiModeQwenDCan{}        \\
 One-mode              & high & low   & low (via $a_n$)         & \scenarioOneModeGptDCan{}          & \scenarioOneModeQwenDCan{}          \\
-Mixed                 & mid  & high  & mid                     & \textbf{\scenarioMixedGptDCan{}}   & \textbf{\scenarioMixedQwenDCan{}}   \\
+Mixed                 & mid  & high  & mid                     & \scenarioMixedGptDCan{}            & \scenarioMixedQwenDCan{}            \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -72,5 +72,7 @@ Mixed                 & mid  & high  & mid                     & \textbf{\scenar
 The score depends on $p$, $\pi$'s responses, and $\theta$.
 Diversity is therefore a property of (responses, prompt, scoring model), not of the policy in isolation: the same response set can score differently under a stronger or weaker $\theta$.
 This is by design: $\theta$'s in-context learning capability is the lens through which diversity is measured, giving the score the potential to improve as base models improve (see Appendix~\ref{app:qwen3-comparison} for a preliminary scaling experiment).
+For example, Table~\ref{tab:edge-cases} shows Qwen2.5-3B scoring multi-mode incoherent (\scenarioMultiIncoherentQwenDCan{}) above multi-mode coherent (\scenarioMultiModeQwenDCan{}), reversing our predicted ranking; Figure~\ref{fig:scenario-curves} shows Qwen's $\bar{a}_k$ curve dropping over $k$ on the multi-mode incoherent scenario, indicating that its in-context learning recognises the shared template structure as a pattern despite the within-response scrambling.
+GPT-2's weaker in-context learning fits the predicted ordering on this row better (\scenarioMultiIncoherentGptDCan{} for incoherent vs.\ \scenarioMultiModeGptDCan{} for coherent), but we still recommend stronger base models when possible -- sophisticated patterns are exactly what an ICL-based metric should be able to detect.
 When comparing policies across a prompt suite, $D_{Ca_n}$ can be averaged over prompts or differenced; see Appendix~\ref{app:aggregation}.
 

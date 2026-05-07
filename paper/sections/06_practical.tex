@@ -1,6 +1,6 @@
 \section{Practical Considerations}\label{sec:practical}
 
-\subsection{Formatting the Conditioning Context}
+\subsection{Formatting the Conditioning Context}\label{sec:formatting}
 
 Computing $\theta(r_k \mid r_{<k}, p)$ requires feeding $\theta$ a context containing the prompt and previous responses.
 The formatting choice affects results, and we use two formats depending on whether the responses are best read as parallel answers to the prompt or as continuations of it.
@@ -73,8 +73,8 @@ With $n = 10$ responses and $|\Sigma| = 50$ permutations (our default for larger
 \subsection{Dependence on Sample Ordering}\label{sec:ordering}
 
 The $a_k$ values depend on the ordering of $\{r_i\}$.
-Since raw $a_k$ is in total bits, responses of different lengths produce different values even at the same per-byte rate, making a single ordering's curve jagged.
-Averaging over random permutations removes this length effect: each position averages over all responses, so the curve reflects only how $\theta$'s predictions improve with more context.
+Individual responses differ in how surprising they are to $\theta$ given the responses that precede them, so $a_k$ depends on which response sits at position $k$ and which others precede it, making a single ordering's curve jagged.
+Averaging over random permutations removes this dependence: each position averages over many choices of response and preceding context, so the curve reflects only how $\theta$'s predictions improve with more context.
 We therefore average over $|\Sigma|$ random permutations; Section~\ref{sec:practical-findings} compares low- and high-permutation runs on the validation scenarios and finds that the low setting misranks adjacent scenarios.
 We have not swept intermediate values and cannot pinpoint a cheap-and-reliable minimum, so we default to $|\Sigma| = 100$ for scenario-level experiments and $|\Sigma| = 50$ elsewhere.
 
