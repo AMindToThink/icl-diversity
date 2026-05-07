@@ -190,3 +190,67 @@ The empirical D_Can values for the 5 scenarios × 2 models in Table 1 were initi
 - `\input{sections/impact_workshop}` is **still included in both wrappers** in its original position (right before the bibliography). The earlier exploratory edit that folded it into the Conclusion was reverted at user request.
 - The §Conclusion text was reverted to its original form.
 - Numerical results, model choices, and citations are unchanged.
+
+## Anon-branch split for double-blind submission (state at 2026-05-07)
+
+Three branches exist for the two concurrent submissions. **Each submission gets its own branch URL through anonymous.4open.science** so reviewers never see the other venue's filename.
+
+| Branch | Purpose | Wrapper present | Wrapper deleted | Style files deleted |
+|---|---|---|---|---|
+| `anon-submission` | Common base; both papers + identity scrubs. Working branch only — DO NOT submit this URL. | `main_neurips`, `main_icml_workshop` | — | — |
+| `anon-neurips` | NeurIPS submission view. Branched from `anon-submission`. | `main_neurips` only | `main_icml_workshop.tex/.pdf` | `icml2026.bst`, `icml2026.sty` |
+| `anon-icml-workshop` | ICML workshop submission view. Branched from `anon-submission`. | `main_icml_workshop` only | `main_neurips.tex/.pdf` | `neurips_2026.{sty,tex}`, `neurips_submission_checklist.md`, `checklist.tex` |
+
+Both single-venue branches also delete `paper/CHANGES_FROM_WORKSHOP.md` (this file) — it would itself reveal concurrent submission.
+
+**Identity scrubs (commit `2619d87` on `anon-submission`).** HIGH+MEDIUM items from the deanonymization audit: ERA Cambridge fixture string in tests, internal commit hashes in test docstrings/error messages, dangling `~/.claude/skills/...` pointers in docstrings, venue-revealing filename references in code comments, dates and commit hashes in `CLAUDE.md`. Section filenames keep their `_workshop` suffix per author decision (low visibility, not a meaningful tell). Verified deterministic LaTeX rebuild produces byte-identical PDFs — no scrub touched any file in the LaTeX compilation pipeline.
+
+**Single-venue deletion commits.** `285230d` on `anon-neurips`, `0af79d0` on `anon-icml-workshop`. Both authored as `Anonymous <anonymous@example.com>`.
+
+**Git history.** Per author decision, **history is left as-is** — AMindToThink-authored commits inherited from `main` are visible via `git log` on the public GitHub repo. anonymous.4open.science strips `.git/` before serving, so reviewers going through that proxy see no history. Risk is anyone who finds the public repo by other means. If that risk needs closing later, the cleanup is `git checkout --orphan` on each anon branch and force-push.
+
+### Before each submission — checklist
+
+1. **Rebuild the wrapper's PDF on the target branch.** This matters especially for `anon-icml-workshop`: the committed `main_icml_workshop.pdf` is **stale** — commit `7a73f7c` updated three shared section files (`07_4_cross_mode.tex`, `08_limitations_workshop.tex`, `appE_qwen3_comparison.tex` for Qwen3 + Llama citations) and only rebuilt `main_neurips.pdf`. Use the deterministic helper:
+
+    ```bash
+    # On anon-icml-workshop
+    uv run python .claude-tools/rebuild-latex.py --force paper/main_icml_workshop.tex
+    # On anon-neurips (cheap sanity check; should be byte-identical to committed)
+    uv run python .claude-tools/rebuild-latex.py --force paper/main_neurips.tex
+    ```
+
+    The helper sets `SOURCE_DATE_EPOCH=1700000000` + `FORCE_SOURCE_DATE=1` so two consecutive rebuilds are byte-identical. Verified working in this session.
+
+2. **Strip PDF metadata after the final rebuild.** `latexmk` writes hyperref-derived `/Author`, `/Creator`, `/Title`, `/Subject` etc. on every build. Run pypdf scrub on the rebuilt PDF (and on figure PDFs if any matplotlib `Author` metadata is present):
+
+    ```bash
+    uv run --with pypdf python <<'EOF'
+    from pypdf import PdfReader, PdfWriter
+    from pathlib import Path
+    pdfs = sorted(set(Path("figures").rglob("*.pdf")) | set(Path("paper").glob("main_*.pdf")))
+    for p in pdfs:
+        if not p.exists(): continue
+        r = PdfReader(str(p)); w = PdfWriter(clone_from=r)
+        w.add_metadata({k: "" for k in ("/Author","/Creator","/Title","/Subject","/Keywords","/Producer")})
+        tmp = p.with_suffix(".pdf.scrubtmp")
+        with open(tmp, "wb") as f: w.write(f)
+        tmp.replace(p)
+    EOF
+    ```
+
+3. **Commit the rebuilt + scrubbed PDF** with the Anonymous identity:
+
+    ```bash
+    git -c user.name="Anonymous" -c user.email="anonymous@example.com" \
+        commit -m "rebuild PDF and scrub metadata"
+    ```
+
+4. **Push the branch**, then submit the GitHub URL (e.g. `github.com/AMindToThink/icl-diversity/tree/anon-neurips`) to anonymous.4open.science. The proxy returns a stable mirror URL with a 4-character hash suffix; the paper macro `\projectGithubUrl` (if it exists) can be updated to that anon URL in a follow-up commit.
+
+### Things deliberately NOT changed in this session
+
+- `paper/main_icml_workshop.pdf` was already `M` in the working tree before the scrub session and has been left in its pre-session state on `anon-submission`. It will be rebuilt as part of the submission flow above.
+- `figures/rlhf_experiment/*.pdf` similarly were `M` before the session and left untouched.
+- `scripts/render_submission_abstract.sh` is untracked; not staged.
+- `diversity-eval` submodule has untracked content; not touched.
