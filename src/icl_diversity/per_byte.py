@@ -4,7 +4,7 @@ This module exists as the single source of truth for one specific question:
 **how do we compute a per-byte progressive surprise curve when we have
 per-permutation data?**
 
-Two estimators are possible (see the global ``implement-math`` skill):
+Two estimators are possible:
 
 * **mean-of-ratios (MoR)** — the formula the paper specifies::
 
@@ -29,8 +29,6 @@ in k), so RoM degenerates into "total-bits curve rescaled by
 
 The paper specifies MoR.  This module implements MoR.
 
-For the historical bug postmortem and a list of related traps, see
-``~/.claude/skills/implement-math/SKILL.md``.
 """
 
 from __future__ import annotations

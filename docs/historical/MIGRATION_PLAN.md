@@ -1,6 +1,6 @@
 # Migration Plan: Updating Existing Code to Match Current Paper
 
-The existing code implements the metric as described in the earlier version of the paper (per-byte a_k, per-byte E, m_eff). This plan describes how to update it to match the current paper (`in_context_diversity_metric.tex`). All section references are to the current paper.
+The existing code implements the metric as described in the earlier version of the paper (per-byte a_k, per-byte E, m_eff). This plan describes how to update it to match the current paper. All section references are to the current paper.
 
 ## Summary of Changes
 

@@ -28,7 +28,6 @@ The paper's bibliography is machine-generated. You do not hand-type author lists
 | `scripts/build_bib.py` | Resolves identifiers → writes `paper/refs.bib`. Atomic; fails loudly on unresolved / malformed entries. |
 | `scripts/verify_cites.py` | Offline linter: checks `\cite{}` ↔ `refs.bib` correspondence. |
 | `paper/refs.bib` | **Generated. Do not hand-edit.** Every entry has a `% source:` comment naming the authoritative identifier. |
-| `paper/citation_verification_report.md` | One-time audit of the pre-tool bibliography — the set of errors this tool is designed to prevent. |
 
 ## Identifier precedence
 
@@ -86,8 +85,8 @@ Useful APIs:
 - [Crossref REST API](https://api.crossref.org/works/{doi}/transform/application/x-bibtex) — content-negotiation endpoint that returns BibTeX for a DOI directly. `build_bib.py` uses the equivalent `https://doi.org/<id>` endpoint with `Accept: application/x-bibtex`.
 - [ACL Anthology](https://aclanthology.org/) — every ACL paper has a `https://aclanthology.org/<id>.bib` URL. No API, just a GET.
 
-## Prior incident (2026-04-21)
+## Prior incident
 
-The full pre-tool audit lives in `paper/citation_verification_report.md`. Summary: 12 citations, 5 with high-severity errors (4 fabricated author lists, 1 unsupported claim), 3 with medium-severity errors (numerical / construction / framing), 2 with minor errors (title typo, parameter-count ambiguity), 2 clean. Every fabricated entry pointed to a real paper — the identifier would have been correct if we had recorded one. The fabrications were all in the author list and, for three entries, the title.
+A pre-tool audit found that 5 of 12 citations had high-severity errors (4 fabricated author lists, 1 unsupported claim), 3 had medium-severity errors (numerical / construction / framing), and 2 had minor errors. Every fabricated entry pointed to a real paper — the identifier would have been correct if we had recorded one. The fabrications were all in the author list and, for three entries, the title.
 
 The system above is the remediation.

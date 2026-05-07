@@ -1,7 +1,6 @@
 r"""Build `results/tables/paper_macros.tex` — the authoritative source of every
-inline numeric scalar referenced in prose in `paper/main_icml_workshop.tex`
-(the original `paper/archive/in_context_diversity_metric.tex` also `\input`s
-this file, but is archived).
+inline numeric scalar referenced in prose in the paper's main wrapper(s) under
+`paper/`.
 
 This script reads ONLY from existing data files (no recomputation from raw data
 besides trivial aggregations) and emits `\newcommand` definitions for every
@@ -424,10 +423,9 @@ def tevet_macros() -> dict[str, str]:
                 d = json.load(f)
             for _, it in d.items():
                 # Use MoR per-byte curve (the formula §6.3 specifies; see
-                # src/icl_diversity/per_byte.py and the implement-math
-                # skill).  Fall back to ``a_k_curve_per_byte`` if per-perm
-                # data is missing — old logs may store ratio-of-means
-                # there.
+                # src/icl_diversity/per_byte.py).  Fall back to
+                # ``a_k_curve_per_byte`` if per-perm data is missing —
+                # old logs may store ratio-of-means there.
                 pp_curves = it.get("per_permutation_a_k_curves")
                 pp_bytes = it.get("per_permutation_byte_counts")
                 if pp_curves and pp_bytes:
@@ -653,8 +651,7 @@ def permutation_sensitivity_macros() -> dict[str, str]:
     $D_{a_\\infty} = C \\times a_n$ that §8.6 actually refers to. We
     derive the right scalar from the per-prompt ``coherence_C`` and a
     mean-of-ratios per-byte curve computed from the ``per_permutation_*``
-    fields (the formula §6.3 specifies; see src/icl_diversity/per_byte.py
-    and the implement-math skill).
+    fields (the formula §6.3 specifies; see src/icl_diversity/per_byte.py).
     """
     from icl_diversity.per_byte import compute_a_n_per_byte_mor
 

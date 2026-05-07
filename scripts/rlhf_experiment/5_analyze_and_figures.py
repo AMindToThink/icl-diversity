@@ -121,8 +121,7 @@ def _derive_metric(rec: dict, key: str) -> float | None:
         return float(c) * an_pb
     if key == "a_n_per_byte":
         # Prefer per-permutation MoR when available — that is what the
-        # paper specifies (see src/icl_diversity/per_byte.py and the
-        # implement-math skill).
+        # paper specifies (see src/icl_diversity/per_byte.py).
         pp_curves = rec.get("per_permutation_a_k_curves")
         pp_bytes = rec.get("per_permutation_byte_counts")
         if pp_curves and pp_bytes:

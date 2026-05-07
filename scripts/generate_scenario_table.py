@@ -73,10 +73,10 @@ def main() -> None:
             prompts = data["scenarios"][scenario]
             # a_1, a_n per-byte: derived from per-permutation data as
             # mean-of-ratios (the formula §6.3 specifies; see
-            # src/icl_diversity/per_byte.py and the implement-math
-            # skill).  Fall back to ``a_k_curve_per_byte`` when the
-            # log lacks per-permutation fields — old logs may contain
-            # the historically-buggy ratio-of-means in that field.
+            # src/icl_diversity/per_byte.py).  Fall back to
+            # ``a_k_curve_per_byte`` when the log lacks per-permutation
+            # fields — old logs may contain the historically-buggy
+            # ratio-of-means in that field.
             from icl_diversity.per_byte import compute_a_k_curve_mor
             a1_vals: list[float] = []
             an_vals: list[float] = []

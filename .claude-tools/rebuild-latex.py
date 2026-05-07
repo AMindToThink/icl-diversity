@@ -332,10 +332,9 @@ def rebuild_one(tex_path: Path, force_clean: bool) -> bool:
 
             # Post-build cross-reference resolution check. latexmk's "rerun if
             # .aux changed" heuristic occasionally ships a PDF with `??`
-            # placeholders even though the build appears successful (the bug
-            # that produced anon-submission's 6b40e79: 53 `??` across 17 pages
-            # with no warning suffix). Run an extra latexmk pass to let any
-            # outstanding refs settle; if they don't, treat as build failure.
+            # placeholders even though the build appears successful. Run an
+            # extra latexmk pass to let any outstanding refs settle; if they
+            # don't, treat as build failure.
             pdf_qq, log_undef = check_resolution(pdf_path, log_path)
             if pdf_qq or log_undef:
                 print(

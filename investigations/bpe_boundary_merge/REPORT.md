@@ -12,9 +12,9 @@
 > attributed to the separator by our boundary detector. The affected response's
 > trailing character contributes to its byte count but not its cross-entropy.
 > This is a design choice, not a bias; see `tests/test_response_boundaries.py`
-> and the "Boundary handling" paragraph in the paper (Sec 8.6). See also the
-> global `~/.claude/CLAUDE.md` entry on why "multi-pass" is a confusion, not
-> an alternative.
+> and the "Boundary handling" paragraph in the paper (Sec 8.6). "Multi-pass"
+> is a confusion, not an alternative: in a causal LM, pass n already contains
+> all the information of passes 1..n-1 via causal attention.
 >
 > The remainder of this document is preserved for archaeology.
 >

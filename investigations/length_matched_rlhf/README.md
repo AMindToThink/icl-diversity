@@ -52,7 +52,7 @@ Three outcomes:
 - Do not discard the raw-generation pipeline. The length-matched scoring is a robustness check, not a replacement.
 - The 100-word truncation used for the cross-model table (`paper/rlhf_experiment.tex` "Cross-model comparison" paragraph) is a different, already-documented preprocessing step. Do not conflate the two.
 - After the re-run, regenerate `paper_macros.tex` via `scripts/build_paper_macros.py` if any paper-referenced numbers change.
-- Once the investigation is complete, update `paper/paper_writing_checklist.md` §1 item 1.5 (red-teaming) and `paper/in_context_diversity_metric.tex` §Limitations with the outcome.
+- Once the investigation is complete, update the paper's §Limitations with the outcome.
 
 ## Quick data primer
 

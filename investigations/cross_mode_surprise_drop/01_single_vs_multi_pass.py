@@ -1,9 +1,8 @@
-"""FLAG (2026-04-24): this script tests a tautology and no longer runs —
-the multi-pass function it imports has been deleted. In a causal LM, pass n
-of a multi-pass sequence already contains all the information of passes 1..n-1
-via causal attention, so SP ≡ MP by construction (wherever tokenization agrees).
-See ~/.claude/CLAUDE.md entry on "multi-pass is a confusion, not an alternative"
-for context. Retained for historical reference only.
+"""FLAG: this script tests a tautology and no longer runs — the multi-pass
+function it imports has been deleted. In a causal LM, pass n of a multi-pass
+sequence already contains all the information of passes 1..n-1 via causal
+attention, so SP ≡ MP by construction (wherever tokenization agrees).
+Retained for historical reference only.
 
 Original docstring:
 ---

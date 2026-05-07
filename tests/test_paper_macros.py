@@ -20,7 +20,15 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = PROJECT_ROOT / "scripts" / "build_paper_macros.py"
 OUTPUT = PROJECT_ROOT / "results" / "tables" / "paper_macros.tex"
-PAPER_TEX = PROJECT_ROOT / "paper" / "main_icml_workshop.tex"
+# Concatenate every main paper wrapper present so the macro-resolution and
+# forbidden-substring checks apply across all wrappers (one branch may ship
+# multiple, e.g. a long and short version).
+_PAPER_WRAPPERS = sorted((PROJECT_ROOT / "paper").glob("main*.tex"))
+assert _PAPER_WRAPPERS, "No paper/main*.tex wrapper found"
+
+
+def _read_paper() -> str:
+    return "\n".join(p.read_text() for p in _PAPER_WRAPPERS)
 
 
 @pytest.fixture(scope="module")
@@ -111,7 +119,7 @@ def test_paper_macros_all_resolve() -> None:
     Catches drift where the paper references a macro that doesn't exist (most
     common after renaming a macro in build_paper_macros.py but forgetting the paper).
     """
-    paper = PAPER_TEX.read_text()
+    paper = _read_paper()
     # Strip out comments (lines starting with % or inline % not preceded by \)
     paper_no_comments = re.sub(r"(?<!\\)%.*", "", paper)
     # Find macros our script defines (used as the allowlist so we don't trip on
@@ -133,7 +141,7 @@ def test_paper_macros_all_resolve() -> None:
 def test_paper_has_no_forgotten_hand_typed_numbers_in_edited_clusters() -> None:
     """Specific regression guard: the Tevet prose and cross-mode cluster should
     no longer contain the hand-typed strings that were there before this pass."""
-    paper = PAPER_TEX.read_text()
+    paper = _read_paper()
     forbidden_substrings = [
         # Sec 7.5 prose that was factually wrong.
         "$\\rho = +0.73$ and OCA = 0.85 on McDiv prompt",

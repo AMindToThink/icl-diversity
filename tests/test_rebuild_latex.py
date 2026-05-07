@@ -1,10 +1,10 @@
 """Tests for the post-build cross-reference resolution checks in
-.claude-tools/rebuild-latex.py.
+the LaTeX rebuild helper.
 
 These tests exercise the pure helpers (count_pdf_unresolved, count_log_undefined)
-that gate whether a build is judged successful. They are the regression guard
-against the failure mode that produced anon-submission's 6b40e79 PDF (53 `??`
-placeholders rendered, latexmk reported OK).
+that gate whether a build is judged successful. They guard against the
+failure mode where unresolved references render as ``??`` placeholders in
+the PDF while latexmk still reports a successful build.
 """
 from __future__ import annotations
 
@@ -42,7 +42,6 @@ class TestCountPdfUnresolved:
         assert rebuild_latex.count_pdf_unresolved(text) == 1
 
     def test_many_qq_placeholders(self) -> None:
-        # Mirrors the 6b40e79 failure mode (53 placeholders).
         text = "Section ??, Figure ??, Table ??, and Appendix ?? all unresolved."
         assert rebuild_latex.count_pdf_unresolved(text) == 4
 

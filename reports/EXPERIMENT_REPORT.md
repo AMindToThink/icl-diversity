@@ -15,9 +15,9 @@
 
 ## 1. Objective
 
-Validate that our implementation of the ICL diversity metric (as described in
-`in_context_diversity_metric.tex`) produces outputs consistent with the paper's
-theoretical predictions across five edge-case scenarios. Specifically, we test
+Validate that our implementation of the ICL diversity metric (as described
+in the paper) produces outputs consistent with the paper's theoretical
+predictions across five edge-case scenarios. Specifically, we test
 that the derived quantities E (excess entropy), C (coherence), D (diversity
 score), and sigma (coherence spread) exhibit the orderings predicted by the
 paper when the metric is run on carefully constructed synthetic response sets.

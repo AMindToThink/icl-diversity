@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Implementation of the ICL (in-context learning) diversity metric from `paper/main_icml_workshop.pdf` (the original journal-track draft is archived under `paper/archive/`). The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
+Implementation of the ICL (in-context learning) diversity metric described in the paper (LaTeX source under `paper/`). The metric measures LLM output diversity by computing progressive conditional surprise under a base model θ — as θ sees more responses in-context, surprise decreases proportionally to how many distinct modes exist.
 
 The primary a_k curve is in **total bits**. Per-byte normalized quantities (E_rate, C, D_rate) provide tokenizer-agnostic comparisons. D = C × E is the primary diversity score in bits; D_rate = C × E_rate is the per-byte variant.
 
@@ -129,20 +129,20 @@ All figures referenced by the paper are also script-generated (in `figures/`). T
 
 ## Citation Pipeline
 
-The paper's bibliography is **machine-generated** by `scripts/build_bib.py`, following the same "identifier-first, never hand-type" principle as the tables. Author lists, titles, years, and venues are fetched from arXiv / Crossref / ACL Anthology rather than typed from memory — this prevents the LLM-typical citation-fabrication failure mode (audit on 2026-04-21 found 5 of 12 pre-tool citations had fabricated author lists or unsupported claims; see `paper/citation_verification_report.md`).
+The paper's bibliography is **machine-generated** by `scripts/build_bib.py`, following the same "identifier-first, never hand-type" principle as the tables. Author lists, titles, years, and venues are fetched from arXiv / Crossref / ACL Anthology rather than typed from memory — this prevents the LLM-typical citation-fabrication failure mode.
 
 - **Source of truth:** `paper/refs_ids.toml` (identifier + claim per citation; the ONLY human-edited citation file).
 - **Generated:** `paper/refs.bib` (do NOT hand-edit; each entry is annotated with `% source:` and `% claim:` comments).
-- **Workflow doc:** `paper/CITATIONS.md` (project-local; mirrors the global `bibliography-from-ids` skill).
+- **Workflow doc:** `paper/CITATIONS.md` (project-local).
 - **Regenerate:** `uv run python scripts/build_bib.py` (hits APIs; fails loudly on any unresolved identifier).
 - **Lint:** `uv run python scripts/verify_cites.py` (offline; checks every `\cite{}` resolves to an entry in `refs.bib` and flags unused entries).
 - **Unit tests:** `uv run pytest tests/test_bib_pipeline.py` (10 tests; no network).
 
-When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, then `verify_cites.py`, then `latexmk -pdf`. Don't `\bibitem`-by-hand — it reintroduces the failure mode. See the `bibliography-from-ids` and `verify-citation-claims` skills in `~/.claude/skills/` for the general pattern.
+When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, then `verify_cites.py`, then `latexmk -pdf`. Don't `\bibitem`-by-hand — it reintroduces the failure mode.
 
 ## Key Design Decisions
 
-- **Single-pass is the only correct computation.** In a causal LM, pass n of any "multi-pass" sequence already contains all the information of passes 1..n-1 via causal attention, so running separate forward passes is a FLOPs tax for zero benefit. The `_single_pass` suffix on `compute_progressive_surprise_curve_single_pass` is historical — the multi-pass function was deleted because comparing SP to MP is tautological (when tokenization agrees they're bit-exact identical; when it diverges via BPE merges, SP is by definition the metric). See the global `~/.claude/CLAUDE.md` note: treat any "multi-pass" reference in code or reports as a flag, not as an alternative to validate against.
+- **Single-pass is the only correct computation.** In a causal LM, pass n of any "multi-pass" sequence already contains all the information of passes 1..n-1 via causal attention, so running separate forward passes is a FLOPs tax for zero benefit. The `_single_pass` suffix on `compute_progressive_surprise_curve_single_pass` is historical — the multi-pass function was deleted because comparing SP to MP is tautological (when tokenization agrees they're bit-exact identical; when it diverges via BPE merges, SP is by definition the metric). Treat any "multi-pass" reference in code or reports as a flag, not as an alternative to validate against.
 - **BPE-merged boundary tokens stay with the response.** `_find_response_boundaries` uses a character-span overlap rule: a token belongs to a response if its character span overlaps the response's. When Qwen merges a response's final `.` with the following `\n\n` into a single `.\n\n` token, the overlap rule keeps that token in the response, so the response's cross-entropy includes a small contribution from predicting the upcoming separator. The byte-count denominator is the response's literal byte length. Regression tests: `tests/test_response_boundaries.py::TestBoundaryRoundtrip::test_qwen_trailing_merge_attributed_to_response` and `test_no_separator_leaks_into_response`.
 - **Base model requirement**: θ must be a base model (not instruction-tuned) to avoid confounding coherence-as-fluency with coherence-as-alignment.
 - **Permutation averaging**: When `n_permutations > 1`, the a_k curve is averaged over random response orderings to reduce ordering sensitivity (Section 7.3 of paper). Per-permutation curves are preserved in `per_permutation_a_k_curves`.
@@ -155,9 +155,9 @@ When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, th
 
 ## Ongoing cleanup: the `diversity_score_D` → `C × a_n` naming migration
 
-**The problem.** Historically, `compute_icl_diversity_metrics` in `src/icl_diversity/core.py` returned a dict key named `diversity_score_D` whose value is `coherence_C × excess_entropy_E` — the **Appendix-E alternative** scalar, **not** the paper's primary `D = C × a_n` defined in §6.3. This is a well-established naming trap: every new contributor (and Claude) reaches for `metrics["diversity_score_D"]` thinking it's the paper's headline D, and gets the wrong scalar. It actually caused a real bug on the RLHF-diversity experiment (commit `3848fe5`) where the stage ordering came out inverted until we caught it, and caused a separate leak in §8.6's permutation-sensitivity macros (commit `c2767df`) where the "D-ranking" was secretly a C·E ranking.
+**The problem.** Historically, `compute_icl_diversity_metrics` in `src/icl_diversity/core.py` returned a dict key named `diversity_score_D` whose value is `coherence_C × excess_entropy_E` — the **Appendix-E alternative** scalar, **not** the paper's primary `D = C × a_n` defined in §6.3. This is a well-established naming trap: every new contributor reaches for `metrics["diversity_score_D"]` thinking it's the paper's headline D, and gets the wrong scalar. It caused a real bug on the RLHF-diversity experiment where the stage ordering came out inverted until we caught it, and caused a separate leak in §8.6's permutation-sensitivity macros where the "D-ranking" was secretly a C·E ranking.
 
-**The interim convention (as of 2026-04-24).** `core.py` now exposes the two scalars under unambiguous formula-in-name keys:
+**The interim convention.** `core.py` now exposes the two scalars under unambiguous formula-in-name keys:
 
 - `diversity_score_D_C_an` — the paper's primary **D = C × a_n** (per-byte, §6.3). **Prefer this in all new code.**
 - `a_n_per_byte`, `a_n_total` — convenience extracts of the last point of the per-byte / total-bits `a_k_curve`.
@@ -170,6 +170,6 @@ When adding or editing a citation, edit `refs_ids.toml`, then `build_bib.py`, th
 2. **When touching existing code that reads `diversity_score_D`**, migrate it to the formula-in-name key that matches what the *surrounding context* intends. A table labelled "D" in a paper figure almost always wants `C × a_n`; a `C × E` column wants `diversity_score_D_C_E`. If it's not obvious which the context wants, re-read the surrounding prose before renaming.
 3. **Do not delete the bare `diversity_score_D` alias yet.** It's the only thing keeping the pre-migration scripts and tests running. Removal is the endpoint of the full overhaul (see below), not a drive-by change.
 
-**The endpoint (full overhaul, separate PR when someone has a quiet week).** Rename every existing reader of `metrics["diversity_score_D"]` to one of the unambiguous keys, update every test that asserts on it (a few literally check `result["diversity_score_D"] == pytest.approx(C × E_value)` — those should move to the `_C_E` key to preserve their assertion semantics), then delete the bare `diversity_score_D` and `diversity_score_D_rate` aliases from `core.py`. Blast radius was surveyed on 2026-04-24: 54 occurrences across 20 files. Use a word-boundary regex: `rg -l '\bdiversity_score_D\b' src/ scripts/ tests/ | xargs sed -i -E 's/\bdiversity_score_D\b/diversity_score_D_C_E/g'`, but *read every test assertion* before committing — some expect specific numeric values, and the rename must preserve those. Run `uv run python -m pytest` + regenerate `results/tables/paper_macros.tex` and diff vs. the prior build to confirm zero numeric drift.
+**The endpoint (full overhaul, separate PR when someone has a quiet week).** Rename every existing reader of `metrics["diversity_score_D"]` to one of the unambiguous keys, update every test that asserts on it (a few literally check `result["diversity_score_D"] == pytest.approx(C × E_value)` — those should move to the `_C_E` key to preserve their assertion semantics), then delete the bare `diversity_score_D` and `diversity_score_D_rate` aliases from `core.py`. Blast radius was last surveyed at ~54 occurrences across 20 files. Use a word-boundary regex: `rg -l '\bdiversity_score_D\b' src/ scripts/ tests/ | xargs sed -i -E 's/\bdiversity_score_D\b/diversity_score_D_C_E/g'`, but *read every test assertion* before committing — some expect specific numeric values, and the rename must preserve those. Run `uv run python -m pytest` + regenerate `results/tables/paper_macros.tex` and diff vs. the prior build to confirm zero numeric drift.
 
 **Why document rather than do.** The bare-key alias is the cheap side; the full overhaul is surgical work across tests with specific numeric assertions. Doing it under time pressure re-introduces the exact bug class this migration is designed to prevent. Treat the rename as its own dedicated cleanup PR.

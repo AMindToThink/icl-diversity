@@ -3,8 +3,7 @@ ICL (In-Context Learning) Diversity Metric.
 
 Measures diversity of LLM outputs using a trusted base model's token-level
 log-probabilities via progressive conditional surprise. The metric is described
-in detail in `paper/main_icml_workshop.tex` (the original journal-track
-wrapper is archived at `paper/archive/in_context_diversity_metric.tex`).
+in detail in the paper (LaTeX source under `paper/`).
 
 Key idea: if a base model theta can predict response r_k more easily after
 seeing responses r_1..r_{k-1}, then those responses share structure (low
@@ -957,7 +956,7 @@ def _compute_metrics_from_curves(
     # Per-byte a_k curve.  When the caller has multiple permutations
     # available, it computes a mean-of-ratios curve and passes it in via
     # ``a_k_curve_per_byte_precomputed`` — that is the paper's definition
-    # (see per_byte.compute_a_k_curve_mor and the implement-math skill).
+    # (see per_byte.compute_a_k_curve_mor).
     # The fallback below is exact for the single-permutation case
     # (MoR ≡ RoM when |Σ| = 1) but degenerates into "total-bits curve
     # rescaled by 1 / mean_response_length" if applied to perm-averaged
@@ -1115,7 +1114,7 @@ def _metrics_from_permutations(
     # ``diversity_score_D_C_an`` are computed as MoR (the formula the
     # paper specifies), not RoM (what the prior code path produced when
     # this argument was missing).  See ``src/icl_diversity/per_byte.py``
-    # and the ``implement-math`` skill for the failure-mode postmortem.
+    # for the failure-mode postmortem.
     metrics = _compute_metrics_from_curves(
         avg_total_bits, avg_byte_counts, unconditional_per_byte,
         unconditional_byte_counts, e_rate, responses,
