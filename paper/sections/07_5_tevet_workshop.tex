@@ -23,7 +23,7 @@ On McDiv prompt\_gen, where $D_{Ca_n}$ performs best, it reaches $\rho = \tevetM
 The headline takeaway is that an ICL-based diversity metric reaches close to a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
 
 \paragraph{DecTest, included for completeness.} Tevet and Berant also release DecTest (Table~\ref{tab:dectest}), a diagnostic where the ``label'' is the sampling temperature used to generate each response set rather than a human judgement.
-We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity.
+We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity, a position consistent with \citet{peeperkorn2024temperature}'s empirical finding that temperature has only a weak relationship with creativity in LLM outputs.
 The raw $a_n$ achieves $\rho = \tevetDecTestAnPromptGenRho{}$ on prompt\_gen and $\rho = \tevetDecTestAnRespGenRho{}$ on resp\_gen, matching or exceeding all baselines.
 
 \begin{table}[t]

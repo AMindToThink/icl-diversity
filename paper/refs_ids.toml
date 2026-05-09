@@ -203,3 +203,14 @@ entry = """\
 }
 """
 claim = "Meta AI's announcement of the Llama 3.2 release (September 25, 2024), which introduced the lightweight 1B and 3B Llama variants used in our cross-mode scaling experiment alongside the 8B and 70B sizes from the earlier Llama 3 Herd paper. Manual entry: there is no standalone arXiv technical report for Llama 3.2; the canonical authoritative source is the Meta AI blog at https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/. Subagent-verified 2026-05-07 (web search confirms no Llama 3.2 arXiv paper exists; Meta's own model cards for Llama-3.2-1B and Llama-3.2-3B point back to the Herd paper plus the blog)."
+
+# --- Added 2026-05-09: prior empirical study showing temperature is not a
+# reliable creativity parameter. Cited at the §4 DecTest discussion in
+# 07_5_tevet_workshop.tex where we say we "do not believe that temperature
+# labels map onto creative/meaningful output diversity"; this paper provides
+# the empirical backing for that claim.
+
+[[cite]]
+key   = "peeperkorn2024temperature"
+arxiv = "2405.00492"
+claim = "Empirical study at ICCC'24 (Peeperkorn, Kouwenhoven, Brown, Jordanous) showing that sampling temperature has only a weak influence on creativity in LLM outputs: higher temperatures produce slightly more novel content, but temperature shows no relationship with cohesion or typicality and is moderately correlated with incoherence. The authors argue against treating temperature as a reliable 'creativity parameter'. Cited in 07_5_tevet_workshop.tex where we state that DecTest's temperature labels do not map onto creative/meaningful output diversity."
