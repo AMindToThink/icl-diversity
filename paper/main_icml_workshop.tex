@@ -47,6 +47,11 @@
 \newcommand{\pmi}{\mathrm{pmi}}
 \newcommand{\TC}{\mathrm{TC}}
 
+% Wrapper-aware switch for shared-section divergence (RW cross-ref noun;
+% Figure 2 placement in §RLHF). Set to true ONLY in the workshop wrapper;
+% main_neurips.tex declares the same boolean but leaves it false.
+\newif\ifworkshop \workshoptrue
+
 % Anonymous mirror URL for double-blind submission. Code and data live in
 % the same repository — the dataset (Olmo generations + derived metrics) is
 % under `results/rlhf_experiment/` in this mirror.
