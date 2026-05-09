@@ -23,14 +23,14 @@ On McDiv prompt\_gen, where $D_{Ca_n}$ performs best, it reaches $\rho = \tevetM
 The headline takeaway is that an ICL-based diversity metric reaches close to a sentence-embedding baseline on a human-grounded eval, with no embedding model, no reference corpus, and no human labels in the metric itself.
 
 \paragraph{DecTest, included for completeness.} Tevet and Berant also release DecTest (Table~\ref{tab:dectest}), a diagnostic where the ``label'' is the sampling temperature used to generate each response set rather than a human judgement.
-We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity, a position consistent with \citet{peeperkorn2024temperature}'s empirical finding that temperature has only a weak relationship with creativity in LLM outputs.
+We include it for parity with the released benchmark only: we do not believe that temperature labels map onto creative/meaningful output diversity, consistent with \citet{peeperkorn2024temperature}'s finding that the relationship between sampling temperature and creativity is more nuanced and weaker than the ``creativity parameter'' framing suggests.
 The raw $a_n$ achieves $\rho = \tevetDecTestAnPromptGenRho{}$ on prompt\_gen and $\rho = \tevetDecTestAnRespGenRho{}$ on resp\_gen, matching or exceeding all baselines.
 
 \begin{table}[t]
 \centering
 \caption{DecTest results: Spearman $\rho$ between sampling temperature and each metric score (1000 samples, no\_hds).
 Reported for parity with Tevet and Berant; the labels here are sampling temperatures rather than human judgements, so DecTest is not part of the framing for $D_{Ca_n}$.
-That $a_n$ tracks temperature is mechanically unsurprising: $a_n$ is a conditional-entropy quantity, and sampling temperature directly scales the entropy of the policy, so a positive $\rho$ here is a sanity check rather than evidence about creative diversity.}
+That $a_n$ tracks temperature is mechanically unsurprising: $a_n$ is a conditional-entropy quantity, and sampling temperature directly scales the entropy of the policy, so a positive $\rho$ here is a sanity check rather than evidence about creative diversity; \citet{peeperkorn2024temperature} likewise find only a weak relationship between temperature and creativity in LLM outputs.}
 \label{tab:dectest}
 \small
 \input{../results/tables/dectest_rho.tex}
