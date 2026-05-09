@@ -46,7 +46,7 @@ The scalar score is the product:
 It can be read as ``how many bits of surprise per byte remain after $\theta$ has learned what it can from the other responses, weighted by output plausibility.''
 The intended edge-case behaviors are summarized in Table~\ref{tab:edge-cases}, alongside empirical $D_{Ca_n}$ on synthetic instances of each scenario under two base models (full per-metric breakdown in Appendix~\ref{sec:scenario-validation}, Table~\ref{tab:scenarios}).
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \caption{Intended edge-case behavior of $D_{Ca_n} = C \times a_n$ on the five synthetic scenarios (Appendix~\ref{sec:scenario-validation}), with empirical $D_{Ca_n}$ values under GPT-2 (124M) and Qwen2.5-3B base.
@@ -67,7 +67,7 @@ One-mode              & high & low   & low (via $a_n$)         & \scenarioOneMod
 Mixed                 & mid  & high  & mid                     & \scenarioMixedGptDCan{}            & \scenarioMixedQwenDCan{}            \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The score depends on $p$, $\pi$'s responses, and $\theta$.
 Diversity is therefore a property of (responses, prompt, scoring model), not of the policy in isolation: the same response set can score differently under a stronger or weaker $\theta$.
