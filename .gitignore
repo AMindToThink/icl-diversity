@@ -1,7 +1,7 @@
 .env
 __pycache__/
 
-# One-off audit notes for workshop submission readiness; not part of the repo.
+# One-off local audit notes; not part of the repo.
 workshop-problems.md
 claude-plan.md
 
@@ -48,7 +48,7 @@ paper/archive/*.synctex(busy)
 paper/rlhf_experiment_preview.pdf
 
 # pdftotext-style plaintext dumps of the paper (stale the moment they're
-# written; regenerable with `pdftotext paper/main_icml_workshop.pdf`)
+# written; regenerable with `pdftotext paper/<wrapper>.pdf`)
 paper/*.txt
 paper/archive/*.txt
 
@@ -61,7 +61,7 @@ compute_v*.log
 # local to this machine; should not be tracked.
 .claude/
 
-# Git worktrees (per-branch isolated workspaces, e.g. .worktrees/workshop-icml2026)
+# Git worktrees (per-branch isolated workspaces).
 .worktrees/
 
 # Per-paper rebuild lock files created by .claude-tools/rebuild-latex.py

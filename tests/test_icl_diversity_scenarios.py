@@ -5,7 +5,7 @@ Tests that the metric behaves correctly on carefully constructed synthetic
 response sets that exercise each edge case from the paper (Section 6.3).
 All tests use GPT-2 (124M params) as θ, running on CPU.
 
-Scenarios (from in_context_diversity_metric.tex):
+Scenarios (from the paper):
 1. Pure noise:              C ≈ 0, E ≈ 0, D ≈ 0, flat a_k
 2. Multiple incoherent modes: C low, E > 0, D suppressed
 3. Many coherent modes:     C high, E high, D high, a_k decreases

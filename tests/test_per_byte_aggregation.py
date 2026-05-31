@@ -15,8 +15,6 @@ The tests use synthetic per-permutation data where the byte counts are
 *not* equal across permutations at each slot (because the permuted
 responses have different lengths).  This is the regime where MoR and
 RoM diverge — the regime the bug went undetected in.
-
-See ``~/.claude/skills/implement-math/SKILL.md`` for the postmortem.
 """
 
 from __future__ import annotations

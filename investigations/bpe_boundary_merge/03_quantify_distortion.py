@@ -8,8 +8,7 @@ truth" to compare single-pass against. The quantity this script measured is
 the magnitude of a token-attribution CONVENTION DIFFERENCE driven by BPE
 merges at response boundaries — not a bias.
 
-See ../REPORT.md and ~/.claude/CLAUDE.md (entry on "multi-pass is a confusion,
-not an alternative") for the corrected framing. The paper's Sec 8.6 now
+See ../REPORT.md for the corrected framing. The paper's Sec 8.6 now
 describes our boundary-handling design directly rather than as a deviation
 from some alternative.
 

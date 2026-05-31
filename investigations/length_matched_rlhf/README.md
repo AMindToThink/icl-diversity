@@ -52,7 +52,7 @@ Three outcomes:
 - Do not discard the raw-generation pipeline. The length-matched scoring is a robustness check, not a replacement.
 - The 100-word truncation used for the cross-model table (`paper/rlhf_experiment.tex` "Cross-model comparison" paragraph) is a different, already-documented preprocessing step. Do not conflate the two.
 - After the re-run, regenerate `paper_macros.tex` via `scripts/build_paper_macros.py` if any paper-referenced numbers change.
-- Once the investigation is complete, update `paper/paper_writing_checklist.md` §1 item 1.5 (red-teaming) and `paper/in_context_diversity_metric.tex` §Limitations with the outcome.
+- Once the investigation is complete, update the paper's §Limitations with the outcome.
 
 ## Quick data primer
 
@@ -87,7 +87,7 @@ NB-curated SFT is the most extreme — for many prompts, $L_{\text{prompt}}$ (th
 
 ## Handoff
 
-Raise any blockers against Matthew. When the re-run finishes, report:
+Raise any blockers with the lead investigator. When the re-run finishes, report:
 
 1. Per-stage $D$ means (raw vs length-matched) for both prompt sets.
 2. Effect sizes ($d_z$) and Bonferroni-corrected $p$-values for the three pre-registered contrasts (H1a, H1b, H1c) under length-matched scoring.

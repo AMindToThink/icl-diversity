@@ -64,8 +64,8 @@ def compute_per_byte_curve(entry: dict) -> list[float] | None:
     """Mean-of-ratios per-byte curve across permutations.
 
     Delegates to :func:`icl_diversity.per_byte.compute_a_k_curve_mor`,
-    the single source of truth for this aggregation (see the
-    ``implement-math`` skill).  Falls back to the precomputed
+    the single source of truth for this aggregation.  Falls back to the
+    precomputed
     ``a_k_curve_per_byte`` only when per-permutation data is absent —
     which is exact for n_permutations=1 (MoR ≡ RoM there) but gives
     the historically-buggy ratio-of-means when applied to a

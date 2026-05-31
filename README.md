@@ -1,8 +1,8 @@
 # ICL Diversity Metric
 
-Implementation of the **in-context learning (ICL) diversity metric** from
-[the paper](paper/main_icml_workshop.pdf) (the original journal-track
-draft is archived under `paper/archive/`). The metric measures the
+Implementation of the **in-context learning (ICL) diversity metric**
+described in the paper (LaTeX source and compiled PDF under `paper/`).
+The metric measures the
 diversity of LLM-generated responses by computing progressive conditional
 surprise under a base model θ: as θ sees more responses in-context, its
 surprise decreases proportionally to how much learnable structure (i.e.,

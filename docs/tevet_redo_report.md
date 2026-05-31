@@ -81,7 +81,7 @@ The non-convergence bug was a major contributor to the wrong-sign results. Expon
 
 In `format_conditioning_context`, completion mode produces `"{prompt}{response}"` with no space between them. E.g.: `"...The man used primer the next time.The paint still peeled off."` — the period and capital letter run together.
 
-**Fix**: Add a `completion_separator` parameter (default `" "`) inserted between prompt and response. Matthew wants this as an optional flag defaulting to True.
+**Fix**: Add a `completion_separator` parameter (default `" "`) inserted between prompt and response. The lead author wants this as an optional flag defaulting to True.
 
 **Location**: `src/icl_diversity/core.py`, lines 522-531
 
@@ -163,4 +163,4 @@ This may or may not be related to the bugs above. The off-by-one bug affects all
 ### Documentation
 - `docs/tevet_redo_report.md` — this report
 - `hypotheses/tevet_results_gpt2.md` — old GPT-2 results (wrong-sign analysis, partially incorrect interpretation about E measuring "redundancy")
-- `docs/images_results.txt` — Matthew's visual inspection feedback
+- `docs/images_results.txt` — author's visual inspection feedback

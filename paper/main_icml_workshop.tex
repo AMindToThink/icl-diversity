@@ -47,10 +47,15 @@
 \newcommand{\pmi}{\mathrm{pmi}}
 \newcommand{\TC}{\mathrm{TC}}
 
+% Wrapper-aware switch for shared-section divergence (RW cross-ref noun;
+% Figure 2 placement in §RLHF). Set to true ONLY in the workshop wrapper;
+% main_neurips.tex declares the same boolean but leaves it false.
+\newif\ifworkshop \workshoptrue
+
 % Anonymous mirror URL for double-blind submission. Code and data live in
 % the same repository — the dataset (Olmo generations + derived metrics) is
 % under `results/rlhf_experiment/` in this mirror.
-\newcommand{\projectGithubUrl}{\url{https://anonymous.4open.science/r/icl-diversity-67E6/}}
+\newcommand{\projectGithubUrl}{\url{https://anonymous.4open.science/r/icl-diversity-1A76/}}
 
 % Script-generated inline scalars. Same source as original paper.
 \input{../results/tables/paper_macros.tex}

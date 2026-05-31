@@ -201,7 +201,7 @@ def test_escaped_backslash_does_not_open_math() -> None:
     # math and creates a runaway skip region until the next real `\]`,
     # which causes downstream prose to be skipped.
     src = (
-        r"\date{\today\\[1em]\small $^1$ERA Cambridge}"
+        r"\date{\today\\[1em]\small $^1$Affiliation}"
         + "\n\n"
         + r"\begin{abstract}"
         + "\n"
@@ -210,7 +210,7 @@ def test_escaped_backslash_does_not_open_math() -> None:
         + r"\end{abstract}"
     )
     expected = (
-        r"\date{\today\\[1em]\small $^1$ERA Cambridge}"
+        r"\date{\today\\[1em]\small $^1$Affiliation}"
         + "\n\n"
         + r"\begin{abstract}"
         + "\n"

@@ -218,9 +218,9 @@ def main() -> None:
 
     if args.provider != "local":
         raise NotImplementedError(
-            "APIModel was removed in commit 600ce77 (replaced by TinkerModel for the "
-            "Tinker API only). Remote providers 'together' and 'fireworks' are no "
-            "longer supported by this script. Use --provider local."
+            "APIModel has been removed (replaced by TinkerModel for the Tinker API "
+            "only). Remote providers 'together' and 'fireworks' are no longer "
+            "supported by this script. Use --provider local."
         )
     else:
         # Resolve dtype

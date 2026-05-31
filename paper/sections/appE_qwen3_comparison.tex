@@ -1,6 +1,6 @@
 \section{Scaling the Base Model: Qwen2.5-3B vs Qwen3-30B-A3B-Base}\label{app:qwen3-comparison}
 
-To test whether a stronger base model improves the metric on Tevet's benchmarks, we re-ran the full evaluation using Qwen3-30B-A3B-Base (a 30B-parameter mixture-of-experts model with $\sim$3B active parameters per token) via the Tinker API,\footnote{\url{https://thinkingmachines.ai/tinker}} with the same setup as in Section~\ref{sec:tevet}: completion-format prompting, 50 permutations, no fine-tuning.
+To test whether a stronger base model improves the metric on Tevet's benchmarks, we re-ran the full evaluation using Qwen3-30B-A3B-Base \citep{yang2025qwen3} (a 30B-parameter mixture-of-experts model with $\sim$3B active parameters per token) via the Tinker API,\footnote{\url{https://thinkingmachines.ai/tinker}} with the same setup as in Section~\ref{sec:tevet}: completion-format prompting, 50 permutations, no fine-tuning.
 Table~\ref{tab:qwen3-comparison} reports per-task $C \times a_n$ (per-byte) for both base models.
 
 \begin{table*}[!t]
