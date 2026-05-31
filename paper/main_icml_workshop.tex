@@ -28,8 +28,17 @@
 % Attempt to make hyperref and algorithmic work together better.
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
-% Default (no [accepted]) is anonymous double-blind — required for submission.
-\usepackage{icml2026}
+% [preprint] de-anonymizes (shows the real author block) and prints a neutral
+% "Preprint" footer instead of the PMLR "Appearing in Proceedings" copyright
+% banner — correct for posting the accepted NON-ARCHIVAL workshop paper to arXiv.
+% (Anonymous double-blind was the submission default: \usepackage{icml2026}.)
+\usepackage[preprint]{icml2026}
+
+% Replace the default "Preprint. <date>." notice with the accepted-venue line.
+% (Also avoids a misleading build date from the reproducible-build SOURCE_DATE_EPOCH.)
+\makeatletter
+\renewcommand{\ICML@preprint}{\textit{Accepted at the ICML 2026 Workshop on Human-AI Co-Creativity (non-archival).}}
+\makeatother
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -52,10 +61,9 @@
 % main_neurips.tex declares the same boolean but leaves it false.
 \newif\ifworkshop \workshoptrue
 
-% Anonymous mirror URL for double-blind submission. Code and data live in
-% the same repository — the dataset (Olmo generations + derived metrics) is
-% under `results/rlhf_experiment/` in this mirror.
-\newcommand{\projectGithubUrl}{\url{https://anonymous.4open.science/r/icl-diversity-1A76/}}
+% Public project repository. Code and data live together — the dataset
+% (Olmo generations + derived metrics) is under `results/rlhf_experiment/`.
+\newcommand{\projectGithubUrl}{\url{https://github.com/AMindToThink/icl-diversity}}
 
 % Script-generated inline scalars. Same source as original paper.
 \input{../results/tables/paper_macros.tex}
@@ -70,12 +78,15 @@
 \icmlsetsymbol{equal}{*}
 
 \begin{icmlauthorlist}
-\icmlauthor{Anonymous Authors}{anon}
+\icmlauthor{Matthew Khoriaty}{era}
+\icmlauthor{David Williams-King}{era}
+\icmlauthor{Shi Feng}{gwu}
 \end{icmlauthorlist}
 
-\icmlaffiliation{anon}{Anonymous Institution}
+\icmlaffiliation{era}{ERA Fellowship}
+\icmlaffiliation{gwu}{George Washington University}
 
-\icmlcorrespondingauthor{Anonymous Authors}{anonymous@example.com}
+\icmlcorrespondingauthor{Matthew Khoriaty}{matthewkhoriaty@gmail.com}
 
 \icmlkeywords{diversity, language models, mode collapse, in-context learning, evaluation, creativity}
 
@@ -101,7 +112,7 @@
 \input{sections/08_limitations_workshop}
 \input{sections/conclusion_workshop}
 
-% Acknowledgements deliberately omitted (double-blind).
+\input{sections/acknowledgements_workshop}
 
 \input{sections/impact_workshop}
 
