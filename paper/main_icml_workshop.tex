@@ -1,20 +1,12 @@
-% ICML 2026 Workshop variant — Human-AI Co-Creativity workshop submission.
-% This is now the canonical paper. The original journal-track wrapper
-% (named authors, single-column, full content) is archived at
-% paper/archive/in_context_diversity_metric.tex. This wrapper reuses
-% paper/sections/*.tex in ICML two-column format with anonymous authors,
-% with the section ordering and content choices originally driven by
-% paper/human-ai-creativity-workshop.md.
-%
-% Phase 2 of the workshop adaptation: wrapper structure + ICML style files.
-% Phase 3 commits will swap individual shared-section \input{} lines for
-% workshop-specific variants (sections/*_workshop.tex).
+% Canonical paper: ICML 2026 Human-AI Co-Creativity workshop (non-archival).
+% De-anonymized arXiv build. Reuses paper/sections/*.tex in the ICML
+% two-column format. Build with .claude-tools/rebuild-latex.py.
 
 \documentclass{article}
 
-% pdf.js (used by anonymous.4open.science) renders default URW Times Type 1
-% fonts with broken kerning. cmap + T1 fontenc switch to encodings that
-% pdf.js handles correctly. Must come before microtype/icml2026.
+% Some PDF viewers (e.g. pdf.js) render default URW Times Type 1 fonts with
+% broken kerning. cmap + T1 fontenc switch to encodings they handle correctly.
+% Must come before microtype/icml2026.
 \usepackage{cmap}
 \usepackage[T1]{fontenc}
 
@@ -57,8 +49,7 @@
 \newcommand{\TC}{\mathrm{TC}}
 
 % Wrapper-aware switch for shared-section divergence (RW cross-ref noun;
-% Figure 2 placement in §RLHF). Set to true ONLY in the workshop wrapper;
-% main_neurips.tex declares the same boolean but leaves it false.
+% Figure 2 placement in §RLHF). Set to true in this workshop wrapper.
 \newif\ifworkshop \workshoptrue
 
 % Public project repository. Code and data live together — the dataset
