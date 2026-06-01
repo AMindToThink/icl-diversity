@@ -4,12 +4,18 @@ Reads generations from results/rlhf_experiment/generations/{stage}_{set}.jsonl
 and writes per-set metrics to results/rlhf_experiment/icl_metrics.jsonl
 (one row per (stage, prompt_set, prompt_id) group).
 
-Uses Qwen2.5-3B-base as θ (matches the paper's default). fp16 on GPU 1
-(via CUDA_VISIBLE_DEVICES=1). Permutations: 25 by default; separate
---perms-spot-check flag re-runs 5 prompts per stage at n_permutations=50
-and warns if any per-prompt D ranking flips.
+The scorer (theta) defaults to Qwen2.5-3B-base (the paper's default). Override
+with --scorer-model to re-score the same generations under a different theta;
+the OLMo self-scoring matrix (in-family graders) uses e.g.
+--scorer-model allenai/OLMo-2-1124-7B. fp16 by default.
 
-Idempotent: skips (stage, prompt_set, prompt_id) keys already scored.
+GPU selection: set CUDA_VISIBLE_DEVICES in the environment BEFORE launching
+(e.g. `CUDA_VISIBLE_DEVICES=0 uv run python ...`). The script defaults to GPU 1
+only if the variable is unset, preserving the project-wide "GPU 1" default while
+letting the matrix run two graders on two GPUs in parallel.
+
+Permutations: 25 by default. Idempotent: skips (stage, prompt_set, prompt_id,
+n_permutations) keys already scored in the output file.
 """
 
 from __future__ import annotations
@@ -22,15 +28,17 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-# ---- GPU 1 enforcement (must happen before any torch import) ----
+# ---- GPU default (must happen before any torch import) ----
+# Respect a caller-set CUDA_VISIBLE_DEVICES; default to GPU 1 if unset so the
+# matrix can place each grader on its own GPU via the environment.
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1")
-# -----------------------------------------------------------------
+# ----------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = REPO_ROOT / "results" / "rlhf_experiment"
 DEFAULT_GEN_DIR = RESULTS_DIR / "generations"
 
-SCORER_MODEL = "Qwen/Qwen2.5-3B"
+DEFAULT_SCORER_MODEL = "Qwen/Qwen2.5-3B"
 N_PERMUTATIONS = 25
 BATCH_SIZE = 8
 SEED = 42
@@ -81,16 +89,18 @@ def score_all(
     out_path: Path,
     limit: int | None,
     gen_dir: Path,
+    scorer_model: str,
 ) -> None:
     from transformers import AutoModelForCausalLM, AutoTokenizer
     import torch
 
     from icl_diversity.core import compute_icl_diversity_metrics
 
-    print(f"[scorer] loading {SCORER_MODEL} on cuda:0 (physical GPU 1)", flush=True)
-    tok = AutoTokenizer.from_pretrained(SCORER_MODEL)
+    visible = os.environ.get("CUDA_VISIBLE_DEVICES", "?")
+    print(f"[scorer] loading {scorer_model} on cuda:0 (CUDA_VISIBLE_DEVICES={visible})", flush=True)
+    tok = AutoTokenizer.from_pretrained(scorer_model)
     model = AutoModelForCausalLM.from_pretrained(
-        SCORER_MODEL, torch_dtype=torch.float16
+        scorer_model, torch_dtype=torch.float16
     ).to("cuda:0")
     model.eval()
 
@@ -141,7 +151,7 @@ def score_all(
                         "prompt_id": pid,
                         "n_permutations": n_permutations,
                         "n_responses": len(responses),
-                        "scorer_model": SCORER_MODEL,
+                        "scorer_model": scorer_model,
                         "elapsed_s": dt,
                         **metrics,
                     }
@@ -191,6 +201,15 @@ def main() -> None:
     ap.add_argument("--n-permutations", type=int, default=N_PERMUTATIONS)
     ap.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     ap.add_argument(
+        "--scorer-model",
+        type=str,
+        default=DEFAULT_SCORER_MODEL,
+        help=(
+            "HF model id for theta (the scorer). Default Qwen/Qwen2.5-3B. "
+            "Set e.g. allenai/OLMo-2-1124-7B for in-family self-scoring."
+        ),
+    )
+    ap.add_argument(
         "--out",
         type=Path,
         default=RESULTS_DIR / "icl_metrics.jsonl",
@@ -221,6 +240,7 @@ def main() -> None:
         out_path=args.out,
         limit=args.limit,
         gen_dir=args.gen_dir,
+        scorer_model=args.scorer_model,
     )
 
 
