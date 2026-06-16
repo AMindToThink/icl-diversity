@@ -20,16 +20,13 @@
 % Attempt to make hyperref and algorithmic work together better.
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
-% [preprint] de-anonymizes (shows the real author block) and prints a neutral
-% "Preprint" footer instead of the PMLR "Appearing in Proceedings" copyright
-% banner — correct for posting the accepted NON-ARCHIVAL workshop paper to arXiv.
-\usepackage[preprint]{icml2026}
-
-% Replace the default "Preprint. <date>." notice with the accepted-venue line.
-% (Also avoids a misleading build date from the reproducible-build SOURCE_DATE_EPOCH.)
-\makeatletter
-\renewcommand{\ICML@preprint}{\textit{Accepted at the ICML 2026 Workshop on Human-AI Co-Creativity (non-archival).}}
-\makeatother
+% Camera-ready: the workshop organizers' adapted style file. [accepted]
+% de-anonymizes (shows the real author block) and prints the required
+% first-page footnote "ICML'26 Workshop on Human-AI Co-Creativity, Seoul,
+% South Korea." Do NOT override \ICML@appearing: the style file already
+% carries the organizers' intended notice (workshop line + author copyright,
+% correct for a non-archival workshop where authors retain copyright).
+\usepackage[accepted]{icml2026_GenAICreativity}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
