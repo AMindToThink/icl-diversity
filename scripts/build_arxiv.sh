@@ -21,6 +21,9 @@
 # Usage:  scripts/build_arxiv.sh
 # Output: arxiv-build/icl-diversity-arxiv.tar.gz  (arxiv-build/ is gitignored)
 #
+# Before posting a replacement (v2): see paper/arxiv_v2_todo.md for deferred text
+# and title fixes that should land in that build (camera-ready stays frozen).
+#
 # Fails loudly (set -euo pipefail) on any gathering, normalization, or
 # verification failure -- never produces a silently-broken bundle.
 set -euo pipefail
