@@ -33,7 +33,9 @@ The same pipeline scores AI samples and human-written sets alike.
 - Sentence 1, 2, the OLMo sentence, and the last sentence are **verbatim from the abstract**
   (`paper/sections/abstract_workshop.tex`), with two spoken-form adaptations:
   - "D equals C times a-n" speaks the symbol `D_{Ca_n} = C \times a_n`.
-  - "base, SFT, DPO, and RLVR" speaks the arrow chain `base -> SFT -> DPO -> RLVR`.
+  - "base, SFT, DPO, and RLVR" speaks the stage chain `base -> SFT -> DPO ~= RLVR`
+    (DPO vs RLVR is the paper's exploratory H1' contrast with no directional prediction, so
+    `~=`, not an arrow; matches the poster's `&asymp;`).
 - The "intuition" sentence is condensed from `01_motivation_workshop.tex` (verbatim phrases,
   shortened for a 60s read). **Flagged as lightly adapted.**
 - "OCA 0.846" and "SentBERT 0.897" trace to `results/tables/paper_macros.tex`

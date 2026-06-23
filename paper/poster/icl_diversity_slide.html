@@ -32,8 +32,8 @@
     width: 338.667mm; height: 190.5mm;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: var(--ink); background: #fff;
-    padding: 9mm 11mm;
-    display: flex; flex-direction: column; gap: 5mm;
+    padding: 8mm 11mm;
+    display: flex; flex-direction: column; gap: 4mm;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
@@ -50,12 +50,14 @@
   /* banner */
   .banner {
     background: var(--burgundy); color: #fff; border-radius: 5px;
-    padding: 4.5mm 7mm; font-size: 23pt; font-weight: 700; line-height: 1.13;
+    padding: 3.5mm 7mm; font-size: 23pt; font-weight: 700; line-height: 1.13;
     text-align: center;
   }
 
   /* main two-column */
-  .main { flex: 1; display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 8mm; align-items: center; min-height: 0; }
+  /* Main columns share the results grid (1fr 1fr / 6mm) so the figure column
+     lines up exactly with the right-hand (OLMo) result box below it. */
+  .main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: center; min-height: 0; }
   .metric { display: flex; flex-direction: column; gap: 4mm; }
   .formula {
     background: var(--burgundy-tint); border-left: 3mm solid var(--burgundy); border-radius: 4px;
@@ -68,19 +70,29 @@
   .formula .unit { font-size: 15pt; color: var(--grey); margin-top: 1.5mm; }
   .metric .lead { font-size: 16.5pt; line-height: 1.32; }
   .metric .lead strong { font-weight: 700; }
-  .fig { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; }
-  .fig img { max-width: 100%; max-height: 58mm; width: auto; height: auto; }
-  .fig .cap { font-size: 11.5pt; font-style: italic; color: var(--grey); margin-top: 2mm; text-align: center; }
+  /* Figure fills its column: left edge aligns with the OLMo box, right edge with
+     the page margin. max-height is the vertical-overflow safety cap. */
+  .fig { display: flex; flex-direction: column; align-items: stretch; justify-content: center; min-height: 0; }
+  .fig img { width: 100%; height: auto; max-height: 72mm; align-self: center; }
+  .fig .cap { font-size: 11pt; font-style: italic; color: var(--grey); margin-top: 1.5mm; text-align: center; }
   sub { font-size: 0.72em; }
 
-  /* results strip */
+  /* results strip: two stacked cards (headline over description), tinted with a
+     burgundy accent bar to echo the formula box. */
   .results { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
   .result {
-    border: 0.7mm solid var(--burgundy); border-radius: 5px; padding: 3.5mm 5mm;
-    display: flex; align-items: baseline; gap: 4mm;
+    background: var(--burgundy-tint); border-left: 3mm solid var(--burgundy); border-radius: 4px;
+    padding: 3.5mm 5mm;
+    display: flex; flex-direction: column; justify-content: center; gap: 2.4mm;
   }
-  .result .num { font-size: 23pt; font-weight: 800; color: var(--burgundy); white-space: nowrap; }
-  .result .txt { font-size: 12.5pt; line-height: 1.25; color: var(--ink); }
+  .result .headline { font-size: 21pt; font-weight: 800; color: var(--burgundy); line-height: 1.0; }
+  .result .txt { font-size: 12pt; line-height: 1.28; color: var(--ink); }
+  /* OLMo four-stage drop: value above a small stage label, joined by arrows. */
+  .stages { display: flex; align-items: flex-end; gap: 2.5mm; }
+  .stages .stage { display: flex; flex-direction: column; align-items: center; }
+  .stages .sv { font-size: 18pt; font-weight: 800; color: var(--burgundy); line-height: 1.0; }
+  .stages .sl { font-size: 8.5pt; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 0.8mm; }
+  .stages .arrow { font-size: 13pt; font-weight: 700; color: var(--burgundy); padding-bottom: 2.2mm; }
 </style>
 </head>
 <body>
@@ -112,11 +124,19 @@
 
   <div class="results">
     <div class="result">
-      <div class="num">Near SentBERT</div>
+      <div class="headline">Near SentBERT</div>
       <div class="txt">On Tevet &amp; Berant&rsquo;s human-grounded McDiv, \(C \times a_n\) tracks human diversity judgements, 3.7% to 21% behind SentBERT in OCA.</div>
     </div>
     <div class="result">
-      <div class="num">0.481 &rarr; 0.281</div>
+      <div class="stages">
+        <div class="stage"><div class="sv">0.481</div><div class="sl">base</div></div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage"><div class="sv">0.329</div><div class="sl">SFT</div></div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage"><div class="sv">0.286</div><div class="sl">DPO</div></div>
+        <div class="arrow">&asymp;</div>
+        <div class="stage"><div class="sv">0.281</div><div class="sl">RLVR</div></div>
+      </div>
       <div class="txt">Decan drops monotonically across OLMo-2-7B post-training, detecting diversity loss.</div>
     </div>
   </div>
