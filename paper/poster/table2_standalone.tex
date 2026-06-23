@@ -1,0 +1,19 @@
+% Standalone wrapper to export Table 2 (the full Tevet Diversity-Eval results:
+% ConTest + McDiv_nuggets + McDiv-full, all gen types, all metrics) as an image
+% for the poster. \input's the SAME machine-generated table the paper uses, so
+% the numbers come straight from results/tables/contest_rho_oca.tex (no
+% transcription). Rendered on a borderless article page, then auto-trimmed.
+\documentclass{article}
+\usepackage[paperwidth=34cm,paperheight=26cm,margin=8mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\pagestyle{empty}
+\begin{document}
+\noindent
+\large
+\setlength{\tabcolsep}{7pt}
+\renewcommand{\arraystretch}{1.18}
+\input{../../results/tables/contest_rho_oca.tex}
+\end{document}

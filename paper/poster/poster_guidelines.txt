@@ -1,0 +1,10 @@
+(3) Poster format and preparation for the workshop’s poster sessions 
+Authors will present the paper as a physical poster at the workshop’s poster sessions. Authors should prepare a poster PDF with the appropriate format, print the poster, and bring a physical poster to the workshop. We will also make poster PDFs available from the workshop website next to the paper PDFs. 
+There is no specific LaTeX template for preparing the poster PDF. Importantly, the following instructions must be respected for posters across all the ICML’26 workshops:
+Make your posters in the portrait format with following dimensions: 
+Max Height = 36 inches (91 cm)
+Max Width = 24 inches (61 cm)
+Note that this is different from the main conference size posters.  
+Authors are responsible for printing their posters and can use any suitable services for printing. For instance, authors could print a poster at their home institute and transport it with them. Alternatively, authors can explore printing options at the venue provided at https://icml.cc/Conferences/2026/PosterInstructions (see section “Poster Printing”; order deadline is June 15, 2026).
+By 22 June 2026 (AoE time), we request authors to share their poster PDF files. Please follow these instructions to share the poster PDF file:
+Name the file as {ID}_poster.pdf where {ID} is a placeholder for your paper number in Openreview (e.g., 1_poster.pdf, 2_poster.pdf). Share the file by emailing <contact.genaicreativity@gmail.com> with “{ID} files” as the subject. 

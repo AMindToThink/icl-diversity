@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ICL Diversity Lightning Slide</title>
+<link rel="stylesheet" href="assets/katex/katex.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
+<script defer src="assets/katex/auto-render.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\(", right: "\\)", display: false }
+      ],
+      throwOnError: true
+    });
+    window.__katexDone = true;
+  });
+</script>
+<style>
+  /* Single 16:9 slide (13.333in x 7.5in) for the 60s lightning talk. No animation. */
+  @page { size: 338.667mm 190.5mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --burgundy: rgb(140, 5, 28);
+    --burgundy-tint: #fbeef0;
+    --ink: #1a1a1a;
+    --grey: #555;
+  }
+  body {
+    width: 338.667mm; height: 190.5mm;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: var(--ink); background: #fff;
+    padding: 9mm 11mm;
+    display: flex; flex-direction: column; gap: 5mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* header */
+  .head { display: flex; align-items: center; gap: 7mm; }
+  .head .logo { height: 17mm; width: auto; flex-shrink: 0; }
+  .head .titles { flex: 1; }
+  .head h1 { font-size: 16pt; font-weight: 600; font-style: italic; color: var(--burgundy); line-height: 1.18; margin-bottom: 1mm; }
+  .head .authors { font-size: 13pt; color: var(--grey); }
+  .head .qr { text-align: center; flex-shrink: 0; }
+  .head .qr img { height: 20mm; width: 20mm; display: block; }
+  .head .qr span { font-size: 10pt; color: var(--grey); font-weight: 600; }
+
+  /* banner */
+  .banner {
+    background: var(--burgundy); color: #fff; border-radius: 5px;
+    padding: 4.5mm 7mm; font-size: 23pt; font-weight: 700; line-height: 1.13;
+    text-align: center;
+  }
+
+  /* main two-column */
+  .main { flex: 1; display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 8mm; align-items: center; min-height: 0; }
+  .metric { display: flex; flex-direction: column; gap: 4mm; }
+  .formula {
+    background: var(--burgundy-tint); border-left: 3mm solid var(--burgundy); border-radius: 4px;
+    padding: 5mm 6mm; text-align: center;
+  }
+  .formula .big { font-size: 40pt; font-weight: 800; color: var(--burgundy); line-height: 1.0; }
+  .formula .big .katex { font-size: 1em; color: var(--burgundy); }
+  /* Inline math inherits the surrounding text size and color. */
+  .katex { font-size: 1em; }
+  .formula .unit { font-size: 15pt; color: var(--grey); margin-top: 1.5mm; }
+  .metric .lead { font-size: 16.5pt; line-height: 1.32; }
+  .metric .lead strong { font-weight: 700; }
+  .fig { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; }
+  .fig img { max-width: 100%; max-height: 58mm; width: auto; height: auto; }
+  .fig .cap { font-size: 11.5pt; font-style: italic; color: var(--grey); margin-top: 2mm; text-align: center; }
+  sub { font-size: 0.72em; }
+
+  /* results strip */
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .result {
+    border: 0.7mm solid var(--burgundy); border-radius: 5px; padding: 3.5mm 5mm;
+    display: flex; align-items: baseline; gap: 4mm;
+  }
+  .result .num { font-size: 23pt; font-weight: 800; color: var(--burgundy); white-space: nowrap; }
+  .result .txt { font-size: 12.5pt; line-height: 1.25; color: var(--ink); }
+</style>
+</head>
+<body>
+
+  <div class="head">
+    <img class="logo" src="assets/ERA_logo.jpg" alt="ERA Fellowship">
+    <div class="titles">
+      <h1>&ldquo;I&rsquo;ve Seen How This Goes&rdquo;: Characterizing the Diversity of LLM Generations and Human Writing via Progressive Conditional Surprise</h1>
+      <div class="authors">Matthew Khoriaty&ensp;&middot;&ensp;David Williams-King&ensp;&middot;&ensp;Shi Feng&ensp;&ensp;|&ensp;&ensp;ICML 2026 Workshop on Generative AI &amp; Creativity</div>
+    </div>
+    <div class="qr"><img src="assets/qr_paper.png" alt="paper QR"><span>Paper</span></div>
+  </div>
+
+  <div class="banner">In-context learning of pretrained models can be used to directly measure the diversity of LLM generations and human writing.</div>
+
+  <div class="main">
+    <div class="metric">
+      <div class="formula">
+        <div class="big">\(\boldsymbol{D_{Ca_n} = C \times a_n}\)</div>
+        <div class="unit">plausibility-weighted residual diversity (bits/byte)</div>
+      </div>
+      <div class="lead">A per-byte score read off a base model&rsquo;s per-token log-probabilities, with <strong>no embedding model, no reference corpus, and no human labels.</strong></div>
+    </div>
+    <div class="fig">
+      <img src="assets/fig1_pipeline.png" alt="The diversity-metric pipeline">
+      <div class="cap">The same pipeline scores AI samples and human-written response sets.</div>
+    </div>
+  </div>
+
+  <div class="results">
+    <div class="result">
+      <div class="num">Near SentBERT</div>
+      <div class="txt">On Tevet &amp; Berant&rsquo;s human-grounded McDiv, \(C \times a_n\) tracks human diversity judgements, 3.7% to 21% behind SentBERT in OCA.</div>
+    </div>
+    <div class="result">
+      <div class="num">0.481 &rarr; 0.281</div>
+      <div class="txt">Decan drops monotonically across OLMo-2-7B post-training, detecting diversity loss.</div>
+    </div>
+  </div>
+
+</body>
+</html>
