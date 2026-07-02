@@ -48,3 +48,24 @@ The camera-ready PDF, slide, and poster all use the CURRENT LONG title:
 When submitting the replacement version, update the arXiv title field to the long title
 so arXiv matches the paper. OpenReview's listing also still shows the short title;
 updating that is separate and optional.
+
+## 4. Drop "each later stage's curve lies below the base curve at every $k \geq 2$"
+
+Remove (or rewrite) the "lies below the base curve at every $k \geq 2$" claim in the
+RLHF/OLMo section and its figure captions. Occurrences:
+
+- `paper/sections/07_6_rlhf_workshop.tex:64` (prose)
+- `paper/sections/07_6_rlhf_workshop.tex:76` (Figure caption)
+- `paper/sections/07_6_rlhf_workshop.tex:80` (duplicate prose variant)
+- `paper/sections/appF_rlhf_cross_metric.tex:20` (Figure caption)
+
+Why: the observation is technically correct but not a useful, independent result. The
+overall height of each $\bar{a}_k$ curve is largely determined by $a_1$ — the
+unconditional per-byte entropy of that stage's responses. A stage whose responses have
+lower unconditional entropy starts lower and simply stays lower across $k$, so "lies
+below at every $k \geq 2$" mostly restates the $a_1$ (coherence/entropy) gap rather than
+demonstrating a difference in the conditional-surprise *decay* that the diversity signal
+is about. Keep the pre-registered contrasts (they test $D_{Ca_n}$/$a_n$ properly); only
+the "curve-below-base-at-every-k" phrasing should go. The poster (`paper/poster/
+icl_diversity_poster.html`) has already had this sentence removed from the
+"Catches post-training mode collapse" caption.
