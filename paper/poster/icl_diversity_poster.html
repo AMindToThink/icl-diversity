@@ -74,15 +74,15 @@
         flex: 1;
         text-align: center;
       }
-      .takeaway-banner {
+      .title-content h1.poster-title {
         color: #fff;
-        font-size: 51pt;
+        font-size: 44pt;
         font-weight: 700;
         line-height: 1.1;
         letter-spacing: -0.3pt;
         margin-bottom: 5mm;
       }
-      .title-content h1 {
+      .title-content .tagline {
         color: rgba(255, 255, 255, 0.92);
         font-size: 22pt;
         font-weight: 500;
@@ -244,7 +244,7 @@
         margin: 1mm auto 2mm;
       }
       .figure-single.tbl {
-        max-height: 172mm;
+        max-height: 184mm;
       }
       .figure-pair {
         display: flex;
@@ -342,12 +342,6 @@
       .def.decan .elabel {
         font-weight: 800;
       }
-      .def .unit {
-        font-weight: 400;
-        font-size: 18pt;
-        margin-left: 2.5mm;
-        color: var(--grey);
-      }
 
       /* ═══ TAKEAWAYS w/ PAPER + CODE QR (place of honor) ═══ */
       .tk-body {
@@ -430,15 +424,15 @@
     <div class="title-bar">
       <img class="logo" src="assets/ERA_logo.jpg" alt="ERA Fellowship" />
       <div class="title-content">
-        <div class="takeaway-banner">
-          In-context learning of pretrained models can be used to directly
-          measure the diversity of LLM generations and human writing.
-        </div>
-        <h1>
+        <h1 class="poster-title">
           &ldquo;I&rsquo;ve Seen How This Goes&rdquo;: Characterizing the
           Diversity of LLM Generations and Human Writing via Progressive
           Conditional Surprise
         </h1>
+        <div class="tagline">
+          In-context learning of pretrained models can be used to directly
+          measure the diversity of LLM generations and human writing.
+        </div>
         <div class="authors">
           Matthew Khoriaty&ensp;&middot;&ensp;David
           Williams-King&ensp;&middot;&ensp;Shi Feng
@@ -478,7 +472,7 @@
               to get a complete picture of what the model is capable of and what
               it might choose to do
             </li>
-            <li>post-training stages of the same base model (mode collapse)</li>
+            <li>post-training stages (mode collapse)</li>
             <li>
               decoding strategies (what does temperature trade off against?)
             </li>
@@ -530,7 +524,7 @@
               </li>
               <li>
                 Measuring diversity with ICL requires no special-purpose
-                training, datasets, or predetermined dimensions of diversity.
+                training, datasets, or predetermined aspects of diversity.
               </li>
               <li>
                 The same pipeline scores AI samples and human-written sets, and
@@ -568,9 +562,8 @@
           <div class="eqn-defs">
             <div class="def">
               <div class="eqn">
-                <span class="elabel">Progressive surprise</span> \(a_k = -\log_2
-                \theta(r_k \mid r_{&lt;k}, p)\)
-                <span class="unit">(bits/byte)</span>
+                <span class="elabel">Progressive conditional surprise</span>
+                \(a_k = -\frac{1}{\|r_k\|}\log_2 \theta(r_k \mid r_{&lt;k}, p)\)
               </div>
               <div class="gloss">
                 How surprised \(\theta\) is by response \(k\) given the previous
@@ -581,21 +574,20 @@
             </div>
             <div class="def">
               <div class="eqn">
-                <span class="elabel">Residual surprise</span> \(a_n = H(r_n \mid
-                p) - I(r_n; r_{&lt;n} \mid p)\)
-                <span class="unit">(bits/byte)</span>
+                <span class="elabel">Residual surprise</span> \(a_n \approx
+                a_\infty = \frac{1}{\|r_n\|}\left(H_\theta(r_n \mid p) -
+                I_\theta(r_n; r_{&lt;n} \mid p)\right)\)
               </div>
               <div class="gloss">
                 The curve&rsquo;s last point: the response&rsquo;s own surprise
-                minus what the others reveal about it. High \(a_n\) needs
-                responses to remain surprising even after seeing the rest.
+                minus what the others reveal about it. High \(a_n\) indicates
+                that responses remain surprising even after seeing the rest.
               </div>
             </div>
             <div class="def">
               <div class="eqn">
                 <span class="elabel">Coherence</span> \(C = 1 /
                 \mathrm{PPL}_\theta(\pi, p)\)
-                <span class="unit">(unitless)</span>
               </div>
               <div class="gloss">
                 Reciprocal perplexity suppresses the diversity score of
@@ -606,7 +598,6 @@
             <div class="def decan">
               <div class="eqn">
                 <span class="elabel">Decan</span> \(D_{Ca_n} = C \times a_n\)
-                <span class="unit">(bits/byte)</span>
               </div>
               <div class="gloss">
                 Bits of surprise per byte left after \(\theta\) learns what it
@@ -624,7 +615,7 @@
       <div class="col spread">
         <div class="section">
           <div class="section-title">
-            <span class="hl">Human</span> Writing Diversity Evaluation
+            <span class="hl">Human</span> writing diversity evaluation
           </div>
           <div class="section-body">
             <p>
@@ -635,8 +626,10 @@
             </p>
             <p>
               Across the binary tasks Decan clearly tracks human diversity
-              judgements, between 3.7% and 21.0% behind SentBERT in OCA,
-              reaching close to a sentence-embedding baseline.
+              judgments, reaching close to the sentence-embedding baseline of
+              SentBERT, but still 3.7&ndash;21.0% behind in OCA. Future work can
+              attempt to close the gap by using other scalar summaries of the
+              \(a_k\) curve or fine-tuning the base model.
             </p>
             <img
               class="figure-single tbl"

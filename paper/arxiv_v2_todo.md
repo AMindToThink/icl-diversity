@@ -69,3 +69,19 @@ is about. Keep the pre-registered contrasts (they test $D_{Ca_n}$/$a_n$ properly
 the "curve-below-base-at-every-k" phrasing should go. The poster (`paper/poster/
 icl_diversity_poster.html`) has already had this sentence removed from the
 "Catches post-training mode collapse" caption.
+
+## 5. RLHF $\bar{a}_k$ overlay figure: y-axis mislabeled "(bits/byte)" — should be "(total bits)"
+
+`scripts/rlhf_experiment/5_analyze_and_figures.py:257` labeled the $\bar{a}_k$
+overlay y-axis `(bits/byte)`, but that curve is the **total-bits** progressive surprise
+(values run ~80–240; per-byte cross-entropy is ~1–2 bits/byte). The adjacent violin
+(`C \times a_n`, line 278) is correctly per-byte. Two poster reviewers independently
+flagged the same-panel scale mismatch.
+
+**Status: already fixed in local source.** The script line was corrected to
+`(total bits)` and the two length-matched overlay PDFs
+(`figures/rlhf_experiment/ak_curves_overlay_{alpacaeval,nbcurated}_lm.pdf`) were
+regenerated from `results/rlhf_experiment/icl_metrics_length_matched.jsonl`; the poster
+asset `paper/poster/assets/fig2_ak.png` was re-exported. Only the frozen OpenReview v1
+PDF still carries the old "(bits/byte)" label. Nothing further to do at the v2 build
+beyond the normal figure regeneration, which now emits the correct label.
