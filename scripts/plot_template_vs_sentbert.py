@@ -1,15 +1,23 @@
-"""Analyze and plot template-vs-SentBERT experiment results.
+"""Analyze and plot template/POS-pattern vs baseline-metric experiments.
 
-Reads the JSON produced by scripts/run_template_vs_sentbert.py and writes:
+Works for both experiment JSONs (auto-detects the sweep condition prefix):
 
-- fig1_d_vs_sentbert.png: two panels sharing x = number of syntactic frames m.
-  Left: D = C * a_n (diversity_score_D_C_an), mean +/- SD across draws.
-  Right: SentBERT diversity (negated mean pairwise cosine), mean +/- SD.
-  Both panels show the canonical-template condition as a separate marker at
-  m=1 and the paraphrase anchor as a horizontal dashed line.
+- scripts/run_template_vs_sentbert.py    -> conditions frames_m (+ canonical,
+  paraphrase)
+- scripts/run_pos_pattern_vs_baselines.py -> conditions patterns_m
+  (+ canonical; no paraphrase anchor)
+
+Writes to --output-dir:
+
+- fig1_d_vs_sentbert.png: three panels sharing x = sweep size m:
+  D = C * a_n (diversity_score_D_C_an), SentBERT diversity (negated mean
+  pairwise cosine), and averaged distinct-n; mean +/- SD across draws.
+  The canonical condition appears as a separate marker at m=1 and, when a
+  paraphrase condition exists, its mean as a horizontal dashed line.
 - fig2_ak_curves.png: mean per-byte a_k curves by condition.
-- summary.txt: per-condition table (mean +/- SD) and Spearman correlations
-  between m and each metric across the frame-sweep runs.
+- summary.txt: per-condition table (mean +/- SD), in-context drop ratios,
+  normalized positions (only when a paraphrase anchor exists), and Spearman
+  correlations between m and each metric across the sweep runs.
 
 Usage:
     uv run python scripts/plot_template_vs_sentbert.py \
@@ -21,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +53,13 @@ METRIC_KEYS = [
     "averaged_distinct_ngrams",
 ]
 
+SWEEP_XLABELS = {
+    "frames": "number of syntactic frames m",
+    "patterns": "number of POS patterns m",
+}
+
+_SWEEP_NAME_RE = re.compile(r"^([a-z]+)_(\d+)$")
+
 
 def group_runs(runs: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     grouped: dict[str, list[dict[str, Any]]] = {}
@@ -62,14 +78,22 @@ def style_axes(ax: plt.Axes) -> None:
     ax.grid(True, alpha=0.25, linewidth=0.5)
 
 
-def sweep_conditions(grouped: dict[str, list[dict[str, Any]]]) -> list[tuple[int, str]]:
-    """Sorted (m, condition_name) for the frames_m sweep."""
-    pairs = [
-        (int(name.split("_")[1]), name)
-        for name in grouped
-        if name.startswith("frames_")
-    ]
-    return sorted(pairs)
+def sweep_conditions(
+    grouped: dict[str, list[dict[str, Any]]],
+) -> tuple[str, list[tuple[int, str]]]:
+    """Detect the sweep prefix and return it with sorted (m, condition_name)."""
+    by_prefix: dict[str, list[tuple[int, str]]] = {}
+    for name in grouped:
+        match = _SWEEP_NAME_RE.match(name)
+        if match:
+            by_prefix.setdefault(match.group(1), []).append((int(match.group(2)), name))
+    if len(by_prefix) != 1:
+        raise ValueError(
+            f"Expected exactly one sweep condition prefix, found: "
+            f"{sorted(by_prefix)} among {sorted(grouped)}"
+        )
+    prefix, pairs = next(iter(by_prefix.items()))
+    return prefix, sorted(pairs)
 
 
 def plot_metric_panel(
@@ -78,7 +102,7 @@ def plot_metric_panel(
     key: str,
     ylabel: str,
 ) -> None:
-    sweep = sweep_conditions(grouped)
+    prefix, sweep = sweep_conditions(grouped)
     ms = [m for m, _ in sweep]
     means, sds = zip(*[cond_stats(grouped[name], key) for _, name in sweep])
     ax.errorbar(
@@ -90,7 +114,7 @@ def plot_metric_panel(
         markersize=5,
         linewidth=2,
         capsize=3,
-        label="m random frames",
+        label=f"m random {prefix}",
     )
 
     if "canonical" in grouped:
@@ -105,7 +129,7 @@ def plot_metric_panel(
             linewidth=0,
             elinewidth=2,
             capsize=3,
-            label="canonical template (m=1)",
+            label="canonical (m=1)",
             zorder=5,
         )
 
@@ -119,7 +143,7 @@ def plot_metric_panel(
             label="paraphrase anchor",
         )
 
-    ax.set_xlabel("number of syntactic frames m")
+    ax.set_xlabel(SWEEP_XLABELS.get(prefix, f"number of {prefix} m"))
     ax.set_ylabel(ylabel)
     ax.set_xscale("log")
     ax.set_xticks(ms)
@@ -128,9 +152,11 @@ def plot_metric_panel(
 
 
 def plot_fig1(
-    grouped: dict[str, list[dict[str, Any]]], base_model: str, out: Path
+    grouped: dict[str, list[dict[str, Any]]],
+    data: dict[str, Any],
+    out: Path,
 ) -> None:
-    fig, (ax_d, ax_sb) = plt.subplots(1, 2, figsize=(10, 4))
+    fig, (ax_d, ax_sb, ax_dn) = plt.subplots(1, 3, figsize=(14, 4))
     plot_metric_panel(
         ax_d,
         grouped,
@@ -143,11 +169,19 @@ def plot_fig1(
         "sentbert_diversity",
         "SentBERT diversity  (-mean pairwise cosine)",
     )
-    ax_d.set_title("ICL diversity D = C x a_n increases with m")
-    ax_sb.set_title("SentBERT rates every template set near its max")
+    plot_metric_panel(
+        ax_dn,
+        grouped,
+        "averaged_distinct_ngrams",
+        "averaged distinct-n  (n = 1..5)",
+    )
+    ax_d.set_title("ICL diversity D = C x a_n")
+    ax_sb.set_title("SentBERT diversity")
+    ax_dn.set_title("Averaged distinct-n")
     ax_d.legend(fontsize=8, frameon=False)
     fig.suptitle(
-        f"Same semantic scatter, varying syntactic frames ({base_model})",
+        f"{data['experiment']}  ({data['base_model']}, "
+        f"n={data['n_responses']} responses, {data['n_draws']} draws)",
         fontsize=11,
     )
     fig.tight_layout()
@@ -156,10 +190,12 @@ def plot_fig1(
 
 
 def plot_fig2(
-    grouped: dict[str, list[dict[str, Any]]], base_model: str, out: Path
+    grouped: dict[str, list[dict[str, Any]]],
+    data: dict[str, Any],
+    out: Path,
 ) -> None:
     fig, ax = plt.subplots(figsize=(7, 4.5))
-    sweep = sweep_conditions(grouped)
+    _prefix, sweep = sweep_conditions(grouped)
     cmap = plt.get_cmap("Blues")
     denom = max(len(sweep) - 1, 1)
     for i, (m, name) in enumerate(sweep):
@@ -170,10 +206,10 @@ def plot_fig2(
             mean_curve,
             color=cmap(0.35 + 0.55 * i / denom),
             linewidth=2,
-            label=f"m={m} frames",
+            label=f"m={m}",
         )
     for name, color, style, label in [
-        ("canonical", CANONICAL_COLOR, "-", "canonical template"),
+        ("canonical", CANONICAL_COLOR, "-", "canonical"),
         ("paraphrase", ANCHOR_COLOR, "--", "paraphrase anchor"),
     ]:
         if name in grouped:
@@ -190,8 +226,8 @@ def plot_fig2(
     ax.set_xlabel("response index k")
     ax.set_ylabel("a_k (bits/byte), mean over draws")
     ax.set_title(
-        f"Progressive conditional surprise under {base_model}:\n"
-        "the base model learns repeated frames in-context"
+        f"Progressive conditional surprise under {data['base_model']}\n"
+        f"({data['experiment']})"
     )
     style_axes(ax)
     ax.legend(fontsize=8, frameon=False)
@@ -206,8 +242,9 @@ def write_summary(
     input_path: Path,
     out: Path,
 ) -> None:
+    prefix, sweep = sweep_conditions(grouped)
     lines: list[str] = []
-    lines.append("Template-vs-SentBERT experiment summary")
+    lines.append(f"{data['experiment']} experiment summary")
     lines.append(f"Source: {input_path}")
     lines.append("Generated by: scripts/plot_template_vs_sentbert.py")
     lines.append(
@@ -220,7 +257,7 @@ def write_summary(
     lines.append("")
 
     order = ["canonical"]
-    order += [name for _, name in sweep_conditions(grouped)]
+    order += [name for _, name in sweep]
     order += ["paraphrase"]
 
     header = f"{'condition':<14s}" + "".join(f"{k:>31s}" for k in METRIC_KEYS)
@@ -252,33 +289,32 @@ def write_summary(
         lines.append(f"  {name:<14s} {arr.mean():.3f} ± {arr.std(ddof=1):.3f}")
     lines.append("")
 
-    lines.append(
-        "Normalized position on the paraphrase -> frames_20 scale, "
-        "(mean_cond - mean_paraphrase) / (mean_frames_20 - mean_paraphrase):"
-    )
-    top = f"frames_{max(m for m, _ in sweep_conditions(grouped))}"
-    for key in [
-        "diversity_score_D_C_an",
-        "sentbert_diversity",
-        "averaged_distinct_ngrams",
-    ]:
-        p_mean, _ = cond_stats(grouped["paraphrase"], key)
-        t_mean, _ = cond_stats(grouped[top], key)
-        span = t_mean - p_mean
-        if span == 0:
-            raise ValueError(f"degenerate span for {key}: paraphrase == {top}")
-        parts = []
-        for name in ["canonical", "frames_1"]:
-            if name in grouped:
-                c_mean, _ = cond_stats(grouped[name], key)
-                parts.append(f"{name} = {(c_mean - p_mean) / span:+.2f}")
-        lines.append(f"  {key:<28s} {'  '.join(parts)}")
-    lines.append("")
+    if "paraphrase" in grouped:
+        top = f"{prefix}_{max(m for m, _ in sweep)}"
+        lines.append(
+            f"Normalized position on the paraphrase -> {top} scale, "
+            f"(mean_cond - mean_paraphrase) / (mean_{top} - mean_paraphrase):"
+        )
+        for key in [
+            "diversity_score_D_C_an",
+            "sentbert_diversity",
+            "averaged_distinct_ngrams",
+        ]:
+            p_mean, _ = cond_stats(grouped["paraphrase"], key)
+            t_mean, _ = cond_stats(grouped[top], key)
+            span = t_mean - p_mean
+            if span == 0:
+                raise ValueError(f"degenerate span for {key}: paraphrase == {top}")
+            parts = []
+            for name in ["canonical", f"{prefix}_1"]:
+                if name in grouped:
+                    c_mean, _ = cond_stats(grouped[name], key)
+                    parts.append(f"{name} = {(c_mean - p_mean) / span:+.2f}")
+            lines.append(f"  {key:<28s} {'  '.join(parts)}")
+        lines.append("")
 
-    lines.append("Spearman rho between m and metric (frames_m sweep runs):")
-    sweep_runs = [
-        (m, run) for m, name in sweep_conditions(grouped) for run in grouped[name]
-    ]
+    lines.append(f"Spearman rho between m and metric ({prefix}_m sweep runs):")
+    sweep_runs = [(m, run) for m, name in sweep for run in grouped[name]]
     ms = [m for m, _ in sweep_runs]
     for key in [
         "diversity_score_D_C_an",
@@ -295,7 +331,9 @@ def write_summary(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Plot template-vs-SentBERT results")
+    parser = argparse.ArgumentParser(
+        description="Plot template/POS-pattern vs baseline-metric results"
+    )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
@@ -303,12 +341,11 @@ def main() -> None:
     with open(args.input) as f:
         data = json.load(f)
     grouped = group_runs(data["runs"])
-    if not any(name.startswith("frames_") for name in grouped):
-        raise ValueError(f"No frames_m sweep conditions found in {args.input}")
+    sweep_conditions(grouped)  # fail fast if no (or ambiguous) sweep found
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    plot_fig1(grouped, data["base_model"], args.output_dir / "fig1_d_vs_sentbert.png")
-    plot_fig2(grouped, data["base_model"], args.output_dir / "fig2_ak_curves.png")
+    plot_fig1(grouped, data, args.output_dir / "fig1_d_vs_sentbert.png")
+    plot_fig2(grouped, data, args.output_dir / "fig2_ak_curves.png")
     write_summary(data, grouped, args.input, args.output_dir / "summary.txt")
     print(f"\nFigures and summary written to: {args.output_dir}")
 
