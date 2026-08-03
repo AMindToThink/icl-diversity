@@ -1,0 +1,32 @@
+% Standalone wrapper so we can `latexmk -pdf olmo_matrix_preview.tex` to view
+% paper/sections/appG_olmo_self_scoring.tex in isolation, without touching
+% paper/main_icml_workshop.tex.
+%
+% Cross-references into the main paper (Section~\ref{sec:rlhf-experiment},
+% Section~\ref{sec:tevet}) render as ?? here; they resolve in the full build.
+% Macros still pending a scoring/analysis run also render as ?? (the section's
+% \providecommand fallbacks).
+%
+% This file's preamble mirrors the main paper's.
+
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{subcaption}
+
+\title{Preview: Grader-Robustness Appendix (OLMo Self-Scoring Matrix + Tevet Invariance)}
+\author{Matthew Khoriaty et al.\ (appendix draft)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{sections/appG_olmo_self_scoring}
+
+\end{document}
