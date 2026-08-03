@@ -1,0 +1,152 @@
+{
+  "generated_by": "scripts/rlhf_experiment/7_matrix_paper_outputs.py",
+  "inputs": {
+    "matrix_summary": "results/rlhf_experiment/matrix/matrix_summary.json",
+    "metric_key": "diversity_score_D_C_an"
+  },
+  "theta_order": [
+    "Qwen-3B",
+    "OLMo-base",
+    "OLMo-sft",
+    "OLMo-dpo",
+    "OLMo-instruct"
+  ],
+  "gen_order": [
+    "base",
+    "sft",
+    "dpo",
+    "instruct"
+  ],
+  "prompt_sets": {
+    "alpacaeval": {
+      "n_prompts": 150,
+      "cell_means_all_graders": {
+        "ss": {
+          "grader": 0.010674981762110632,
+          "stage": 0.09745184116884033,
+          "interaction": 0.002565770963614753
+        },
+        "ss_total": 0.11069259389456569,
+        "frac": {
+          "grader": 0.09643808484855378,
+          "stage": 0.8803826682538749,
+          "interaction": 0.023179246897571493
+        }
+      },
+      "cell_means_olmo_only": {
+        "ss": {
+          "grader": 0.006295063004508874,
+          "stage": 0.07190832448011691,
+          "interaction": 0.0018791936275443619
+        },
+        "ss_total": 0.08008258111217019,
+        "frac": {
+          "grader": 0.07860714423891378,
+          "stage": 0.8979271582093021,
+          "interaction": 0.023465697551783578
+        }
+      },
+      "per_prompt_all_graders": {
+        "ss": {
+          "grader": 1.601247264316596,
+          "stage": 14.617776175326052,
+          "prompt": 7.631637452179635,
+          "grader_x_stage": 0.38486564454221284,
+          "grader_x_prompt": 0.6579669147452459,
+          "stage_x_prompt": 6.545324710157167,
+          "residual": 0.5927310448900569
+        },
+        "ss_total": 32.03154920615694,
+        "prompt_frac_of_total": 0.23825377296183728,
+        "within_prompt_frac": {
+          "grader": 0.09259107991214678,
+          "stage": 0.8673433370935667,
+          "interaction": 0.040065582994287544
+        }
+      },
+      "per_prompt_olmo_only": {
+        "ss": {
+          "grader": 0.944259450676333,
+          "stage": 10.786248672017535,
+          "prompt": 6.411916359969122,
+          "grader_x_stage": 0.28187904413165427,
+          "grader_x_prompt": 0.24767465454475038,
+          "stage_x_prompt": 5.698956812456198,
+          "residual": 0.277864510848189
+        },
+        "ss_total": 24.648799504643772,
+        "prompt_frac_of_total": 0.2601309795538372,
+        "within_prompt_frac": {
+          "grader": 0.06535843300444352,
+          "stage": 0.9039486272788658,
+          "interaction": 0.030692939716691334
+        }
+      }
+    },
+    "nbcurated": {
+      "n_prompts": 39,
+      "cell_means_all_graders": {
+        "ss": {
+          "grader": 0.007956408488069623,
+          "stage": 0.08972910715407467,
+          "interaction": 0.0018697343431978031
+        },
+        "ss_total": 0.09955524998534211,
+        "frac": {
+          "grader": 0.07991952698869295,
+          "stage": 0.9012996016512019,
+          "interaction": 0.018780871360104978
+        }
+      },
+      "cell_means_olmo_only": {
+        "ss": {
+          "grader": 0.006778237003585069,
+          "stage": 0.06963187096773345,
+          "interaction": 0.0017770957652446448
+        },
+        "ss_total": 0.07818720373656315,
+        "frac": {
+          "grader": 0.08669240847163487,
+          "stage": 0.8905788625251868,
+          "interaction": 0.022728729003178443
+        }
+      },
+      "per_prompt_all_graders": {
+        "ss": {
+          "grader": 0.31029993103471426,
+          "stage": 3.4994351790089127,
+          "prompt": 2.7479566782048597,
+          "grader_x_stage": 0.07291963938471431,
+          "grader_x_prompt": 0.11367104501659925,
+          "stage_x_prompt": 1.4788225741183636,
+          "residual": 0.15521605591844184
+        },
+        "ss_total": 8.378321102686604,
+        "prompt_frac_of_total": 0.32798416825104687,
+        "within_prompt_frac": {
+          "grader": 0.07530080543415954,
+          "stage": 0.8841803794228662,
+          "interaction": 0.04051881514297456
+        }
+      },
+      "per_prompt_olmo_only": {
+        "ss": {
+          "grader": 0.26435124313981695,
+          "stage": 2.7156429677416045,
+          "prompt": 2.265502049689926,
+          "grader_x_stage": 0.06930673484454114,
+          "grader_x_prompt": 0.07047658383500952,
+          "stage_x_prompt": 1.2294384008378472,
+          "residual": 0.08503557442593637
+        },
+        "ss_total": 6.6997535545146825,
+        "prompt_frac_of_total": 0.3381470723148166,
+        "within_prompt_frac": {
+          "grader": 0.07550943527008153,
+          "stage": 0.8896837187261355,
+          "interaction": 0.03480684600378282
+        }
+      }
+    }
+  }
+}

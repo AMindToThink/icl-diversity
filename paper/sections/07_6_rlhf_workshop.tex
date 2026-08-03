@@ -82,6 +82,7 @@ Figure~\ref{fig:rlhf-ak-violin} shows the underlying $\bar{a}_k$ curves and per-
 
 \paragraph{Discussion.} The monotone drop across all three pre-registered contrasts is consistent with the post-training-reduces-diversity findings of \citet{kirk2023rlhf,padmakumar2023writingreduces}, now measured by an information-theoretic metric that needs neither an embedding model nor a sentence similarity function.
 Per-prompt $D_{Ca_n}$ also agrees with the lexical (EAD) and semantic (SentBERT) baselines on the same length-matched subset, confirming the metrics see the same diversity-loss signal (Appendix~\ref{app:rlhf-cross-metric}, Figure~\ref{fig:rlhf-metric-scatter}).
+The drop is also robust to the choice of grader: re-scoring the same generations with every OLMo pipeline stage as $\theta$, including OLMo-Instruct grading its own outputs, preserves the ordering in every grader row, and a variance decomposition attributes the large majority of the variation in $D_{Ca_n}$ to the generating stage rather than to grader identity (Appendix~\ref{app:olmo-self-scoring}).
 % Cross-model data lives in ../results/rlhf_experiment/tables/cross_model_macros.tex
 % (already \input'd at the top of this file). Within-pipeline OLMo stages:
 % \crossModelOlmoBase / \crossModelOlmoSft / \crossModelOlmoDpo / \crossModelOlmoInstruct
