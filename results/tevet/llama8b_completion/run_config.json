@@ -1,0 +1,11 @@
+{
+  "base_model": "unsloth/Meta-Llama-3.1-8B",
+  "run_tag": "llama8b_completion",
+  "n_permutations": 50,
+  "torch_dtype": "float16",
+  "batch_size": 16,
+  "format_mode": "completion",
+  "dedup": false,
+  "provider": "local",
+  "max_tokens": 131072
+}

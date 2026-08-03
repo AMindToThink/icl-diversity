@@ -1,0 +1,160 @@
+% ============================================================================
+% OLMo in-family self-scoring matrix (grader-robustness appendix).
+% Every number in this section resolves through generated artifacts:
+%   results/rlhf_experiment/paper_macros_matrix.tex      (inline macros)
+%   results/rlhf_experiment/tables_matrix/*.tex          (table bodies)
+% both emitted by scripts/rlhf_experiment/7_matrix_paper_outputs.py, which
+% consumes matrix_summary.json from 6_matrix_analysis.py.
+% Raw findings write-up: results/rlhf_experiment/matrix/FINDINGS.md
+% ============================================================================
+
+% Load generated macros BEFORE the section body so prose references resolve.
+\IfFileExists{../results/rlhf_experiment/paper_macros_matrix.tex}{%
+  \input{../results/rlhf_experiment/paper_macros_matrix.tex}%
+}{}
+\IfFileExists{../results/tevet/grader_invariance/tevet_invariance_macros.tex}{%
+  \input{../results/tevet/grader_invariance/tevet_invariance_macros.tex}%
+}{}
+
+% --- macro fallbacks (only fire if the generated files are absent or predate
+%     the run that defines a macro; must precede the section body) ---
+\providecommand{\olmoMxAlpacaN}{??}
+\providecommand{\olmoMxNbN}{??}
+\providecommand{\olmoMxNContrasts}{??}
+\providecommand{\olmoMxNContrastsSig}{??}
+\providecommand{\olmoMxMaxPholm}{??}
+\providecommand{\olmoMxMinR}{??}
+\providecommand{\olmoMxMinRLo}{??}
+\providecommand{\olmoMxAlpacaDThetaInstructGenBase}{??}
+\providecommand{\olmoMxAlpacaDThetaInstructGenInstruct}{??}
+\providecommand{\olmoMxAlpacaPholmThetaInstructBaseSft}{??}
+\providecommand{\olmoMxAlpacaPholmThetaInstructSftDpo}{??}
+\providecommand{\olmoMxAlpacaRThetaQwen}{??}
+\providecommand{\olmoMxAlpacaRThetaInstruct}{??}
+\providecommand{\olmoMxAlpacaVarPromptPct}{??}
+\providecommand{\olmoMxNbVarPromptPct}{??}
+\providecommand{\olmoMxAlpacaVarStagePct}{??}
+\providecommand{\olmoMxNbVarStagePct}{??}
+\providecommand{\olmoMxAlpacaVarGraderPct}{??}
+\providecommand{\olmoMxNbVarGraderPct}{??}
+\providecommand{\olmoMxAlpacaVarInteractionPct}{??}
+\providecommand{\olmoMxNbVarInteractionPct}{??}
+\providecommand{\olmoMxAlpacaVarStageInFamPct}{??}
+\providecommand{\olmoMxAlpacaVarGraderInFamPct}{??}
+\providecommand{\olmoMxNbVarStageInFamPct}{??}
+\providecommand{\olmoMxNbVarGraderInFamPct}{??}
+\providecommand{\olmoMxAlpacaAnFoldThetaQwen}{??}
+\providecommand{\olmoMxAlpacaAnThetaQwenGenBase}{??}
+\providecommand{\olmoMxAlpacaAnThetaQwenGenInstruct}{??}
+\providecommand{\olmoMxAlpacaCThetaQwenGenBase}{??}
+\providecommand{\olmoMxAlpacaCThetaQwenGenInstruct}{??}
+\providecommand{\olmoMxAlpacaCThetaBaseGenBase}{??}
+\providecommand{\olmoMxAlpacaCThetaInstructGenBase}{??}
+\providecommand{\olmoMxAlpacaAnThetaBaseGenBase}{??}
+\providecommand{\olmoMxAlpacaAnThetaInstructGenBase}{??}
+% Extended cross-family tier (defined once the Llama-8B/GPT-2 scoring runs
+% have landed and 7_matrix_paper_outputs.py has been re-run).
+\providecommand{\olmoMxNGradersExt}{??}
+\providecommand{\olmoMxNContrastsExt}{??}
+\providecommand{\olmoMxNContrastsExtSig}{??}
+\providecommand{\olmoMxMaxPexp}{??}
+\providecommand{\olmoMxMinRExt}{??}
+\providecommand{\olmoMxAlpacaVarExtStagePct}{??}
+\providecommand{\olmoMxAlpacaVarExtGraderPct}{??}
+\providecommand{\olmoMxNbVarExtStagePct}{??}
+\providecommand{\olmoMxNbVarExtGraderPct}{??}
+\providecommand{\olmoMxAlpacaVarExtNoGptTwoStagePct}{??}
+\providecommand{\olmoMxAlpacaVarExtNoGptTwoGraderPct}{??}
+\providecommand{\olmoMxNbVarExtNoGptTwoStagePct}{??}
+\providecommand{\olmoMxNbVarExtNoGptTwoGraderPct}{??}
+% Tevet grader-invariance analysis (analyze_tevet_grader_invariance.py).
+\providecommand{\tevetInvMinRho}{??}
+\providecommand{\tevetInvMinPairRho}{??}
+\providecommand{\tevetInvMinItemPct}{??}
+
+\section{Grader Robustness: The OLMo Self-Scoring Matrix}\label{app:olmo-self-scoring}
+
+The RLHF case study (Section~\ref{sec:rlhf-experiment}) scores all four OLMo-2-7B pipeline stages with a single cross-family grader, Qwen2.5-3B.
+A natural objection is that the measured diversity drop could be a scoring artifact: if $D_{Ca_n}$ partly rewards responses that resemble the grader $\theta$, then a $\theta$ far from the aligned OLMo checkpoints would depress their scores regardless of their actual diversity.
+This appendix stress-tests that concern by re-scoring the same fixed generations with every OLMo pipeline stage as the grader, including the configuration that maximally advantages the aligned stages: the RLVR-tuned Instruct model grading its own family's outputs, in deliberate violation of the base-model-$\theta$ requirement of Section~\ref{sec:rlhf-experiment}.
+
+\paragraph{Design.}
+We hold the length-matched generations, the ${K{=}10}$ responses per prompt, and the 25 permutations (seed 42) of Section~\ref{sec:rlhf-experiment} fixed, and vary only $\theta$: the four released OLMo-2-1124-7B stages (base, SFT, DPO, Instruct) plus the published cross-family Qwen2.5-3B row, giving a pre-registered $5 \times 4$ grader-by-generator matrix of mean $D_{Ca_n}$ on each prompt set (\olmoMxAlpacaN{} AlpacaEval and \olmoMxNbN{} NoveltyBench-curated prompts).
+The confirmatory prediction in every grader row is the adjacent chain base $>$ SFT $>$ DPO, tested by one-sided paired Wilcoxon signed-rank tests with Holm correction within each prompt set; the DPO-vs-Instruct step carries no directional prediction (Section~\ref{sec:rlhf-experiment}) and is excluded from the confirmatory family.
+A later robustness tier adds two graders from entirely different families and scales, Llama-3.1-8B base and GPT-2 (124M), scoring the same fixed generations.
+Their ordering tests are exploratory (a separate Holm family, not part of the pre-registration), and GPT-2's 1024-token context cannot fit every AlpacaEval group: the oversized groups are excluded upfront and recorded, so its row is computed on the subset noted in Table~\ref{tab:olmo-matrix-D}.
+
+\begin{table}[h]
+\centering
+\caption{Mean per-prompt $D_{Ca_n}$ for every grader $\theta$ (rows) scoring every OLMo-2-7B generation stage (columns), on both length-matched prompt sets. Within each prompt-set panel, the first five rows are the pre-registered grader set: the cross-family configuration reported in Section~\ref{sec:rlhf-experiment}, then the in-family graders, including each aligned stage scoring its own outputs on the diagonal. The two rows after the gap are the exploratory cross-family extension; a row-specific $n$ marks GPT-2's context-feasible AlpacaEval subset.}
+\label{tab:olmo-matrix-D}
+\small
+\IfFileExists{../results/rlhf_experiment/tables_matrix/olmo_matrix_D.tex}{%
+  \input{../results/rlhf_experiment/tables_matrix/olmo_matrix_D.tex}%
+}{%
+  \texttt{[table appears after 7\_matrix\_paper\_outputs.py runs]}%
+}
+\end{table}
+
+\paragraph{The drop is grader-robust.}
+Table~\ref{tab:olmo-matrix-D} shows that $D_{Ca_n}$ decreases along base $>$ SFT $>$ DPO in every grader row on both prompt sets, and all \olmoMxNContrastsSig{} of \olmoMxNContrasts{} confirmatory contrasts are significant after Holm correction (largest adjusted $p = \olmoMxMaxPholm$).
+In the adversarial row, OLMo-Instruct grading its own family, the ordering still holds: base scores $\olmoMxAlpacaDThetaInstructGenBase$ against $\olmoMxAlpacaDThetaInstructGenInstruct$ for the Instruct stage's own outputs on AlpacaEval (base $>$ SFT at $p_{\mathrm{Holm}} = \olmoMxAlpacaPholmThetaInstructBaseSft$, SFT $>$ DPO at $p_{\mathrm{Holm}} = \olmoMxAlpacaPholmThetaInstructSftDpo$).
+The fold-change $R_\theta = \bar{D}_{\mathrm{base}} / \bar{D}_{\mathrm{DPO}}$ (Table~\ref{tab:olmo-matrix-R}) shrinks as the grader itself becomes more aligned, from $\olmoMxAlpacaRThetaQwen$ under Qwen2.5-3B to $\olmoMxAlpacaRThetaInstruct$ under OLMo-Instruct on AlpacaEval, but never approaches parity: no point estimate falls below \olmoMxMinR{} and no bootstrap 95\% CI lower bound falls below \olmoMxMinRLo{}.
+The exploratory cross-family tier behaves the same way: Llama-3.1-8B and GPT-2 both rank base $>$ SFT $>$ DPO on both prompt sets, all \olmoMxNContrastsExt{} exploratory contrasts are significant in their own Holm family (largest adjusted $p = \olmoMxMaxPexp$), and no extended-row fold-change point estimate falls below \olmoMxMinRExt{}.
+
+\begin{table}[h]
+\centering
+\caption{Fold-change $R_\theta = \bar{D}_{\mathrm{base}} / \bar{D}_{\mathrm{DPO}}$ per grader row with bootstrap 95\% CIs (10{,}000 resamples over prompts), for the pre-registered rows and, after the gap, the exploratory cross-family extension. More-aligned graders see a smaller but still clearly above-parity drop.}
+\label{tab:olmo-matrix-R}
+\small
+\IfFileExists{../results/rlhf_experiment/tables_matrix/olmo_matrix_R.tex}{%
+  \input{../results/rlhf_experiment/tables_matrix/olmo_matrix_R.tex}%
+}{%
+  \texttt{[table appears after 7\_matrix\_paper\_outputs.py runs]}%
+}
+\end{table}
+
+\paragraph{Variance decomposition: who is graded matters far more than who grades.}
+To quantify how much of the variation in $D_{Ca_n}$ is attributable to grader identity versus the model being graded, we exploit the fully crossed, balanced design and partition sums of squares in two complementary ways.
+At the cell-mean level, we decompose the $5 \times 4$ matrix of prompt-averaged $D_{Ca_n}$ into a grader main effect, a generator-stage main effect, and their interaction (the residual of the additive fit).
+At the per-prompt level, we decompose the full grader $\times$ stage $\times$ prompt tensor; prompt identity is a nuisance factor (absorbing \olmoMxAlpacaVarPromptPct\% and \olmoMxNbVarPromptPct\% of total sum of squares on the two prompt sets), so we report shares of the within-prompt sum of squares, crediting each factor with its main effect plus its interaction with prompt.
+Table~\ref{tab:olmo-matrix-variance} shows the result: the generator stage accounts for \olmoMxAlpacaVarStagePct\% (AlpacaEval) and \olmoMxNbVarStagePct\% (NB-curated) of cell-mean variance, grader identity for only \olmoMxAlpacaVarGraderPct\% and \olmoMxNbVarGraderPct\%, and the interaction for \olmoMxAlpacaVarInteractionPct\% and \olmoMxNbVarInteractionPct\%; the within-prompt shares are nearly identical.
+Restricting to the in-family $4 \times 4$ submatrix (dropping the cross-family Qwen row) barely moves the split (stage \olmoMxAlpacaVarStageInFamPct\% / grader \olmoMxAlpacaVarGraderInFamPct\% on AlpacaEval; stage \olmoMxNbVarStageInFamPct\% / grader \olmoMxNbVarGraderInFamPct\% on NB-curated), so the small grader share is not driven by the family switch.
+Extending to all \olmoMxNGradersExt{} graders on GPT-2's context-feasible common subset again changes little (stage \olmoMxAlpacaVarExtStagePct\% / grader \olmoMxAlpacaVarExtGraderPct\% on AlpacaEval; stage \olmoMxNbVarExtStagePct\% / grader \olmoMxNbVarExtGraderPct\% on NB-curated), as does decomposing the six full-coverage rows without GPT-2 on the complete prompt sets (stage \olmoMxAlpacaVarExtNoGptTwoStagePct\% / grader \olmoMxAlpacaVarExtNoGptTwoGraderPct\% and stage \olmoMxNbVarExtNoGptTwoStagePct\% / grader \olmoMxNbVarExtNoGptTwoGraderPct\%).
+$D_{Ca_n}$ is therefore overwhelmingly a property of the policy being measured, not of the grader measuring it, even when the grader comes from an unrelated model family at a small fraction of the scale.
+
+\begin{table}[h]
+\centering
+\caption{Share of variance in $D_{Ca_n}$ attributable to the generator stage, the grader $\theta$, and their interaction. Top panel: the five pre-registered grader rows; bottom panel: all seven rows including the cross-family extension, on GPT-2's context-feasible common prompt subset. Cell-mean columns: two-way sum-of-squares decomposition of the grader-by-stage matrix of prompt-averaged $D_{Ca_n}$. Within-prompt columns: three-way decomposition of the grader $\times$ stage $\times$ prompt tensor, reported as shares of the sum of squares remaining after removing the prompt main effect, with each factor credited with its interaction with prompt.}
+\label{tab:olmo-matrix-variance}
+\small
+\IfFileExists{../results/rlhf_experiment/tables_matrix/olmo_matrix_variance.tex}{%
+  \input{../results/rlhf_experiment/tables_matrix/olmo_matrix_variance.tex}%
+}{%
+  \texttt{[table appears after 7\_matrix\_paper\_outputs.py runs]}%
+}
+\end{table}
+
+\paragraph{Mechanism.}
+The drop is carried by the mutual-predictability term $a_n$, not by coherence: across base $\to$ Instruct generations under the Qwen grader, mean $a_n$ falls \olmoMxAlpacaAnFoldThetaQwen$\times$ (from \olmoMxAlpacaAnThetaQwenGenBase{} to \olmoMxAlpacaAnThetaQwenGenInstruct{} bits/byte on AlpacaEval) while mean $C$ \emph{rises} (from \olmoMxAlpacaCThetaQwenGenBase{} to \olmoMxAlpacaCThetaQwenGenInstruct), and the same pattern holds in every grader row.
+The only self-similarity signal in the matrix points against a spurious drop: on base-stage text, coherence is highest under the base grader and declines as the grader becomes more aligned (from \olmoMxAlpacaCThetaBaseGenBase{} to \olmoMxAlpacaCThetaInstructGenBase{} on AlpacaEval), and aligned graders assign base-stage text a \emph{higher} $a_n$ than the base grader does (\olmoMxAlpacaAnThetaBaseGenBase{} vs.\ \olmoMxAlpacaAnThetaInstructGenBase{} bits/byte), widening rather than narrowing the measured gap.
+We retain the base-model-$\theta$ requirement as a design principle, since an aligned $\theta$ conflates coherence-as-fluency with coherence-as-alignment, but the post-training diversity drop of Section~\ref{sec:rlhf-experiment} depends neither on it nor on the grader's family or scale.
+
+\paragraph{Grader invariance on human-written text.}
+The matrix above scores model-generated text; the same question can be asked on the crowdsourced Tevet conTest datasets of Section~\ref{sec:tevet}, whose response sets are human-written and carry human diversity labels.
+Four graders spanning three model families and more than two orders of magnitude of scale (Qwen2.5-3B, Qwen3-30B-A3B, Llama-3.1-8B base, and GPT-2 at 124M parameters) score the same response sets with identical settings (completion format, 50 permutations).
+Every grader recovers the human-label signal: per-file Spearman $\rho$ between $D_{Ca_n}$ and the label (Table~\ref{tab:tevet-invariance}) never falls below \tevetInvMinRho{} for any grader, and graders rank the same items alike, with every pairwise between-grader $\rho$ at least \tevetInvMinPairRho{}.
+A two-way variance decomposition of each item $\times$ grader matrix after z-scoring within grader (which removes each model's absolute bits-per-byte scale) attributes at least \tevetInvMinItemPct\% of the variance to item identity on every conTest file, the remainder being grader $\times$ item disagreement.
+The ranking $D_{Ca_n}$ induces is thus stable across graders on human-written text as well.
+
+\begin{table}[h]
+\centering
+\caption{Grader invariance on the Tevet conTest datasets. Rows: Spearman $\rho$ between per-item $D_{Ca_n}$ and the human diversity label, per grader $\theta$, on the common item subset of each conTest file. Last row: share of within-grader z-scored variance attributable to item identity in a two-way item $\times$ grader decomposition.}
+\label{tab:tevet-invariance}
+\small
+\IfFileExists{../results/tevet/grader_invariance/tevet_invariance_rho.tex}{%
+  \input{../results/tevet/grader_invariance/tevet_invariance_rho.tex}%
+}{%
+  \texttt{[table appears after analyze\_tevet\_grader\_invariance.py runs]}%
+}
+\end{table}

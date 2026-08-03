@@ -1,0 +1,11 @@
+{
+  "base_model": "gpt2",
+  "run_tag": "gpt2_completion",
+  "n_permutations": 50,
+  "torch_dtype": "float32",
+  "batch_size": 32,
+  "format_mode": "completion",
+  "dedup": false,
+  "provider": "local",
+  "max_tokens": 1024
+}
