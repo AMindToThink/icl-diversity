@@ -23,7 +23,14 @@ Distinct-$n$, however, does detect repeated frames (normalized position \framesQ
 The second family removes all lexical overlap.
 In the \emph{canonical} condition, every sentence instantiates the same six-word part-of-speech pattern, noun--verb--preposition--noun--preposition--noun, with each word freshly sampled from large class lists (\posPatternNumNouns{} plural nouns, \posPatternNumVerbs{} intransitive past-tense verbs, \posPatternNumPreps{} prepositions), e.g., ``Pelicans coughed beyond trolls without senators.''
 The \emph{scrambled} control samples the identical class multiset per sentence (three nouns, one verb, two prepositions) and then shuffles each sentence's word order independently, so the two generators share vocabulary, class composition, and byte statistics (\posPatternBytesCanon{} vs.\ \posPatternBytesScram{} bytes per response) and differ only in whether a consistent word order exists.
-The matching yields a known ground truth: the scrambled generator's entropy exceeds the canonical generator's by exactly $\log_2 \posPatternNumOrders \approx \posPatternOrderBits$ bits per sentence, about \posPatternOrderBitsPerByte{} bits per byte, so the scrambled sets are genuinely more diverse by a known amount.
+The matching yields a known ground truth.
+Both generators sample words identically and, given the sampled words, assign them to same-class positions uniformly; they differ only in the order of the classes, which the canonical condition fixes to a single pattern and scrambling draws uniformly from all
+\begin{equation}
+\binom{\posPatternSlotsTotal}{\posPatternCountNouns,\,\posPatternCountVerbs,\,\posPatternCountPreps} = \frac{\posPatternSlotsTotal!}{\posPatternCountNouns!\,\posPatternCountVerbs!\,\posPatternCountPreps!} = \posPatternNumOrders
+\label{eq:pos-pattern-orders}
+\end{equation}
+distinguishable orderings of the class multiset $\{\mathrm{N, N, N, V, P, P}\}$.
+The scrambled generator's entropy therefore exceeds the canonical generator's by exactly $\log_2 \posPatternNumOrders \approx \posPatternOrderBits$ bits per sentence, about \posPatternOrderBitsPerByte{} bits per byte, so the scrambled sets are genuinely more diverse by a known amount.
 
 \begin{figure}[!htbp]
 \centering

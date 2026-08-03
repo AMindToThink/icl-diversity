@@ -1025,6 +1025,13 @@ def pos_pattern_macros() -> dict[str, str]:
     macros["posPatternNumOrders"] = f"{n_orders}"
     macros["posPatternOrderBits"] = _fmt(order_bits, 2)
     macros["posPatternOrderBitsPerByte"] = _fmt(order_bits / mean_bytes, 2)
+    # Multinomial-coefficient arguments, so the prose derivation
+    # 6!/(3! 1! 2!) = 60 is fully script-sourced too.
+    class_counts = dict(CANONICAL_CLASS_MULTISET)
+    macros["posPatternSlotsTotal"] = f"{total_slots}"
+    macros["posPatternCountNouns"] = f"{class_counts['N']}"
+    macros["posPatternCountVerbs"] = f"{class_counts['Vi']}"
+    macros["posPatternCountPreps"] = f"{class_counts['P']}"
 
     case = (base / "distinctn_case_check.txt").read_text()
     m4 = re.search(
