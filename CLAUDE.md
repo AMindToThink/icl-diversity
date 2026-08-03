@@ -58,6 +58,10 @@ uv run scripts/interactive_scatter.py --run-tag qwen25_completion_v3 --device cu
 # Analyze C × a_∞ metrics on Tevet evaluation data
 uv run python scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fit
 
+# Template-vs-SentBERT experiment (syntactic redundancy that SentBERT misses)
+uv run python scripts/run_template_vs_sentbert.py --base-model gpt2 --device cuda:0 --batch-size 16 --n-draws 50 --output results/template_vs_sentbert/gpt2.json
+uv run python scripts/plot_template_vs_sentbert.py --input results/template_vs_sentbert/gpt2.json --output-dir figures/template_vs_sentbert/gpt2
+
 # Lint and format
 uv run ruff check .
 uv run ruff format .
