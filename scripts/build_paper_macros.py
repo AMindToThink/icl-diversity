@@ -20,6 +20,8 @@ Input data sources:
 - results/tevet/qwen25_completion_v3/McDiv_nuggets/*.icl_curves.qwen25_completion_v3.json
 - results/tables/contest_rho_oca.tex, dectest_rho.tex, qwen3_comparison.tex
 - figures/tevet_validation/c_ainf_analysis_v3/summary_table.txt
+- figures/template_vs_sentbert/qwen2.5-3b/summary.txt
+- figures/pos_pattern/qwen2.5-3b_scrambled_control/summary.txt (+ distinctn_case_check.txt)
 """
 
 from __future__ import annotations
@@ -128,8 +130,12 @@ def scaling_macros() -> dict[str, str]:
         suf = short.get(m["label"])
         if suf is None:
             continue
-        macros[f"scalingOffDiag{suf}"] = _fmt(m["off_diagonal_mean"], 1, force_sign=True)
-        macros[f"scalingFracPos{suf}"] = f"{int(round(m['off_diagonal_frac_pos'] * 100))}"
+        macros[f"scalingOffDiag{suf}"] = _fmt(
+            m["off_diagonal_mean"], 1, force_sign=True
+        )
+        macros[f"scalingFracPos{suf}"] = (
+            f"{int(round(m['off_diagonal_frac_pos'] * 100))}"
+        )
         macros[f"scalingRCSlope{suf}"] = _fmt(m["rc_slope"], 2)
         macros[f"scalingRCRsq{suf}"] = _fmt(m["rc_r2"], 2)
         macros[f"scalingSymSlope{suf}"] = _fmt(m["slope"], 2)
@@ -290,16 +296,21 @@ def tevet_macros() -> dict[str, str]:
         m = re.search(re.escape(dataset_header), txt)
         assert m, f"Dataset block not found: {dataset_header}"
         block = txt[m.end() :]
-        row_m = re.search(rf"^\s*{re.escape(label)}\s*&(.*?)\\\\\s*$", block, re.MULTILINE)
+        row_m = re.search(
+            rf"^\s*{re.escape(label)}\s*&(.*?)\\\\\s*$", block, re.MULTILINE
+        )
         assert row_m, f"Row not found: {label} under {dataset_header}"
         # row content: rho1 & OCA1 & rho2 & OCA2 & rho3 & OCA3
         cells = [c.strip() for c in row_m.group(1).split("&")]
         return cells[col * 2], cells[col * 2 + 1]
 
     # McDiv full prompt_gen: $C \!\times\! a_n$ (ours)
-    rho_cxan, oca_cxan = parse_row(r"$C \!\times\! a_n$ (ours)", r"McDiv (full, no\_hds, $\sim$2K)")
+    rho_cxan, oca_cxan = parse_row(
+        r"$C \!\times\! a_n$ (ours)", r"McDiv (full, no\_hds, $\sim$2K)"
+    )
     rho_sb, oca_sb = parse_row("SentBERT", r"McDiv (full, no\_hds, $\sim$2K)")
     rho_dn, oca_dn = parse_row(r"distinct-$n$", r"McDiv (full, no\_hds, $\sim$2K)")
+
     # These cells may contain LaTeX like "\textbf{+0.729}"; strip it.
     def clean(s: str) -> str:
         s = re.sub(r"\\textbf\{([^}]+)\}", r"\1", s)
@@ -313,7 +324,13 @@ def tevet_macros() -> dict[str, str]:
     macros["tevetMcDivPromptGenDistinctNOCA"] = clean(oca_dn)
 
     # Full summary_table.txt parse for McDiv_nuggets prompt_gen (no_hds) AUC (used in abstract/App B).
-    summary = (PROJECT_ROOT / "figures" / "tevet_validation" / "c_ainf_analysis_v3" / "summary_table.txt").read_text()
+    summary = (
+        PROJECT_ROOT
+        / "figures"
+        / "tevet_validation"
+        / "c_ainf_analysis_v3"
+        / "summary_table.txt"
+    ).read_text()
 
     def auc_for(header_marker: str, dataset_tag: str, metric: str) -> str:
         """Find AUC for a given (dataset_tag, metric) pair under the given section header."""
@@ -399,7 +416,14 @@ def tevet_macros() -> dict[str, str]:
                 gaps_sb.append((oca_sb_v - oca_cx_v) / oca_sb_v * 100)
                 gaps_an.append((oca_cx_v - oca_an_v) / oca_cx_v * 100)
                 gaps_c.append((oca_cx_v - oca_c_v) / oca_cx_v * 100)
-        return min(gaps_sb), max(gaps_sb), min(gaps_an), max(gaps_an), min(gaps_c), max(gaps_c)
+        return (
+            min(gaps_sb),
+            max(gaps_sb),
+            min(gaps_an),
+            max(gaps_an),
+            min(gaps_c),
+            max(gaps_c),
+        )
 
     sb_min, sb_max, an_min, an_max, c_min, c_max = binary_gaps()
     macros["tevetCxAnVsSentBertOCAMinPct"] = _fmt(sb_min, 1)
@@ -416,7 +440,10 @@ def tevet_macros() -> dict[str, str]:
     total_n = total_up = 0
     for variant in ["no_hds", "200_with_hds"]:
         for t in ["prompt_gen", "resp_gen", "story_gen"]:
-            p = base / f"mcdiv_nuggets_{variant}_{t}.icl_curves.qwen25_completion_v3.json"
+            p = (
+                base
+                / f"mcdiv_nuggets_{variant}_{t}.icl_curves.qwen25_completion_v3.json"
+            )
             if not p.exists():
                 continue
             with p.open() as f:
@@ -558,7 +585,9 @@ def qwen3_macros() -> dict[str, str]:
                 continue
             if section in ["McDiv", "McDiv\\_nuggets", "ConTest"]:
                 binary_deltas.append(delta)
-                if section == "ConTest" and "prompt\\_gen" in rest_cells_raw.split("&")[0] + m.group(2):
+                if section == "ConTest" and "prompt\\_gen" in rest_cells_raw.split("&")[
+                    0
+                ] + m.group(2):
                     contest_pg_delta = delta
 
     # Contest prompt_gen delta: scan explicitly because the first_col is empty.
@@ -577,7 +606,9 @@ def qwen3_macros() -> dict[str, str]:
     macros["qwenThreeBinaryWinsQwenTwoFive"] = f"{wins_q25}"
     macros["qwenThreeBinaryWinsQwenThree"] = f"{wins_q3}"
     macros["qwenThreeBinaryTies"] = f"{ties_bin}"
-    macros["qwenThreeConTestPromptGenDeltaAUC"] = _fmt(contest_pg_delta, 3, force_sign=True)
+    macros["qwenThreeConTestPromptGenDeltaAUC"] = _fmt(
+        contest_pg_delta, 3, force_sign=True
+    )
 
     dec_arr = np.array(dectest_deltas)
     macros["qwenThreeDecTestTotal"] = f"{len(dec_arr)}"
@@ -595,10 +626,42 @@ def tevet_dataset_size_macros() -> dict[str, str]:
     data_root = PROJECT_ROOT / "diversity-eval" / "data" / "raw"
     specs = [
         # (macro suffix, subdir, filename pattern)
-        ("McDiv", "McDiv", ["mcdiv_all_no_hds_prompt_gen.csv", "mcdiv_all_no_hds_resp_gen.csv", "mcdiv_all_no_hds_story_gen.csv"]),
-        ("McDivNug", "McDiv_nuggets", ["mcdiv_nuggets_no_hds_prompt_gen.csv", "mcdiv_nuggets_no_hds_resp_gen.csv", "mcdiv_nuggets_no_hds_story_gen.csv"]),
-        ("DecTest", "decTest", ["dec_test_1000_no_hds_prompt_gen.csv", "dec_test_1000_no_hds_resp_gen.csv", "dec_test_1000_no_hds_story_gen.csv"]),
-        ("ConTest", "conTest", ["con_test_200_with_hds_prompt_gen.csv", "con_test_200_with_hds_resp_gen.csv", "con_test_200_with_hds_story_gen.csv"]),
+        (
+            "McDiv",
+            "McDiv",
+            [
+                "mcdiv_all_no_hds_prompt_gen.csv",
+                "mcdiv_all_no_hds_resp_gen.csv",
+                "mcdiv_all_no_hds_story_gen.csv",
+            ],
+        ),
+        (
+            "McDivNug",
+            "McDiv_nuggets",
+            [
+                "mcdiv_nuggets_no_hds_prompt_gen.csv",
+                "mcdiv_nuggets_no_hds_resp_gen.csv",
+                "mcdiv_nuggets_no_hds_story_gen.csv",
+            ],
+        ),
+        (
+            "DecTest",
+            "decTest",
+            [
+                "dec_test_1000_no_hds_prompt_gen.csv",
+                "dec_test_1000_no_hds_resp_gen.csv",
+                "dec_test_1000_no_hds_story_gen.csv",
+            ],
+        ),
+        (
+            "ConTest",
+            "conTest",
+            [
+                "con_test_200_with_hds_prompt_gen.csv",
+                "con_test_200_with_hds_resp_gen.csv",
+                "con_test_200_with_hds_story_gen.csv",
+            ],
+        ),
     ]
     for suffix, subdir, files in specs:
         total = 0
@@ -657,8 +720,16 @@ def permutation_sensitivity_macros() -> dict[str, str]:
 
     macros: dict[str, str] = {}
     pairs = [
-        ("GPT", "scenario_metrics_v3_gpt2_3perm.json", "scenario_metrics_v3_gpt2_100perm.json"),
-        ("Qwen", "scenario_metrics_v3_qwen3b_3perm.json", "scenario_metrics_v3_qwen3b_100perm.json"),
+        (
+            "GPT",
+            "scenario_metrics_v3_gpt2_3perm.json",
+            "scenario_metrics_v3_gpt2_100perm.json",
+        ),
+        (
+            "Qwen",
+            "scenario_metrics_v3_qwen3b_3perm.json",
+            "scenario_metrics_v3_qwen3b_100perm.json",
+        ),
     ]
     n_scenarios = None
     for model, f3, f100 in pairs:
@@ -757,6 +828,216 @@ def scenario_validation_macros() -> dict[str, str]:
     return macros
 
 
+def template_frames_macros() -> dict[str, str]:
+    """Structural-redundancy draft section: syntactic-frames experiment.
+
+    Parses figures/template_vs_sentbert/qwen2.5-3b/summary.txt (generated by
+    scripts/plot_template_vs_sentbert.py) so prose stays in lockstep with the
+    committed summary. Context: reports/TEMPLATE_VS_SENTBERT.md.
+    """
+    from icl_diversity.template_scenarios import FRAMES
+
+    macros: dict[str, str] = {}
+    txt = (
+        PROJECT_ROOT / "figures" / "template_vs_sentbert" / "qwen2.5-3b" / "summary.txt"
+    ).read_text()
+
+    m = re.search(r"n_responses=(\d+)\s+n_draws=(\d+)", txt)
+    assert m, "n_responses/n_draws header not found"
+    macros["framesQwenNResponses"] = m.group(1)
+    macros["framesQwenNDraws"] = m.group(2)
+    macros["framesQwenNumFrames"] = f"{len(FRAMES)}"
+
+    def cond_pairs(name: str) -> list[tuple[str, str]]:
+        """(mean, sd) string pairs from a condition-table row, in column order
+        C, a_n, D_C_an, E, cosine, sentbert_div, distinct-n."""
+        row = re.search(rf"^{re.escape(name)}\s+(.*)$", txt, re.MULTILINE)
+        assert row, f"Condition row not found: {name}"
+        pairs = re.findall(r"([-\d.e+]+) ± ([-\d.e+]+)", row.group(1))
+        assert len(pairs) == 7, (name, pairs)
+        return pairs
+
+    for cond, suffix in [
+        ("frames_1", "FramesOne"),
+        ("frames_20", "FramesTwenty"),
+        ("paraphrase", "Paraphrase"),
+    ]:
+        macros[f"framesQwenCos{suffix}"] = _fmt(float(cond_pairs(cond)[4][0]), 2)
+
+        drop = re.search(
+            rf"^\s+{re.escape(cond)}\s+a_1 = .*?a_n/a_1 = ([\d.]+) ± ([\d.]+)",
+            txt,
+            re.MULTILINE,
+        )
+        assert drop, f"Drop-ratio line not found: {cond}"
+        macros[f"framesQwenDrop{suffix}"] = drop.group(1)
+        macros[f"framesQwenDrop{suffix}Sd"] = drop.group(2)
+
+    norm_block = txt[txt.index("Normalized position") :]
+    rho_block = txt[txt.index("Spearman rho") :]
+    for key, tag in [
+        ("diversity_score_D_C_an", "D"),
+        ("sentbert_diversity", "SentBert"),
+        ("averaged_distinct_ngrams", "Distinct"),
+    ]:
+        norm = re.search(
+            rf"^\s+{re.escape(key)}\s+canonical = ([+\-\d.]+)\s+frames_1 = ([+\-\d.]+)",
+            norm_block,
+            re.MULTILINE,
+        )
+        assert norm, f"Normalized-position line not found: {key}"
+        macros[f"framesQwenNorm{tag}Canonical"] = norm.group(1).lstrip("+")
+        macros[f"framesQwenNorm{tag}FramesOne"] = norm.group(2).lstrip("+")
+
+        rho = re.search(
+            rf"^\s+{re.escape(key)}\s+rho = ([+\-\d.]+)", rho_block, re.MULTILINE
+        )
+        assert rho, f"Spearman line not found: {key}"
+        macros[f"framesQwenRho{tag}"] = rho.group(1)
+    return macros
+
+
+def pos_pattern_macros() -> dict[str, str]:
+    """Structural-redundancy draft section: canonical-vs-scrambled POS patterns.
+
+    Parses figures/pos_pattern/qwen2.5-3b_scrambled_control/summary.txt and
+    distinctn_case_check.txt (both script-generated); the ground-truth order
+    entropy is recomputed from CANONICAL_CLASS_MULTISET, the same constant the
+    generator uses. Context: reports/POS_PATTERN_VS_BASELINES.md.
+    """
+    import math
+
+    from icl_diversity.pos_pattern_scenarios import (
+        CANONICAL_CLASS_MULTISET,
+        INTRANSITIVE_PAST,
+        PLURAL_NOUNS,
+        PREPOSITIONS,
+    )
+
+    macros: dict[str, str] = {}
+    base = PROJECT_ROOT / "figures" / "pos_pattern" / "qwen2.5-3b_scrambled_control"
+    txt = (base / "summary.txt").read_text()
+
+    m = re.search(r"n_responses=(\d+)\s+n_draws=(\d+)", txt)
+    assert m, "n_responses/n_draws header not found"
+    macros["posPatternNResponses"] = m.group(1)
+    macros["posPatternNDraws"] = m.group(2)
+    macros["posPatternNumNouns"] = f"{len(PLURAL_NOUNS)}"
+    macros["posPatternNumVerbs"] = f"{len(INTRANSITIVE_PAST)}"
+    macros["posPatternNumPreps"] = f"{len(PREPOSITIONS)}"
+
+    def endpoint(name: str) -> tuple[str, ...]:
+        m2 = re.search(
+            rf"^\s+{name}\s+a_1 = ([\d.]+) ± ([\d.]+)\s+a_n = ([\d.]+) ± ([\d.]+)\s+"
+            rf"a_n/a_1 = ([\d.]+) ± ([\d.]+)\s+bytes/resp = ([\d.]+) ± ([\d.]+)",
+            txt,
+            re.MULTILINE,
+        )
+        assert m2, f"Endpoint line not found: {name}"
+        return m2.groups()
+
+    ec, es = endpoint("canonical"), endpoint("scrambled")
+    macros["posPatternAOneCanon"], macros["posPatternAOneCanonSd"] = ec[0], ec[1]
+    macros["posPatternAnCanon"], macros["posPatternAnCanonSd"] = ec[2], ec[3]
+    macros["posPatternDropCanon"], macros["posPatternDropCanonSd"] = ec[4], ec[5]
+    macros["posPatternBytesCanon"] = ec[6]
+    macros["posPatternAOneScram"], macros["posPatternAOneScramSd"] = es[0], es[1]
+    macros["posPatternAnScram"], macros["posPatternAnScramSd"] = es[2], es[3]
+    macros["posPatternDropScram"], macros["posPatternDropScramSd"] = es[4], es[5]
+    macros["posPatternBytesScram"] = es[6]
+    macros["posPatternLearnedPctCanon"] = f"{int(round((1 - float(ec[4])) * 100))}"
+    macros["posPatternLearnedPctScram"] = f"{int(round((1 - float(es[4])) * 100))}"
+
+    def welch(label: str) -> tuple[str, str, str, str]:
+        """(diff, se, t, p) strings from a Welch t-test line."""
+        m3 = re.search(
+            rf"^\s+{re.escape(label)}\s+diff = ([+\-\d.e]+) ± ([\d.e-]+)\s+"
+            rf"t = ([+\-\d.]+)\s+\(p = ([\d.e-]+)\)",
+            txt,
+            re.MULTILINE,
+        )
+        assert m3, f"Welch line not found: {label}"
+        return m3.groups()
+
+    def p_macro(prefix: str, p_str: str) -> None:
+        """Plain-decimal p as `<prefix>P`; tiny p as `<prefix>PLtPow` with
+        the exponent e such that p < 10^-e (prose writes $p < 10^{-\\e}$)."""
+        p = float(p_str)
+        if p >= 1e-4:
+            macros[f"{prefix}P"] = p_str
+        else:
+            macros[f"{prefix}PLtPow"] = f"{-math.ceil(math.log10(p))}"
+
+    an_diff, an_se, _, an_p = welch("a_n_per_byte")
+    macros["posPatternAnDiff"] = _fmt(float(an_diff), 3, force_sign=True)
+    macros["posPatternAnGapAbs"] = _fmt(abs(float(an_diff)), 3)
+    macros["posPatternAnDiffSe"] = _fmt(float(an_se), 3)
+    p_macro("posPatternAnDiff", an_p)
+
+    a1_diff, a1_se, _, a1_p = welch("a_1_per_byte")
+    macros["posPatternAOneGapAbs"] = _fmt(abs(float(a1_diff)), 3)
+    macros["posPatternAOneDiffSe"] = _fmt(float(a1_se), 3)
+    p_macro("posPatternAOneDiff", a1_p)
+
+    _, _, _, drop_p = welch("drop_ratio_a_n_over_a_1")
+    p_macro("posPatternDropDiff", drop_p)
+
+    coh_diff, _, _, coh_p = welch("coherence_C")
+    macros["posPatternCohDiff"] = _fmt(float(coh_diff), 3, force_sign=True)
+    p_macro("posPatternCohDiff", coh_p)
+
+    _, _, _, d_p = welch("diversity_score_D_C_an")
+    p_macro("posPatternDDiff", d_p)
+
+    _, _, _, cos_p = welch("sentbert_mean_pairwise_cosine")
+    p_macro("posPatternCosDiff", cos_p)
+
+    dn_diff, _, _, dn_p = welch("averaged_distinct_ngrams")
+    macros["posPatternDistinctDiff"] = _fmt(float(dn_diff), 4, force_sign=True)
+    p_macro("posPatternDistinctDiff", dn_p)
+
+    def cond_mean(name: str, col: int, decimals: int) -> str:
+        """Mean from a condition-table row; columns as in template_frames_macros."""
+        row = re.search(rf"^{re.escape(name)}\s+(.*)$", txt, re.MULTILINE)
+        assert row, f"Condition row not found: {name}"
+        pairs = re.findall(r"([-\d.e+]+) ± ([-\d.e+]+)", row.group(1))
+        assert len(pairs) == 7, (name, pairs)
+        return _fmt(float(pairs[col][0]), decimals)
+
+    macros["posPatternCohCanon"] = cond_mean("canonical", 0, 3)
+    macros["posPatternCohScram"] = cond_mean("scrambled", 0, 3)
+    macros["posPatternDCanon"] = cond_mean("canonical", 2, 3)
+    macros["posPatternDScram"] = cond_mean("scrambled", 2, 3)
+    macros["posPatternCosCanon"] = cond_mean("canonical", 4, 3)
+    macros["posPatternCosScram"] = cond_mean("scrambled", 4, 3)
+    macros["posPatternDistinctCanon"] = cond_mean("canonical", 6, 3)
+    macros["posPatternDistinctScram"] = cond_mean("scrambled", 6, 3)
+
+    # Ground-truth order entropy from the generator's own class multiset:
+    # the scrambled generator adds exactly log2(#distinguishable class orders)
+    # bits per sentence relative to canonical.
+    total_slots = sum(c for _, c in CANONICAL_CLASS_MULTISET)
+    n_orders = math.factorial(total_slots)
+    for _, count in CANONICAL_CLASS_MULTISET:
+        n_orders //= math.factorial(count)
+    order_bits = math.log2(n_orders)
+    mean_bytes = (float(ec[6]) + float(es[6])) / 2
+    macros["posPatternNumOrders"] = f"{n_orders}"
+    macros["posPatternOrderBits"] = _fmt(order_bits, 2)
+    macros["posPatternOrderBitsPerByte"] = _fmt(order_bits / mean_bytes, 2)
+
+    case = (base / "distinctn_case_check.txt").read_text()
+    m4 = re.search(
+        r"^lowercased: .*?diff ([+\-\d.]+)\s+t = [+\-\d.]+\s+\(p = ([\d.e-]+)\)",
+        case,
+        re.MULTILINE,
+    )
+    assert m4, "lowercased line not found in distinctn_case_check.txt"
+    macros["posPatternDistinctLowerDiff"] = m4.group(1)
+    macros["posPatternDistinctLowerP"] = m4.group(2)
+    return macros
+
+
 def write_output(all_macros: dict[str, str]) -> None:
     lines = [
         "% Generated by scripts/build_paper_macros.py — DO NOT EDIT.",
@@ -788,10 +1069,18 @@ def write_output(all_macros: dict[str, str]) -> None:
         "Scenario validation (Sec 3 Table 1 / App C.2)": [
             "scenario",
         ],
+        "Structural redundancy (draft sections/07_9_structural_redundancy.tex)": [
+            "framesQwen",
+            "posPattern",
+        ],
     }
     used = set()
     for title, prefixes in groups.items():
-        group_macros = {n: v for n, v in all_macros.items() if any(n.startswith(p) for p in prefixes)}
+        group_macros = {
+            n: v
+            for n, v in all_macros.items()
+            if any(n.startswith(p) for p in prefixes)
+        }
         if not group_macros:
             continue
         lines.append(f"\n% --- {title} ---")
@@ -823,6 +1112,8 @@ def main() -> None:
     all_macros.update(tevet_dataset_size_macros())
     all_macros.update(mode_count_config_macros())
     all_macros.update(scenario_validation_macros())
+    all_macros.update(template_frames_macros())
+    all_macros.update(pos_pattern_macros())
     write_output(all_macros)
 
 

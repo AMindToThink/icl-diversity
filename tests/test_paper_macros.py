@@ -22,13 +22,17 @@ SCRIPT = PROJECT_ROOT / "scripts" / "build_paper_macros.py"
 OUTPUT = PROJECT_ROOT / "results" / "tables" / "paper_macros.tex"
 # Concatenate every main paper wrapper present so the macro-resolution and
 # forbidden-substring checks apply across all wrappers (one branch may ship
-# multiple, e.g. a long and short version).
+# multiple, e.g. a long and short version). Section files are included too:
+# the prose (and its macro references) lives in paper/sections/*.tex, which
+# the wrappers \input, so scanning only wrappers would miss almost all of it.
 _PAPER_WRAPPERS = sorted((PROJECT_ROOT / "paper").glob("main*.tex"))
 assert _PAPER_WRAPPERS, "No paper/main*.tex wrapper found"
+_PAPER_SECTIONS = sorted((PROJECT_ROOT / "paper" / "sections").glob("*.tex"))
+assert _PAPER_SECTIONS, "No paper/sections/*.tex files found"
 
 
 def _read_paper() -> str:
-    return "\n".join(p.read_text() for p in _PAPER_WRAPPERS)
+    return "\n".join(p.read_text() for p in _PAPER_WRAPPERS + _PAPER_SECTIONS)
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +76,8 @@ def test_expected_section_coverage(macros: dict[str, str]) -> None:
         "qwenThree",  # App E Qwen3 comparison
         "tevet",  # Sec 7.5 + Abstract + App B
         "modeCount",  # Sec 8.3
+        "framesQwen",  # structural-redundancy draft (07_9), frames experiment
+        "posPattern",  # structural-redundancy draft (07_9), POS-pattern experiment
     ]
     for p in prefixes_needed:
         matching = [n for n in macros if n.startswith(p)]
@@ -126,7 +132,15 @@ def test_paper_macros_all_resolve() -> None:
     # LaTeX built-ins like \small, \textbf, etc.).
     defined = set(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}", OUTPUT.read_text()))
     # Our macros follow specific prefixes; look for references.
-    prefixes = ("crossmode", "scaling", "qwenThree", "tevet", "modeCount")
+    prefixes = (
+        "crossmode",
+        "scaling",
+        "qwenThree",
+        "tevet",
+        "modeCount",
+        "framesQwen",
+        "posPattern",
+    )
     referenced = set(
         m.group(1)
         for prefix in prefixes

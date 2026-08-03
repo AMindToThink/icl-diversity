@@ -33,7 +33,18 @@ RLVR (0.281) that we do not claim. A comma list keeps "monotonically" (true, sin
 comma-list prose and uses approximately-equals in its numeric stage sequence
 (`DPO 0.286 &asymp; RLVR 0.281`).
 
-## 3. arXiv paper title is out of date
+## 3. Candidate new appendix subsection: structural redundancy (drafted)
+
+`paper/sections/07_9_structural_redundancy.tex` (drafted 2026-08-03) presents the
+structural-redundancy experiments: syntactic frames vs SentBERT
+(`reports/TEMPLATE_VS_SENTBERT.md`) and the canonical-vs-scrambled POS-pattern
+detection with a known ground-truth entropy gap
+(`reports/POS_PATTERN_VS_BASELINES.md`). A commented `\input` line sits after
+`07_4_cross_mode` in `main_icml_workshop.tex`; uncomment it for v2 (decide final
+placement then). All inline numbers are macros (`framesQwen*` / `posPattern*`)
+emitted by `scripts/build_paper_macros.py` from the script-generated summaries.
+
+## 4. arXiv paper title is out of date
 
 arXiv v1 metadata (https://arxiv.org/abs/2606.01811, verified 2026-06-23) still carries
 the OLD SHORT title:

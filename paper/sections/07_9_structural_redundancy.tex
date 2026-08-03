@@ -1,0 +1,45 @@
+% arXiv v2 draft section (NOT in the camera-ready workshop build; the \input
+% line in main_icml_workshop.tex is commented out until v2).
+% Experiments: reports/TEMPLATE_VS_SENTBERT.md and
+% reports/POS_PATTERN_VS_BASELINES.md.
+% Every inline number is a macro from results/tables/paper_macros.tex
+% (template_frames_macros / pos_pattern_macros in scripts/build_paper_macros.py).
+
+\subsection{Structural Redundancy Invisible to Embedding and $n$-gram Baselines}\label{sec:structural-redundancy}
+
+Baseline diversity metrics each detect one family of similarity: embedding metrics score shared meaning \citep{reimers2019sbert}, and $n$-gram metrics score shared surface strings \citep{li2016diversity,zhu2018texygen}.
+In-context learning has no such restriction: $\theta$ can pick up any regularity it can learn from context, including \emph{structural} redundancy, where responses share a sentence pattern while overlapping in neither vocabulary nor meaning.
+We test this contrast on two synthetic generator families, scoring with the same Qwen2.5-3B base model \citep{yang2024qwen25} as our main experiments and computing baselines with the conventions of \citet{tevet2020evaluating}.
+Both experiments use fully independent draws per condition with one random response ordering each, so statistical power comes from across-draw variation rather than permutation averaging.
+
+\paragraph{Syntactic frames vs.\ SentBERT.}
+The first family fills $m$ distinct syntactic frames (e.g., ``The \{adjective\} \{noun\} \{verb\} the \{adjective2\} \{noun2\}.'') with words freshly sampled from shared lists, so lexical and semantic scatter are matched across conditions and only the number of sentence structures varies ($n=\framesQwenNResponses$ responses per set, \framesQwenNDraws{} draws per condition); a set of hand-written paraphrases of a single sentence anchors the low-diversity end.
+$\theta$ visibly learns a repeated frame within a few in-context examples: with one frame, conditional surprise falls to $a_n/a_1 = \framesQwenDropFramesOne \pm \framesQwenDropFramesOneSd$ of its unconditional level, versus $\framesQwenDropFramesTwenty \pm \framesQwenDropFramesTwentySd$ with $m=\framesQwenNumFrames$ frames.
+On the normalized scale from the paraphrase anchor (0) to the $m=\framesQwenNumFrames$ control (1), $D_{Ca_n}$ places single-frame sets at \framesQwenNormDFramesOne, while SentBERT places them at \framesQwenNormSentBertFramesOne.
+SentBERT's failure is calibration rather than ordering: its mean pairwise cosine ranks the sweep correctly (Spearman $\rho = \framesQwenRhoSentBert$ against $m$) but confines every frame condition to a narrow band near its maximum-diversity end (cosine \framesQwenCosFramesTwenty{}--\framesQwenCosFramesOne, versus \framesQwenCosParaphrase{} for genuine paraphrases), so a practitioner monitoring for template collapse would see little amiss.
+Distinct-$n$, however, does detect repeated frames (normalized position \framesQwenNormDistinctFramesOne), as same-frame sentences share literal function words; this construction separates ICL-based measurement from embedding similarity only.
+
+\paragraph{Part-of-speech patterns vs.\ both baselines.}
+The second family removes all lexical overlap.
+In the \emph{canonical} condition, every sentence instantiates the same six-word part-of-speech pattern, noun--verb--preposition--noun--preposition--noun, with each word freshly sampled from large class lists (\posPatternNumNouns{} plural nouns, \posPatternNumVerbs{} intransitive past-tense verbs, \posPatternNumPreps{} prepositions), e.g., ``Pelicans coughed beyond trolls without senators.''
+The \emph{scrambled} control samples the identical class multiset per sentence (three nouns, one verb, two prepositions) and then shuffles each sentence's word order independently, so the two generators share vocabulary, class composition, and byte statistics (\posPatternBytesCanon{} vs.\ \posPatternBytesScram{} bytes per response) and differ only in whether a consistent word order exists.
+The matching yields a known ground truth: the scrambled generator's entropy exceeds the canonical generator's by exactly $\log_2 \posPatternNumOrders \approx \posPatternOrderBits$ bits per sentence, about \posPatternOrderBitsPerByte{} bits per byte, so the scrambled sets are genuinely more diverse by a known amount.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\columnwidth]{pos_pattern/qwen2.5-3b_scrambled_control/fig2_ak_curves.png}
+\caption{Mean per-byte progressive conditional surprise $a_k$ under Qwen2.5-3B for canonical fixed-pattern sets (solid) and order-scrambled control sets (dotted); $n=\posPatternNResponses$ responses, mean over \posPatternNDraws{} independent draws.
+Both conditions drop steeply as $\theta$ learns the shared vocabulary distribution and format in-context; the canonical curve settles $\posPatternAnGapAbs \pm \posPatternAnDiffSe$ bits/byte lower, close to the ground-truth entropy gap of \posPatternOrderBitsPerByte{} bits/byte.}
+\label{fig:pos-pattern-scrambled}
+\end{figure}
+
+\paragraph{Results.}
+Across \posPatternNDraws{} independent draws per condition (Figure~\ref{fig:pos-pattern-scrambled}), $a_n$ separates the two generators with the correct sign and approximately the correct magnitude: $\posPatternAnCanon \pm \posPatternAnCanonSd$ bits/byte for canonical versus $\posPatternAnScram \pm \posPatternAnScramSd$ for scrambled, a gap of $\posPatternAnGapAbs \pm \posPatternAnDiffSe$ (Welch $p = \posPatternAnDiffP$) against the ground-truth \posPatternOrderBitsPerByte.
+SentBERT does not separate the conditions (mean pairwise cosine \posPatternCosCanon{} vs.\ \posPatternCosScram, $p = \posPatternCosDiffP$), consistent with mean-pooled sentence embeddings being approximately insensitive to word order.
+Averaged distinct-$n$ differs detectably but negligibly (\posPatternDistinctCanon{} vs.\ \posPatternDistinctScram{} on its near-ceiling scale, $p < 10^{-\posPatternDistinctDiffPLtPow}$), and the difference is an artifact of case-sensitive tokenization rather than structure: the canonical pattern always capitalizes a noun, scrambling spreads sentence-initial capitalization across word classes, and on lowercased text the difference vanishes ($\posPatternDistinctLowerDiff$, $p = \posPatternDistinctLowerP$).
+
+\paragraph{Caveats.}
+First, in-context learning compresses both conditions equally in \emph{proportional} terms: the drop ratio $a_n/a_1$ is $\posPatternDropCanon \pm \posPatternDropCanonSd$ for canonical versus $\posPatternDropScram \pm \posPatternDropScramSd$ for scrambled ($p = \posPatternDropDiffP$), because the control also carries learnable regularity (fixed class composition, restricted word lists, fixed six-word format) and $\theta$ additionally unlearns its prior expectation of grammatical order in-context.
+That prior initially overstates the difference: at $k=1$ the gap is $\posPatternAOneGapAbs \pm \posPatternAOneDiffSe$ bits/byte, and conditioning shrinks it toward the true \posPatternOrderBitsPerByte{} from above.
+Second, the scalar $D_{Ca_n}$ does not separate the conditions ($\posPatternDCanon$ vs.\ $\posPatternDScram$, $p = \posPatternDDiffP$): coherence is higher for the grammatical canonical sets ($C = \posPatternCohCanon$ vs.\ $\posPatternCohScram$, $p < 10^{-\posPatternCohDiffPLtPow}$), offsetting their lower $a_n$.
+This is the intended coherence--diversity trade-off (the scrambled word salad is genuinely less coherent), but it means that detecting structure specifically should be read from the $a_k$ curve and $a_n$, with $C$ reported alongside.
