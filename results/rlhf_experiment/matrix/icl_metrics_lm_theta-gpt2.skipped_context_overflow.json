@@ -1,0 +1,147 @@
+{
+  "scorer_model": "gpt2",
+  "context_limit": 1024,
+  "margin": 8,
+  "skipped": [
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-025",
+      "n_tokens": 1031,
+      "context_limit": 1024
+    },
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-053",
+      "n_tokens": 1021,
+      "context_limit": 1024
+    },
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-066",
+      "n_tokens": 1055,
+      "context_limit": 1024
+    },
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-080",
+      "n_tokens": 1037,
+      "context_limit": 1024
+    },
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-189",
+      "n_tokens": 1034,
+      "context_limit": 1024
+    },
+    {
+      "stage": "base",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-191",
+      "n_tokens": 1031,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-053",
+      "n_tokens": 1064,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-069",
+      "n_tokens": 1239,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-098",
+      "n_tokens": 1180,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-125",
+      "n_tokens": 1347,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-177",
+      "n_tokens": 1040,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-192",
+      "n_tokens": 1044,
+      "context_limit": 1024
+    },
+    {
+      "stage": "sft",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-193",
+      "n_tokens": 1492,
+      "context_limit": 1024
+    },
+    {
+      "stage": "dpo",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-007",
+      "n_tokens": 1018,
+      "context_limit": 1024
+    },
+    {
+      "stage": "dpo",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-025",
+      "n_tokens": 1027,
+      "context_limit": 1024
+    },
+    {
+      "stage": "dpo",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-177",
+      "n_tokens": 1046,
+      "context_limit": 1024
+    },
+    {
+      "stage": "dpo",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-193",
+      "n_tokens": 1225,
+      "context_limit": 1024
+    },
+    {
+      "stage": "instruct",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-025",
+      "n_tokens": 1035,
+      "context_limit": 1024
+    },
+    {
+      "stage": "instruct",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-177",
+      "n_tokens": 1081,
+      "context_limit": 1024
+    },
+    {
+      "stage": "instruct",
+      "prompt_set": "alpacaeval",
+      "prompt_id": "alpacaeval-193",
+      "n_tokens": 1159,
+      "context_limit": 1024
+    }
+  ]
+}

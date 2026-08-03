@@ -42,6 +42,9 @@ DEFAULT_SCORER_MODEL = "Qwen/Qwen2.5-3B"
 N_PERMUTATIONS = 25
 BATCH_SIZE = 8
 SEED = 42
+# Safety margin for the upfront context-length check: permutation reordering can
+# shift BPE merges at response boundaries by a few tokens vs the canonical order.
+CONTEXT_MARGIN = 8
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -90,6 +93,8 @@ def score_all(
     limit: int | None,
     gen_dir: Path,
     scorer_model: str,
+    max_context_tokens: int | None = None,
+    skip_over_context: bool = False,
 ) -> None:
     from transformers import AutoModelForCausalLM, AutoTokenizer
     import torch
@@ -109,7 +114,10 @@ def score_all(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    n_todo_total = 0
+    # Pass 1: build work lists, then validate context lengths upfront so a
+    # short-context scorer (e.g. GPT-2, 1024) fails loudly before any GPU work
+    # instead of crashing mid-run on the first oversized group.
+    work: list[tuple[str, str, dict, list[str]]] = []
     for stage in stages:
         for pset in prompt_sets:
             gen_path = gen_dir / f"{stage}_{pset}.jsonl"
@@ -124,46 +132,115 @@ def score_all(
             ]
             if limit is not None:
                 todo = todo[:limit]
-            n_todo_total += len(todo)
-            print(f"[scorer] stage={stage} set={pset}: {len(todo)} prompts to score"
-                  f" ({len(by_prompt) - len(todo)} already done)")
+            work.append((stage, pset, by_prompt, todo))
 
-            with out_path.open("a", encoding="utf-8") as f:
-                for i, pid in enumerate(todo):
-                    group = by_prompt[pid]
-                    prompt = group[0]["prompt"]
-                    responses = [g["response"] for g in group]
-                    t0 = time.perf_counter()
-                    metrics = compute_icl_diversity_metrics(
-                        model=model,
-                        tokenizer=tok,
-                        prompt=prompt,
-                        responses=responses,
-                        n_permutations=n_permutations,
-                        seed=SEED,
-                        batch_size=batch_size,
-                        format_mode="instruct",
+    ctx_limit = max_context_tokens
+    if ctx_limit is None:
+        ctx_limit = getattr(model.config, "max_position_embeddings", None)
+    if ctx_limit is None:
+        ctx_limit = getattr(model.config, "n_positions", None)
+    if not isinstance(ctx_limit, int):
+        # No usable limit in the config (e.g. mocked models in tests): skip the check.
+        ctx_limit = None
+    overflow: list[dict] = []
+    if ctx_limit is not None:
+        from icl_diversity.core import format_conditioning_context
+
+        for stage, pset, by_prompt, todo in work:
+            for pid in todo:
+                group = by_prompt[pid]
+                prefix, last = format_conditioning_context(
+                    group[0]["prompt"],
+                    [g["response"] for g in group[:-1]],
+                    group[-1]["response"],
+                    format_mode="instruct",
+                )
+                n_tok = len(tok(prefix + last)["input_ids"])
+                if n_tok + CONTEXT_MARGIN > ctx_limit:
+                    overflow.append({
+                        "stage": stage, "prompt_set": pset, "prompt_id": pid,
+                        "n_tokens": n_tok, "context_limit": int(ctx_limit),
+                    })
+        if overflow and not skip_over_context:
+            listing = "\n".join(
+                f"  {o['stage']}/{o['prompt_set']}/{o['prompt_id']}: {o['n_tokens']} tokens"
+                for o in overflow
+            )
+            raise ValueError(
+                f"{len(overflow)} groups exceed the scorer's context limit "
+                f"({ctx_limit} tokens, margin {CONTEXT_MARGIN}):\n{listing}\n"
+                "Re-run with --skip-over-context to skip them explicitly; skips are "
+                "recorded in a .skipped_context_overflow.json sidecar for downstream "
+                "analysis to account for."
+            )
+        if overflow:
+            skipped_path = out_path.with_name(
+                out_path.stem + ".skipped_context_overflow.json"
+            )
+            skipped_path.parent.mkdir(parents=True, exist_ok=True)
+            skipped_path.write_text(json.dumps({
+                "scorer_model": scorer_model,
+                "context_limit": int(ctx_limit),
+                "margin": CONTEXT_MARGIN,
+                "skipped": overflow,
+            }, indent=2))
+            for o in overflow:
+                print(
+                    f"[scorer] SKIP (context {o['n_tokens']} + margin > {ctx_limit}): "
+                    f"{o['stage']}/{o['prompt_set']}/{o['prompt_id']}",
+                    flush=True,
+                )
+            print(f"[scorer] {len(overflow)} skipped groups recorded in {skipped_path}",
+                  flush=True)
+            skip_keys = {(o["stage"], o["prompt_set"], o["prompt_id"]) for o in overflow}
+            work = [
+                (s, p, bp, [pid for pid in td if (s, p, pid) not in skip_keys])
+                for s, p, bp, td in work
+            ]
+
+    # Pass 2: score.
+    n_todo_total = 0
+    for stage, pset, by_prompt, todo in work:
+        n_todo_total += len(todo)
+        print(f"[scorer] stage={stage} set={pset}: {len(todo)} prompts to score"
+              f" ({len(by_prompt) - len(todo)} already done or skipped)")
+
+        with out_path.open("a", encoding="utf-8") as f:
+            for i, pid in enumerate(todo):
+                group = by_prompt[pid]
+                prompt = group[0]["prompt"]
+                responses = [g["response"] for g in group]
+                t0 = time.perf_counter()
+                metrics = compute_icl_diversity_metrics(
+                    model=model,
+                    tokenizer=tok,
+                    prompt=prompt,
+                    responses=responses,
+                    n_permutations=n_permutations,
+                    seed=SEED,
+                    batch_size=batch_size,
+                    format_mode="instruct",
+                )
+                dt = time.perf_counter() - t0
+                record = {
+                    "stage": stage,
+                    "prompt_set": pset,
+                    "prompt_id": pid,
+                    "n_permutations": n_permutations,
+                    "n_responses": len(responses),
+                    "scorer_model": scorer_model,
+                    "elapsed_s": dt,
+                    **metrics,
+                }
+                f.write(json.dumps(record, default=_jsonable) + "\n")
+                f.flush()
+                if (i + 1) % 10 == 0 or i == 0:
+                    print(
+                        f"  [{i + 1}/{len(todo)}] {stage}/{pset}/{pid} "
+                        f"D={metrics.get('diversity_score_D_C_an', float('nan')):.4f} "
+                        f"({dt:.1f}s)",
+                        flush=True,
                     )
-                    dt = time.perf_counter() - t0
-                    record = {
-                        "stage": stage,
-                        "prompt_set": pset,
-                        "prompt_id": pid,
-                        "n_permutations": n_permutations,
-                        "n_responses": len(responses),
-                        "scorer_model": scorer_model,
-                        "elapsed_s": dt,
-                        **metrics,
-                    }
-                    f.write(json.dumps(record, default=_jsonable) + "\n")
-                    f.flush()
-                    if (i + 1) % 10 == 0 or i == 0:
-                        print(
-                            f"  [{i + 1}/{len(todo)}] {stage}/{pset}/{pid} "
-                            f"D={metrics.get('diversity_score_D', float('nan')):.4f} "
-                            f"({dt:.1f}s)",
-                            flush=True,
-                        )
     print(f"[scorer] done, scored {n_todo_total} new prompts")
 
 
@@ -221,6 +298,24 @@ def main() -> None:
         help="Optional: score only first N prompts per (stage,set). Useful for smoke tests.",
     )
     ap.add_argument(
+        "--max-context-tokens",
+        type=int,
+        default=None,
+        help=(
+            "Context-length limit for the upfront feasibility check. Default: the "
+            "scorer's max_position_embeddings / n_positions from its config."
+        ),
+    )
+    ap.add_argument(
+        "--skip-over-context",
+        action="store_true",
+        help=(
+            "Skip groups whose conditioning context exceeds the scorer's context "
+            "limit instead of raising. Skips are printed and recorded in a "
+            ".skipped_context_overflow.json sidecar next to --out."
+        ),
+    )
+    ap.add_argument(
         "--gen-dir",
         type=Path,
         default=DEFAULT_GEN_DIR,
@@ -241,6 +336,8 @@ def main() -> None:
         limit=args.limit,
         gen_dir=args.gen_dir,
         scorer_model=args.scorer_model,
+        max_context_tokens=args.max_context_tokens,
+        skip_over_context=args.skip_over_context,
     )
 
 

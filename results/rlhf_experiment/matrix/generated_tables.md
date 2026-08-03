@@ -10,6 +10,13 @@
 | OLMo-dpo | 0.494 | 0.398 | 0.354 | 0.349 | ✓ |
 | OLMo-instruct | 0.494 | 0.404 | 0.359 | 0.354 | ✓ |
 
+## extended-d-matrix-alpacaeval
+
+| θ (grader) | n | base | sft | dpo | instruct | base>sft>dpo |
+|---|---|---|---|---|---|---|
+| Llama-3.1-8B | 150 | 0.484 | 0.312 | 0.263 | 0.258 | ✓ |
+| GPT-2 | 137 | 0.492 | 0.388 | 0.333 | 0.324 | ✓ |
+
 ## r-table
 
 | θ | R (AlpacaEval) | 95% CI | R (NB) | 95% CI |
@@ -19,11 +26,16 @@
 | OLMo-sft | 1.56 | [1.50, 1.62] | 1.53 | [1.41, 1.66] |
 | OLMo-dpo | 1.40 | [1.34, 1.45] | 1.38 | [1.28, 1.49] |
 | OLMo-instruct | 1.38 | [1.33, 1.43] | 1.37 | [1.27, 1.47] |
+| Llama-3.1-8B | 1.84 | [1.77, 1.92] | 1.76 | [1.61, 1.92] |
+| GPT-2 | 1.48 | [1.43, 1.53] | 1.48 | [1.40, 1.56] |
 
 ## variance
 
 | Variance source | AlpacaEval cell means | AlpacaEval within-prompt | NB cell means | NB within-prompt |
 |---|---|---|---|---|
-| Generator stage | 88.0% | 86.7% | 90.1% | 88.4% |
-| Grader θ | 9.6% | 9.3% | 8.0% | 7.5% |
-| Grader × stage interaction | 2.3% | 4.0% | 1.9% | 4.1% |
+| Generator stage (5 graders) | 88.0% | 86.7% | 90.1% | 88.4% |
+| Grader θ (5 graders) | 9.6% | 9.3% | 8.0% | 7.5% |
+| Grader × stage interaction (5 graders) | 2.3% | 4.0% | 1.9% | 4.1% |
+| Generator stage (7 graders) | 86.8% | 82.8% | 89.0% | 82.3% |
+| Grader θ (7 graders) | 10.6% | 11.7% | 8.7% | 12.0% |
+| Grader × stage interaction (7 graders) | 2.6% | 5.5% | 2.3% | 5.7% |

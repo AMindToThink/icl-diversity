@@ -11,6 +11,7 @@ section prose.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 from pathlib import Path
 
@@ -103,6 +104,43 @@ class TestThreeWayDecomposition:
             MOD.three_way_decomposition(np.zeros((5, 4)))
 
 
+class TestExtendedRowMissing:
+    def _cells(self, present: dict[str, list[str]]):
+        """theta_cells stub for one extended grader over one prompt set."""
+        return {
+            "GPT-2": {
+                (gen, "alpacaeval"): {pid: {"diversity_score_D_C_an": 0.5} for pid in pids}
+                for gen, pids in present.items()
+            }
+        }
+
+    def test_sidecar_backed_missing_is_allowed(self, tmp_path):
+        canonical = {"p1", "p2", "p3"}
+        cells = self._cells({
+            "base": ["p1", "p2", "p3"], "sft": ["p1", "p2"],
+            "dpo": ["p1", "p2", "p3"], "instruct": ["p1", "p2", "p3"],
+        })
+        jsonl = tmp_path / "icl_metrics_lm_theta-gpt2.jsonl"
+        jsonl.write_text("")
+        sidecar = tmp_path / "icl_metrics_lm_theta-gpt2.skipped_context_overflow.json"
+        sidecar.write_text(json.dumps({"skipped": [
+            {"stage": "sft", "prompt_set": "alpacaeval", "prompt_id": "p3"},
+        ]}))
+        missing = MOD.extended_row_missing(cells, "GPT-2", jsonl, canonical, "alpacaeval")
+        assert missing == {"p3"}
+
+    def test_unaccounted_missing_raises(self, tmp_path):
+        canonical = {"p1", "p2", "p3"}
+        cells = self._cells({
+            "base": ["p1", "p2"], "sft": ["p1", "p2", "p3"],
+            "dpo": ["p1", "p2", "p3"], "instruct": ["p1", "p2", "p3"],
+        })
+        jsonl = tmp_path / "icl_metrics_lm_theta-gpt2.jsonl"
+        jsonl.write_text("")
+        with pytest.raises(ValueError, match="NOT in the skip sidecar"):
+            MOD.extended_row_missing(cells, "GPT-2", jsonl, canonical, "alpacaeval")
+
+
 class TestSpliceFindings:
     def test_replaces_marked_block(self, tmp_path):
         f = tmp_path / "FINDINGS.md"
@@ -154,6 +192,19 @@ class TestEndToEnd:
                 # the finding; a flip here means the inputs changed materially.
                 assert frac["stage"] > frac["grader"]
 
+    def test_extended_tier_is_sane(self, outputs):
+        _, variance_out = outputs
+        for pset, e in variance_out["extended"].items():
+            assert e["n_prompts_common"] <= e["n_prompts_canonical"]
+            # Llama has a 128k context; it must be complete.
+            assert e["dropped_per_grader"]["Llama-3.1-8B"]["n_missing"] == 0
+            frac = e["all_graders_common"]["cell_means"]["frac"]
+            assert sum(frac.values()) == pytest.approx(1.0)
+            assert frac["stage"] > frac["grader"]
+            # Only sidecar-backed GPT-2 drops may shrink the common set.
+            n_drop = e["dropped_per_grader"]["GPT-2"]["n_missing"]
+            assert e["n_prompts_common"] == e["n_prompts_canonical"] - n_drop
+
     def test_macros_unique_and_match_committed_file(self, outputs):
         root, _ = outputs
         fresh = (root / "results/rlhf_experiment/paper_macros_matrix.tex").read_text()
@@ -175,6 +226,19 @@ class TestPaperIntegrity:
         referenced = set(re.findall(r"\\(olmoMx[A-Za-z]+)", section))
         missing = referenced - defined
         assert not missing, f"section references undefined macros: {sorted(missing)}"
+
+    def test_every_referenced_tevet_macro_is_defined(self):
+        tevet_macros = (
+            REPO_ROOT / "results" / "tevet" / "grader_invariance" / "tevet_invariance_macros.tex"
+        )
+        assert tevet_macros.exists(), "run analyze_tevet_grader_invariance.py first"
+        section = SECTION_PATH.read_text()
+        defined = set(
+            re.findall(r"\\newcommand\{\\(tevetInv[A-Za-z]+)\}", tevet_macros.read_text())
+        )
+        referenced = set(re.findall(r"\\(tevetInv[A-Za-z]+)", section))
+        missing = referenced - defined
+        assert not missing, f"section references undefined Tevet macros: {sorted(missing)}"
 
     def test_no_hand_typed_headline_numbers_in_section(self):
         """Headline results must flow through macros, never be typed in prose."""
