@@ -15,6 +15,10 @@ reports/TEMPLATE_VS_SENTBERT.md for the cross-metric anchoring experiment):
 - ``canonical``:   every response uses pattern 0 (N Vi P N P N).
 - ``patterns_m``:  responses drawn evenly from m randomly chosen patterns
                    (m in --pattern-counts).
+- ``scrambled``:   (--include-scrambled) composition-matched control: each
+                   sentence samples the canonical class multiset (3 N, 1 Vi,
+                   2 P) then shuffles its own word order. Same vocabulary
+                   statistics, no consistent structure.
 
 Each condition runs --n-draws fully independent draws (fresh words, fresh
 pattern subset, fresh order); n_permutations=1 per draw, statistical power
@@ -51,6 +55,7 @@ from icl_diversity.pos_pattern_scenarios import (
     POS_PATTERN_LABELS,
     POS_PATTERN_PROMPT,
     generate_pos_pattern_responses,
+    generate_scrambled_canonical_responses,
 )
 
 DEFAULT_OUTPUT = (
@@ -65,20 +70,33 @@ DEFAULT_SENTBERT = "sentence-transformers/bert-large-nli-stsb-mean-tokens"
 
 def build_conditions(
     pattern_counts: list[int],
-) -> list[tuple[str, int, list[int] | None]]:
+    include_scrambled: bool,
+) -> list[tuple[str, int | None, list[int] | None]]:
     """(condition_name, n_patterns, pattern_pool) triples."""
-    conditions: list[tuple[str, int, list[int] | None]] = [("canonical", 1, [0])]
+    conditions: list[tuple[str, int | None, list[int] | None]] = [("canonical", 1, [0])]
     conditions += [(f"patterns_{m}", m, None) for m in pattern_counts]
+    if include_scrambled:
+        conditions.append(("scrambled", None, None))
     return conditions
 
 
 def draw_responses(
-    n_patterns: int,
+    condition: str,
+    n_patterns: int | None,
     pattern_pool: list[int] | None,
     n_responses: int,
     draw_seed: int,
-) -> tuple[list[str], list[str]]:
-    """Responses (shuffled) and their pattern labels."""
+) -> tuple[list[str], list[str] | None]:
+    """Responses (shuffled) and, for pattern conditions, their pattern labels."""
+    if condition == "scrambled":
+        # Already order-free; still shuffle for symmetry with other conditions.
+        responses = generate_scrambled_canonical_responses(
+            n=n_responses, seed=draw_seed
+        )
+        random.Random(draw_seed ^ 0x5A5A5A5A).shuffle(responses)
+        return responses, None
+
+    assert n_patterns is not None
     responses, pattern_ids = generate_pos_pattern_responses(
         n_patterns, n=n_responses, seed=draw_seed, pattern_pool=pattern_pool
     )
@@ -115,7 +133,17 @@ def main() -> None:
         "or cuda:0 when --device auto)",
     )
     parser.add_argument(
-        "--pattern-counts", type=int, nargs="+", default=[1, 2, 4, 8, 12]
+        "--pattern-counts",
+        type=int,
+        nargs="*",
+        default=[1, 2, 4, 8, 12],
+        help="Sweep sizes m; pass with no values for a sweep-free run",
+    )
+    parser.add_argument(
+        "--include-scrambled",
+        action="store_true",
+        help="Add the order-scrambled no-structure control condition "
+        "(canonical class multiset, per-sentence random word order)",
     )
     parser.add_argument("--n-responses", type=int, default=40)
     parser.add_argument("--n-draws", type=int, default=20)
@@ -158,16 +186,16 @@ def main() -> None:
     print(f"Loading SentBERT encoder {args.sentbert_model} on {sentbert_device}")
     st_model = SentenceTransformer(args.sentbert_model, device=sentbert_device)
 
-    conditions = build_conditions(args.pattern_counts)
+    conditions = build_conditions(args.pattern_counts, args.include_scrambled)
 
     # Upfront context-length validation (fail fast, never skip)
     max_ctx = getattr(model.config, "max_position_embeddings", None)
     if max_ctx:
         worst = 0
-        for _condition, n_patterns, pattern_pool in conditions:
+        for condition, n_patterns, pattern_pool in conditions:
             for check_seed in [42, 137, 256, 0, 999]:
                 responses, _ = draw_responses(
-                    n_patterns, pattern_pool, args.n_responses, check_seed
+                    condition, n_patterns, pattern_pool, args.n_responses, check_seed
                 )
                 worst = max(worst, estimate_context_tokens(responses, tokenizer))
         print(f"Worst-case context estimate: {worst} tokens (model max {max_ctx})")
@@ -199,7 +227,7 @@ def main() -> None:
         for draw_idx, draw_seed in enumerate(draw_seeds):
             t0 = time.time()
             responses, pattern_labels = draw_responses(
-                n_patterns, pattern_pool, args.n_responses, draw_seed
+                condition, n_patterns, pattern_pool, args.n_responses, draw_seed
             )
 
             metrics = compute_icl_diversity_metrics(

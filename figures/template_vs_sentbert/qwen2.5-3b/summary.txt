@@ -14,14 +14,14 @@ frames_10                  0.2825 ± 0.0068                 1.156 ± 0.122      
 frames_20                  0.2823 ± 0.00648                1.395 ± 0.143                  0.394 ± 0.0414                 68.05 ± 201                   0.2119 ± 0.0116               -0.2119 ± 0.0116                0.9406 ± 0.00338  
 paraphrase                 0.5497 ± 0                     0.3436 ± 0.1                   0.1889 ± 0.055                 -74.24 ± 164                   0.8135 ± 3.6e-08              -0.8135 ± 3.6e-08                0.704 ± 1.14e-16 
 
-In-context drop ratio a_n / a_1 (final conditional surprise as a fraction of the first response's, per-byte curve; lower = more structure learned in-context):
-  canonical      0.689 ± 0.101
-  frames_1       0.546 ± 0.088
-  frames_2       0.579 ± 0.108
-  frames_5       0.628 ± 0.086
-  frames_10      0.615 ± 0.105
-  frames_20      0.739 ± 0.097
-  paraphrase     0.404 ± 0.101
+Per-byte a_k curve endpoints, in-context drop ratio a_n / a_1 (final conditional surprise as a fraction of the first response's; lower = more structure learned in-context), and mean response length in utf-8 bytes:
+  canonical      a_1 = 1.923 ± 0.236   a_n = 1.313 ± 0.181   a_n/a_1 = 0.689 ± 0.101   bytes/resp = 47.0 ± 0.7
+  frames_1       a_1 = 1.812 ± 0.148   a_n = 0.984 ± 0.140   a_n/a_1 = 0.546 ± 0.088   bytes/resp = 62.2 ± 5.0
+  frames_2       a_1 = 1.837 ± 0.151   a_n = 1.059 ± 0.197   a_n/a_1 = 0.579 ± 0.108   bytes/resp = 61.3 ± 4.5
+  frames_5       a_1 = 1.782 ± 0.167   a_n = 1.115 ± 0.160   a_n/a_1 = 0.628 ± 0.086   bytes/resp = 61.4 ± 2.6
+  frames_10      a_1 = 1.908 ± 0.209   a_n = 1.156 ± 0.122   a_n/a_1 = 0.615 ± 0.105   bytes/resp = 60.9 ± 1.7
+  frames_20      a_1 = 1.904 ± 0.204   a_n = 1.395 ± 0.143   a_n/a_1 = 0.739 ± 0.097   bytes/resp = 61.0 ± 0.8
+  paraphrase     a_1 = 0.861 ± 0.170   a_n = 0.344 ± 0.100   a_n/a_1 = 0.404 ± 0.101   bytes/resp = 59.5 ± 0.0
 
 Normalized position on the paraphrase -> frames_20 scale, (mean_cond - mean_paraphrase) / (mean_frames_20 - mean_paraphrase):
   diversity_score_D_C_an       canonical = +0.80  frames_1 = +0.49

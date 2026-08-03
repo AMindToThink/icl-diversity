@@ -62,9 +62,14 @@ uv run python scripts/analyze_c_ainf.py --run-tag qwen25_completion_v3 --skip-fi
 uv run python scripts/run_template_vs_sentbert.py --base-model gpt2 --device cuda:0 --batch-size 16 --n-draws 50 --output results/template_vs_sentbert/gpt2.json
 uv run python scripts/plot_template_vs_sentbert.py --input results/template_vs_sentbert/gpt2.json --output-dir figures/template_vs_sentbert/gpt2
 
-# POS-pattern experiment (structural redundancy with zero lexical overlap; beats SentBERT and distinct-n)
+# POS-pattern sweep experiment (structural redundancy with zero lexical overlap; mixed result, see reports/POS_PATTERN_VS_BASELINES.md)
 uv run python scripts/run_pos_pattern_vs_baselines.py --base-model Qwen/Qwen2.5-3B --device cuda:1 --sentbert-device cuda:1 --torch-dtype bfloat16 --batch-size 8 --output results/pos_pattern/qwen2.5-3b.json
 uv run python scripts/plot_template_vs_sentbert.py --input results/pos_pattern/qwen2.5-3b.json --output-dir figures/pos_pattern/qwen2.5-3b
+
+# Single-pattern detection (headline): canonical vs order-scrambled control; a_n beats SentBERT and distinct-n
+uv run python scripts/run_pos_pattern_vs_baselines.py --base-model Qwen/Qwen2.5-3B --device cuda:1 --sentbert-device cuda:1 --torch-dtype bfloat16 --batch-size 8 --n-draws 20 --pattern-counts --include-scrambled --output results/pos_pattern/qwen2.5-3b_scrambled_control.json
+uv run python scripts/plot_template_vs_sentbert.py --input results/pos_pattern/qwen2.5-3b_scrambled_control.json --output-dir figures/pos_pattern/qwen2.5-3b_scrambled_control
+uv run python scripts/check_scrambled_distinctn_capitalization.py
 
 # Lint and format
 uv run ruff check .

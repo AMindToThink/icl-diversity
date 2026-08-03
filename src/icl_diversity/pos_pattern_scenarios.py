@@ -576,3 +576,37 @@ def generate_pos_pattern_responses(
             f"Duplicate sentences generated for seed={seed}; use another seed."
         )
     return responses, assignments
+
+
+# The class multiset of the canonical pattern (POS_PATTERNS[0]): three plural
+# nouns, one intransitive past verb, two prepositions.
+CANONICAL_CLASS_MULTISET: tuple[tuple[str, int], ...] = (("N", 3), ("Vi", 1), ("P", 2))
+
+
+def generate_scrambled_canonical_responses(n: int = 40, seed: int = 0) -> list[str]:
+    """No-structure control matched to the canonical pattern.
+
+    Each sentence samples exactly the canonical class multiset
+    (``CANONICAL_CLASS_MULTISET``) and then shuffles its six words into a
+    random per-sentence order. The set therefore has the same vocabulary
+    distribution, word counts, and byte statistics as the canonical
+    condition, but no consistent word-order pattern to learn: word-count
+    based metrics (distinct-n) are identical in distribution by
+    construction, and mean-pooled embedding metrics (SentBERT) are nearly
+    order-blind, while the ICL a_k curve should drop less than for the
+    structured canonical set.
+    """
+    rng = random.Random(seed)
+    responses: list[str] = []
+    for _ in range(n):
+        words: list[str] = []
+        for cls, count in CANONICAL_CLASS_MULTISET:
+            words.extend(rng.sample(_CLASS_LISTS[cls], count))
+        rng.shuffle(words)
+        sentence = " ".join(words) + "."
+        responses.append(sentence[0].upper() + sentence[1:])
+    if len(set(responses)) != len(responses):
+        raise ValueError(
+            f"Duplicate sentences generated for seed={seed}; use another seed."
+        )
+    return responses

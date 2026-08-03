@@ -13,13 +13,13 @@ patterns_4                 0.2172 ± 0.005                   1.46 ± 0.151      
 patterns_8                 0.2204 ± 0.0036                 1.457 ± 0.183                 0.3211 ± 0.0396                -61.76 ± 295                   0.2263 ± 0.01                 -0.2263 ± 0.01                  0.9738 ± 0.00475  
 patterns_12                0.2203 ± 0.00479                1.466 ± 0.204                 0.3229 ± 0.0454                -67.72 ± 240                   0.2229 ± 0.0121               -0.2229 ± 0.0121                0.9744 ± 0.00311  
 
-In-context drop ratio a_n / a_1 (final conditional surprise as a fraction of the first response's, per-byte curve; lower = more structure learned in-context):
-  canonical      0.597 ± 0.104
-  patterns_1     0.604 ± 0.117
-  patterns_2     0.639 ± 0.109
-  patterns_4     0.664 ± 0.083
-  patterns_8     0.661 ± 0.102
-  patterns_12    0.664 ± 0.112
+Per-byte a_k curve endpoints, in-context drop ratio a_n / a_1 (final conditional surprise as a fraction of the first response's; lower = more structure learned in-context), and mean response length in utf-8 bytes:
+  canonical      a_1 = 2.192 ± 0.240   a_n = 1.295 ± 0.187   a_n/a_1 = 0.597 ± 0.104   bytes/resp = 48.9 ± 0.5
+  patterns_1     a_1 = 2.198 ± 0.216   a_n = 1.312 ± 0.194   a_n/a_1 = 0.604 ± 0.117   bytes/resp = 50.2 ± 1.9
+  patterns_2     a_1 = 2.212 ± 0.191   a_n = 1.398 ± 0.167   a_n/a_1 = 0.639 ± 0.109   bytes/resp = 49.7 ± 1.1
+  patterns_4     a_1 = 2.212 ± 0.189   a_n = 1.460 ± 0.151   a_n/a_1 = 0.664 ± 0.083   bytes/resp = 50.0 ± 1.0
+  patterns_8     a_1 = 2.220 ± 0.178   a_n = 1.457 ± 0.183   a_n/a_1 = 0.661 ± 0.102   bytes/resp = 50.2 ± 0.7
+  patterns_12    a_1 = 2.224 ± 0.177   a_n = 1.466 ± 0.204   a_n/a_1 = 0.664 ± 0.112   bytes/resp = 50.3 ± 0.5
 
 Spearman rho between m and metric (patterns_m sweep runs):
   diversity_score_D_C_an       rho = +0.275  (p = 0.0057, n = 100)

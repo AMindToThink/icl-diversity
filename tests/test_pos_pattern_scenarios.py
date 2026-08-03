@@ -7,6 +7,7 @@ import pytest
 
 from icl_diversity.pos_pattern_scenarios import (
     ADVERBS,
+    CANONICAL_CLASS_MULTISET,
     INTRANSITIVE_PAST,
     PLURAL_NOUNS,
     POS_PATTERN_LABELS,
@@ -14,6 +15,7 @@ from icl_diversity.pos_pattern_scenarios import (
     PREPOSITIONS,
     TRANSITIVE_PAST,
     generate_pos_pattern_responses,
+    generate_scrambled_canonical_responses,
     render_pattern,
 )
 
@@ -165,3 +167,61 @@ class TestGenerator:
             generate_pos_pattern_responses(2, n=10, seed=0, pattern_pool=[0])
         with pytest.raises(ValueError):
             generate_pos_pattern_responses(1, n=10, seed=0, pattern_pool=[99])
+
+
+class TestScrambledControl:
+    def test_multiset_matches_canonical_pattern(self):
+        # CANONICAL_CLASS_MULTISET must equal the class counts parsed from
+        # POS_PATTERNS[0], or the control is not composition-matched.
+        classes = re.findall(r"\{([A-Za-z]+)\d+\}", POS_PATTERNS[0])
+        counts = {cls: classes.count(cls) for cls in set(classes)}
+        assert counts == dict(CANONICAL_CLASS_MULTISET)
+
+    def test_deterministic(self):
+        assert generate_scrambled_canonical_responses(
+            n=40, seed=7
+        ) == generate_scrambled_canonical_responses(n=40, seed=7)
+
+    def test_seeds_differ(self):
+        assert generate_scrambled_canonical_responses(
+            n=40, seed=7
+        ) != generate_scrambled_canonical_responses(n=40, seed=8)
+
+    def test_class_composition_per_sentence(self):
+        responses = generate_scrambled_canonical_responses(n=40, seed=3)
+        for r in responses:
+            words = [w.lower() for w in r.rstrip(".").split()]
+            assert len(words) == 6, r
+            nouns = [w for w in words if w in PLURAL_NOUNS]
+            verbs = [w for w in words if w in INTRANSITIVE_PAST]
+            preps = [w for w in words if w in PREPOSITIONS]
+            assert len(nouns) == 3, r
+            assert len(verbs) == 1, r
+            assert len(preps) == 2, r
+            assert len(set(words)) == 6, r
+
+    def test_orders_are_not_consistent(self):
+        # the whole point of the control: no shared word-order pattern
+        responses = generate_scrambled_canonical_responses(n=40, seed=1)
+
+        def class_order(r: str) -> tuple[str, ...]:
+            order = []
+            for w in [w.lower() for w in r.rstrip(".").split()]:
+                if w in PLURAL_NOUNS:
+                    order.append("N")
+                elif w in INTRANSITIVE_PAST:
+                    order.append("Vi")
+                else:
+                    order.append("P")
+            return tuple(order)
+
+        orders = {class_order(r) for r in responses}
+        assert len(orders) > 10
+
+    def test_capitalized_with_period(self):
+        for r in generate_scrambled_canonical_responses(n=20, seed=2):
+            assert r[0].isupper() and r.endswith(".")
+
+    def test_all_unique(self):
+        responses = generate_scrambled_canonical_responses(n=100, seed=4)
+        assert len(set(responses)) == 100
