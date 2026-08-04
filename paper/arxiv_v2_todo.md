@@ -84,7 +84,7 @@ When submitting the replacement version, update the arXiv title field to the lon
 so arXiv matches the paper. OpenReview's listing also still shows the short title;
 updating that is separate and optional.
 
-## 4. Drop "each later stage's curve lies below the base curve at every $k \geq 2$"
+## 7. Drop "each later stage's curve lies below the base curve at every $k \geq 2$"
 
 Remove (or rewrite) the "lies below the base curve at every $k \geq 2$" claim in the
 RLHF/OLMo section and its figure captions. Occurrences:
@@ -105,7 +105,7 @@ the "curve-below-base-at-every-k" phrasing should go. The poster (`paper/poster/
 icl_diversity_poster.html`) has already had this sentence removed from the
 "Catches post-training mode collapse" caption.
 
-## 5. RLHF $\bar{a}_k$ overlay figure: y-axis mislabeled "(bits/byte)" — should be "(total bits)"
+## 8. RLHF $\bar{a}_k$ overlay figure: y-axis mislabeled "(bits/byte)" — should be "(total bits)"
 
 `scripts/rlhf_experiment/5_analyze_and_figures.py:257` labeled the $\bar{a}_k$
 overlay y-axis `(bits/byte)`, but that curve is the **total-bits** progressive surprise
