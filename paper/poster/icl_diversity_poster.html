@@ -1,287 +1,723 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>ICL Diversity Poster</title>
-<link rel="stylesheet" href="assets/katex/katex.min.css">
-<script defer src="assets/katex/katex.min.js"></script>
-<script defer src="assets/katex/auto-render.min.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    renderMathInElement(document.body, {
-      delimiters: [
-        { left: "$$", right: "$$", display: true },
-        { left: "\\(", right: "\\)", display: false }
-      ],
-      throwOnError: true
-    });
-    window.__katexDone = true;
-  });
-</script>
-<style>
-  @page { size: 594mm 841mm; margin: 0; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --burgundy: rgb(140, 5, 28);
-    --burgundy-tint: #fbeef0;
-    --panel-bg: #ffffff;
-    --gap: 6mm;
-    --col-gap: 7mm;
-    --ink: #1a1a1a;
-    --grey: #555;
-  }
-  body {
-    width: 594mm; height: 841mm;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background: #fff; color: var(--ink);
-    padding: 10mm;
-    display: flex; flex-direction: column; gap: var(--gap);
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <title>ICL Diversity Poster</title>
+    <link rel="stylesheet" href="assets/katex/katex.min.css" />
+    <script defer src="assets/katex/katex.min.js"></script>
+    <script defer src="assets/katex/auto-render.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false },
+          ],
+          throwOnError: true,
+        });
+        window.__katexDone = true;
+      });
+    </script>
+    <style>
+      @page {
+        size: 594mm 841mm;
+        margin: 0;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --burgundy: rgb(140, 5, 28);
+        --burgundy-tint: #fbeef0;
+        --gold: #e8b53a;
+        --panel-bg: #ffffff;
+        --gap: 6mm;
+        --col-gap: 7mm;
+        --ink: #1a1a1a;
+        --grey: #555;
+      }
+      body {
+        width: 594mm;
+        height: 841mm;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background: #fff;
+        color: var(--ink);
+        padding: 10mm;
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
 
-  /* ═══ TITLE BAR (enlarged header) ═══ */
-  .title-bar { background: var(--burgundy); border-radius: 5px; padding: 9mm 12mm; display: flex; align-items: center; gap: 12mm; flex-shrink: 0; }
-  .title-bar .logo { height: 64mm; width: auto; flex-shrink: 0; background:#fff; border-radius:4px; padding:3mm; }
-  .title-content { flex: 1; text-align: center; }
-  .takeaway-banner { color: #fff; font-size: 51pt; font-weight: 700; line-height: 1.1; letter-spacing: -0.3pt; margin-bottom: 5mm; }
-  .title-content h1 { color: rgba(255,255,255,0.92); font-size: 22pt; font-weight: 500; font-style: italic; line-height: 1.2; margin-bottom: 4.5mm; }
-  .title-content .authors { color: #fff; font-size: 26pt; font-weight: 600; margin-bottom: 2.5mm; }
-  .title-content .affiliations { color: rgba(255,255,255,0.85); font-size: 19pt; font-style: italic; }
-  .qr-block { display: flex; gap: 8mm; flex-shrink: 0; }
-  .qr { text-align: center; }
-  .qr img { height: 34mm; width: 34mm; background:#fff; border-radius:3px; padding:1.5mm; display:block; }
-  .qr span { display: block; color:#fff; font-size: 14.5pt; font-weight:600; margin-top: 1.5mm; }
+      /* ═══ TITLE BAR (enlarged header) ═══ */
+      .title-bar {
+        background: var(--burgundy);
+        border-radius: 5px;
+        padding: 9mm 12mm;
+        display: flex;
+        align-items: center;
+        gap: 12mm;
+        flex-shrink: 0;
+      }
+      .title-bar .logo {
+        height: 64mm;
+        width: auto;
+        flex-shrink: 0;
+        background: #fff;
+        border-radius: 4px;
+        padding: 3mm;
+      }
+      .title-content {
+        flex: 1;
+        text-align: center;
+      }
+      .title-content h1.poster-title {
+        color: #fff;
+        font-size: 44pt;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.3pt;
+        margin-bottom: 5mm;
+      }
+      .title-content .tagline {
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 22pt;
+        font-weight: 500;
+        font-style: italic;
+        line-height: 1.2;
+        margin-bottom: 4.5mm;
+      }
+      .title-content .authors {
+        color: #fff;
+        font-size: 26pt;
+        font-weight: 600;
+        margin-bottom: 2.5mm;
+      }
+      .title-content .affiliations {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 19pt;
+        font-style: italic;
+      }
+      .qr-block {
+        display: flex;
+        gap: 8mm;
+        flex-shrink: 0;
+      }
+      .qr {
+        text-align: center;
+      }
+      .qr img {
+        height: 34mm;
+        width: 34mm;
+        background: #fff;
+        border-radius: 3px;
+        padding: 1.5mm;
+        display: block;
+      }
+      .qr span {
+        display: block;
+        color: #fff;
+        font-size: 14.5pt;
+        font-weight: 600;
+        margin-top: 1.5mm;
+      }
 
-  /* ═══ SHARED PANEL ═══ */
-  .section { border-radius: 4px; overflow: hidden; background: var(--panel-bg); border: 0.6mm solid #e7e7e7; }
-  .section-title { background: var(--burgundy); color: #fff; font-size: 22.5pt; font-weight: 700; padding: 2.6mm 4mm; line-height: 1.15; }
-  .section-title .katex { color: #fff; }
-  .section-body { padding: 4.5mm; font-size: 20pt; line-height: 1.36; }
-  .section-body p { margin-bottom: 2.8mm; }
-  .section-body p:last-child { margin-bottom: 0; }
-  .section-body strong { font-weight: 700; }
-  .section-body em { font-style: italic; }
-  sub { font-size: 0.72em; }
+      /* ═══ SHARED PANEL ═══ */
+      .section {
+        border-radius: 4px;
+        overflow: hidden;
+        background: var(--panel-bg);
+        border: 0.6mm solid #e7e7e7;
+      }
+      .section-title {
+        background: var(--burgundy);
+        color: #fff;
+        font-size: 22.5pt;
+        font-weight: 700;
+        padding: 2.6mm 4mm;
+        line-height: 1.15;
+      }
+      .section-title .katex {
+        color: #fff;
+      }
+      /* Gold accent to make "Human" / "AI" stand out on the burgundy bar. */
+      .section-title .hl {
+        color: var(--gold);
+        font-weight: 800;
+      }
+      .section-body {
+        padding: 4.5mm;
+        font-size: 20pt;
+        line-height: 1.36;
+      }
+      .section-body p {
+        margin-bottom: 2.8mm;
+      }
+      .section-body p:last-child {
+        margin-bottom: 0;
+      }
+      .section-body strong {
+        font-weight: 700;
+      }
+      .section-body em {
+        font-style: italic;
+      }
+      sub {
+        font-size: 0.72em;
+      }
 
-  /* ═══ GRID ROWS (top row + results row) ═══ */
-  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--col-gap); }
-  .grid3.fill { flex: 1; min-height: 0; }
-  .col { display: flex; flex-direction: column; gap: var(--gap); }
-  .col.spread { justify-content: space-between; }
+      /* ═══ GRID ROWS (top row + results row) ═══ */
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: var(--col-gap);
+      }
+      .grid3.fill {
+        flex: 1;
+        min-height: 0;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--col-gap);
+      }
+      .grid2.fill {
+        flex: 1;
+        min-height: 0;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+      }
+      .col.spread {
+        justify-content: space-between;
+      }
 
-  /* ═══ METHOD HERO (full width, Fig 1 large) ═══ */
-  .method-hero { flex-shrink: 0; }
-  .hero-body { display: flex; gap: 8mm; padding: 5mm; align-items: center; }
-  .hero-fig { flex: 0 0 60%; }
-  .hero-fig img { width: 100%; height: auto; display: block; }
-  .hero-side { flex: 1; display: flex; flex-direction: column; gap: 2.5mm; }
-  .hero-side .lead { font-size: 19pt; line-height: 1.32; }
-  .method-notes p { font-size: 15.5pt; line-height: 1.24; margin-bottom: 1.6mm; }
-  .method-notes p:last-child { margin-bottom: 0; }
+      /* ═══ METHOD HERO (full width, Fig 1 large) ═══ */
+      .method-hero {
+        flex-shrink: 0;
+      }
+      .hero-body {
+        display: flex;
+        gap: 8mm;
+        padding: 5mm;
+        align-items: center;
+      }
+      .hero-fig {
+        flex: 0 0 56%;
+      }
+      .hero-fig img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .hero-side {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2.5mm;
+      }
+      .hero-side .lead {
+        font-size: 22pt;
+        line-height: 1.34;
+      }
+      .method-notes p {
+        font-size: 18.5pt;
+        line-height: 1.3;
+        margin-bottom: 2.2mm;
+      }
+      .method-notes p:last-child {
+        margin-bottom: 0;
+      }
 
-  /* ═══ FIGURES (max-heights guarantee the result columns fit the page) ═══ */
-  .figure-single { width: auto; max-width: 100%; height: auto; max-height: 80mm; display: block; margin: 1mm auto 2mm; }
-  .figure-single.tbl { max-height: 172mm; }
-  .figure-pair { display: flex; gap: 2.5mm; margin: 1mm 0 2mm; align-items: flex-start; justify-content: center; }
-  .figure-pair img { width: calc(50% - 1.25mm); max-height: 72mm; height: auto; object-fit: contain; }
-  .caption { font-size: 14.5pt; color: var(--grey); font-style: italic; line-height: 1.26; margin-top: 1.5mm; }
+      /* ═══ FIGURES (max-heights guarantee the result columns fit the page) ═══ */
+      .figure-single {
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        max-height: 80mm;
+        display: block;
+        margin: 1mm auto 2mm;
+      }
+      .figure-single.tbl {
+        max-height: 184mm;
+      }
+      .figure-pair {
+        display: flex;
+        gap: 2.5mm;
+        margin: 1mm 0 2mm;
+        align-items: flex-start;
+        justify-content: center;
+      }
+      .figure-pair img {
+        width: calc(50% - 1.25mm);
+        max-height: 72mm;
+        height: auto;
+        object-fit: contain;
+      }
+      .caption {
+        font-size: 14.5pt;
+        color: var(--grey);
+        font-style: italic;
+        line-height: 1.26;
+        margin-top: 1.5mm;
+      }
 
-  /* ═══ BULLETS ═══ */
-  .section-body ul { list-style: disc; padding-left: 7mm; margin: 0; }
-  .section-body ul li { margin-bottom: 2.4mm; font-size: 20pt; line-height: 1.3; }
-  .section-body ul li:last-child { margin-bottom: 0; }
+      /* ═══ BULLETS ═══ */
+      .section-body ul {
+        list-style: disc;
+        padding-left: 7mm;
+        margin: 0;
+      }
+      .section-body ul li {
+        margin-bottom: 2.4mm;
+        font-size: 20pt;
+        line-height: 1.3;
+      }
+      .section-body ul li:last-child {
+        margin-bottom: 0;
+      }
 
-  /* ═══ EQUATIONS ═══ */
-  .eqn-block { background: #f7f7f8; border-left: 2.4mm solid var(--burgundy); border-radius: 3px; padding: 3.5mm 4.5mm; }
-  .eqn { font-size: 21pt; line-height: 1.5; display: flex; align-items: baseline; flex-wrap: wrap; }
-  .eqn .elabel { color: var(--burgundy); font-weight: 700; margin-right: 3mm; }
-  .eqn .katex { font-size: 1em; }
-  .katex { font-size: 1em; }
+      /* ═══ EQUATIONS ═══ */
+      .eqn-block {
+        background: #f7f7f8;
+        border-left: 2.4mm solid var(--burgundy);
+        border-radius: 3px;
+        padding: 3.5mm 4.5mm;
+      }
+      .eqn {
+        font-size: 21pt;
+        line-height: 1.5;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .eqn .elabel {
+        color: var(--burgundy);
+        font-weight: 700;
+        margin-right: 3mm;
+      }
+      .eqn .katex {
+        font-size: 1em;
+      }
+      .katex {
+        font-size: 1em;
+      }
+      /* ═══ METHOD: equation + English-gloss pairs building to Decan ═══ */
+      .eqn-defs {
+        display: flex;
+        flex-direction: column;
+        gap: 3mm;
+      }
+      .def .gloss {
+        font-size: 18pt;
+        line-height: 1.28;
+        margin: 1.4mm 0 0 3mm;
+        padding-left: 5mm;
+        position: relative;
+      }
+      .def .gloss::before {
+        content: "\2022";
+        position: absolute;
+        left: 0;
+        color: var(--burgundy);
+        font-weight: 700;
+      }
+      /* Decan is the culmination: highlight it. */
+      .def.decan {
+        background: var(--burgundy-tint);
+        border-left: 2.4mm solid var(--burgundy);
+        border-radius: 3px;
+        padding: 3mm 4mm 3.5mm;
+        margin-top: 1mm;
+      }
+      .def.decan .eqn {
+        font-size: 24pt;
+        font-weight: 700;
+      }
+      .def.decan .elabel {
+        font-weight: 800;
+      }
 
-  /* ═══ TAKEAWAYS w/ PAPER + CODE QR (place of honor) ═══ */
-  .tk-body { display: flex; gap: 5mm; align-items: stretch; }
-  .tk-list { flex: 1; }
-  .tk-qr { flex: 0 0 50mm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; border-left: 0.5mm solid #e7e7e7; padding-left: 5mm; }
-  .tk-qr .paper-qr { width: 48mm; height: 48mm; display: block; }
-  .tk-qr .paper-cap { font-size: 16pt; font-weight: 700; color: var(--burgundy); text-align: center; line-height: 1.1; margin-bottom: 1mm; }
-  .tk-qr .code-qr { width: 38mm; height: 38mm; display: block; margin-top: 2mm; }
-  .tk-qr .code-cap { font-size: 13.5pt; color: var(--grey); font-weight: 600; text-align: center; line-height: 1.1; }
+      /* ═══ TAKEAWAYS w/ PAPER + CODE QR (place of honor) ═══ */
+      .tk-body {
+        display: flex;
+        gap: 5mm;
+        align-items: stretch;
+      }
+      .tk-list {
+        flex: 1;
+      }
+      .tk-qr {
+        flex: 0 0 50mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2mm;
+        border-left: 0.5mm solid #e7e7e7;
+        padding-left: 5mm;
+      }
+      .tk-qr .paper-qr {
+        width: 48mm;
+        height: 48mm;
+        display: block;
+      }
+      .tk-qr .paper-cap {
+        font-size: 16pt;
+        font-weight: 700;
+        color: var(--burgundy);
+        text-align: center;
+        line-height: 1.1;
+        margin-bottom: 1mm;
+      }
+      .tk-qr .code-qr {
+        width: 38mm;
+        height: 38mm;
+        display: block;
+        margin-top: 2mm;
+      }
+      .tk-qr .code-cap {
+        font-size: 13.5pt;
+        color: var(--grey);
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.1;
+      }
 
-  /* ═══ MINI TABLE (edge cases) ═══ */
-  table.mini-table { width: 100%; border-collapse: collapse; font-size: 16.5pt; margin: 1mm 0 2mm; }
-  table.mini-table th, table.mini-table td { padding: 1.6mm 1.5mm; text-align: center; border-bottom: 0.3mm solid #e3e3e3; }
-  table.mini-table th { background: #f2f2f2; font-weight: 700; }
-  table.mini-table td:first-child, table.mini-table th:first-child { text-align: left; }
-  table.mini-table tr.win td { background: var(--burgundy-tint); }
+      .stages {
+        text-align: center;
+        color: var(--burgundy);
+        font-size: 20pt;
+        margin-top: 1mm;
+      }
 
-  .stages { text-align: center; color: var(--burgundy); font-size: 20pt; margin-top: 1mm; }
-
-  /* ═══ FULL-WIDTH FOOTER ═══ */
-  .footer-strip { flex-shrink: 0; background: #fff; border: 0.6mm solid #e7e7e7; border-top: 1.4mm solid var(--burgundy); border-radius: 4px; padding: 3mm 6mm; }
-  .refs-text { font-size: 12.5pt; color: var(--grey); line-height: 1.32; }
-  .ack-text { font-size: 12.5pt; color: var(--grey); font-style: italic; line-height: 1.32; margin-top: 1mm; }
-</style>
-</head>
-<body>
-
-  <!-- ═══════════════ TITLE BAR ═══════════════ -->
-  <div class="title-bar">
-    <img class="logo" src="assets/ERA_logo.jpg" alt="ERA Fellowship">
-    <div class="title-content">
-      <div class="takeaway-banner">In-context learning of pretrained models can be used to directly measure the diversity of LLM generations and human writing.</div>
-      <h1>&ldquo;I&rsquo;ve Seen How This Goes&rdquo;: Characterizing the Diversity of LLM Generations and Human Writing via Progressive Conditional Surprise</h1>
-      <div class="authors">Matthew Khoriaty&ensp;&middot;&ensp;David Williams-King&ensp;&middot;&ensp;Shi Feng</div>
-      <div class="affiliations">ERA Fellowship&ensp;&middot;&ensp;ERA Fellowship&ensp;&middot;&ensp;George Washington University</div>
-    </div>
-    <div class="qr-block">
-      <div class="qr"><img src="assets/qr_linkedin.png" alt="LinkedIn QR"><span>LinkedIn</span></div>
-      <div class="qr"><img src="assets/qr_twitter.png" alt="X / Twitter QR"><span>X / Twitter</span></div>
-    </div>
-  </div>
-
-  <!-- ═══════════════ TOP ROW: Why / Idea / Takeaways ═══════════════ -->
-  <div class="grid3">
-
-    <div class="section">
-      <div class="section-title">Why measure diversity?</div>
-      <div class="section-body">
-        <p>The possibility for diverse outputs is necessary, but not sufficient, for creativity. Researchers routinely need to compare the diversity of outputs across generation processes:</p>
-        <ul>
-          <li>post-training stages of the same base model (mode collapse)</li>
-          <li>decoding strategies (what does temperature trade off against?)</li>
-          <li>human&ndash;AI hybrid pipelines (would AI use make writing less creative?)</li>
-        </ul>
-        <p>Existing metrics rely on embedding distances or surface-level <em>n</em>-gram statistics, both of which lack a human-like ability to recognize arbitrary patterns.</p>
+      /* ═══ FULL-WIDTH FOOTER ═══ */
+      .footer-strip {
+        flex-shrink: 0;
+        background: #fff;
+        border: 0.6mm solid #e7e7e7;
+        border-top: 1.4mm solid var(--burgundy);
+        border-radius: 4px;
+        padding: 3mm 6mm;
+      }
+      .refs-text {
+        font-size: 12.5pt;
+        color: var(--grey);
+        line-height: 1.32;
+      }
+      .ack-text {
+        font-size: 12.5pt;
+        color: var(--grey);
+        font-style: italic;
+        line-height: 1.32;
+        margin-top: 1mm;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════ TITLE BAR ═══════════════ -->
+    <div class="title-bar">
+      <img class="logo" src="assets/ERA_logo.jpg" alt="ERA Fellowship" />
+      <div class="title-content">
+        <h1 class="poster-title">
+          &ldquo;I&rsquo;ve Seen How This Goes&rdquo;: Characterizing the
+          Diversity of LLM Generations and Human Writing via Progressive
+          Conditional Surprise
+        </h1>
+        <div class="tagline">
+          In-context learning of pretrained models can be used to directly
+          measure the diversity of LLM generations and human writing.
+        </div>
+        <div class="authors">
+          Matthew Khoriaty&ensp;&middot;&ensp;David
+          Williams-King&ensp;&middot;&ensp;Shi Feng
+        </div>
+        <div class="affiliations">
+          ERA Fellowship&ensp;&middot;&ensp;ERA
+          Fellowship&ensp;&middot;&ensp;George Washington University
+        </div>
+      </div>
+      <div class="qr-block">
+        <div class="qr">
+          <img src="assets/qr_linkedin.png" alt="LinkedIn QR" /><span
+            >LinkedIn</span
+          >
+        </div>
+        <div class="qr">
+          <img src="assets/qr_twitter.png" alt="X / Twitter QR" /><span
+            >X / Twitter</span
+          >
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">The idea: in-context learning as a lens</div>
-      <div class="section-body">
-        <p>We exploit the in-context learning capability described by Brown et al. (2020), applied here as a measurement lens rather than as a few-shot-prompting setup. As \(\theta\) sees more responses, its in-context learning picks up on shared modes, stylistic regularities, and topic patterns.</p>
-        <p>If responses from a policy \(\pi\) are diverse, seeing one should not help \(\theta\) predict the next, whereas if they are repetitive or constrained to a few modes, conditioning on earlier responses should sharply reduce \(\theta\)&rsquo;s surprise at later ones.</p>
-        <p>Diversity is therefore a property of (responses, prompt, scoring model). The metric measures diversity as \(\theta\) perceives it.</p>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Takeaways</div>
-      <div class="section-body">
-        <div class="tk-body">
-          <ul class="tk-list">
-            <li>A base model&rsquo;s in-context learning detects similarities between arbitrary numbers of responses in a <strong>single forward pass per permutation</strong>.</li>
-            <li><strong>No</strong> embedding model, <strong>no</strong> reference corpus, <strong>no</strong> human labels, <strong>no</strong> special-purpose training.</li>
-            <li>The same pipeline scores AI samples and human-written sets, and tracks post-training diversity loss on OLMo-2-7B.</li>
+    <!-- ═══════════════ TOP ROW: Why / Idea / Takeaways ═══════════════ -->
+    <div class="grid3">
+      <div class="section">
+        <div class="section-title">Why measure diversity?</div>
+        <div class="section-body">
+          <p>
+            The possibility for diverse outputs is necessary, but not
+            sufficient, for creativity. Researchers routinely need to compare
+            the diversity of outputs across:
+          </p>
+          <ul>
+            <li>
+              elicitation methods during propensity and capability evaluations,
+              to get a complete picture of what the model is capable of and what
+              it might choose to do
+            </li>
+            <li>post-training stages (mode collapse)</li>
+            <li>
+              decoding strategies (what does temperature trade off against?)
+            </li>
+            <li>
+              human&ndash;AI hybrid pipelines (how can AI be used to amplify
+              rather than weaken human creativity?)
+            </li>
           </ul>
-          <div class="tk-qr">
-            <img class="paper-qr" src="assets/qr_paper.png" alt="paper QR">
-            <div class="paper-cap">Read the full paper</div>
-            <img class="code-qr" src="assets/qr_code.png" alt="code QR">
-            <div class="code-cap">Code &amp; data</div>
+          <p>
+            Existing metrics rely on embedding distances or surface-level
+            <em>n</em>-gram statistics, both of which lack a human-like ability
+            to recognize arbitrary patterns.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">The idea: in-context learning as a lens</div>
+        <div class="section-body">
+          <p>
+            We exploit the in-context learning capability described by Brown et
+            al. (2020), applied here as a measurement lens rather than as a
+            few-shot-prompting setup. As \(\theta\) sees more responses, its
+            in-context learning picks up on shared modes, stylistic
+            regularities, and topic patterns.
+          </p>
+          <p>
+            If responses from a policy \(\pi\) are diverse, seeing one should
+            not help \(\theta\) predict the next, whereas if they are repetitive
+            or constrained to a few modes, conditioning on earlier responses
+            should sharply reduce \(\theta\)&rsquo;s surprise at later ones.
+          </p>
+          <p>
+            Diversity is therefore a property of (responses, prompt, scoring
+            model). The metric measures diversity as \(\theta\) perceives it.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Takeaways</div>
+        <div class="section-body">
+          <div class="tk-body">
+            <ul class="tk-list">
+              <li>
+                A base model&rsquo;s in-context learning detects similarities
+                between arbitrary numbers of responses in a
+                <strong>single forward pass per permutation</strong>.
+              </li>
+              <li>
+                Measuring diversity with ICL requires no special-purpose
+                training, datasets, or predetermined aspects of diversity.
+              </li>
+              <li>
+                The same pipeline scores AI samples and human-written sets, and
+                tracks post-training diversity loss on OLMo-2-7B.
+              </li>
+            </ul>
+            <div class="tk-qr">
+              <img class="paper-qr" src="assets/qr_paper.png" alt="paper QR" />
+              <div class="paper-cap">Read the full paper</div>
+              <img class="code-qr" src="assets/qr_code.png" alt="code QR" />
+              <div class="code-cap">Code &amp; data</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-  </div>
-
-  <!-- ═══════════════ METHOD HERO (Fig 1 large) ═══════════════ -->
-  <div class="section method-hero">
-    <div class="section-title">Method: the Decan score \(D_{Ca_n} = C \times a_n\)</div>
-    <div class="hero-body">
-      <div class="hero-fig">
-        <img src="assets/fig1_pipeline.png" alt="The diversity-metric pipeline">
+    <!-- ═══════════════ METHOD HERO (Fig 1 large) ═══════════════ -->
+    <div class="section method-hero">
+      <div class="section-title">
+        Method: the Decan score \(D_{Ca_n} = C \times a_n\)
       </div>
-      <div class="hero-side">
-        <p class="lead">The Decan metric \(D_{Ca_n} = C \times a_n\) is a score read off the per-token log-probabilities of a base model \(\theta\) with one pass per permutation.</p>
-        <div class="eqn-block">
-          <div class="eqn"><span class="elabel">Progressive surprise</span> \(a_k = -\log_2 \theta(r_k \mid r_{&lt;k}, p)\)</div>
-          <div class="eqn"><span class="elabel">Coherence</span> \(C = 1 / \mathrm{PPL}_\theta(\pi, p)\)</div>
-          <div class="eqn"><span class="elabel">Decan</span> \(D_{Ca_n} = C \times a_n\) (bits/byte)</div>
+      <div class="hero-body">
+        <div class="hero-fig">
+          <img
+            src="assets/fig1_pipeline.png"
+            alt="The diversity-metric pipeline"
+          />
         </div>
-        <div class="method-notes">
-          <p>Equivalently, \(a_n = H(r_n \mid p) - I(r_n; r_{&lt;n} \mid p)\), the response&rsquo;s own surprise minus how much the others make it predictable. High \(a_n\) needs \(r_n\) to be both surprising and not made predictable by the rest.</p>
-          <p>The curve alone is fooled by pure noise, since \(\theta\) can never predict random tokens from one another, so coherence \(C\) down-weights incoherent sets and keeps noise from registering as diverse.</p>
-          <p>We average \(a_k\) over uniformly random response orderings, so the curve reflects how \(\theta\)&rsquo;s predictions improve with more context, not which response landed in a given slot.</p>
-          <p>Decan reads as how many bits of surprise per byte remain after \(\theta\) has learned what it can from the other responses, weighted by output plausibility.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════ RESULTS ROW ═══════════════ -->
-  <div class="grid3 fill">
-
-    <!-- Col 1: Human-grounded benchmark with FULL Table 2 -->
-    <div class="col spread">
-      <div class="section">
-        <div class="section-title">Human benchmark: Tevet &amp; Berant</div>
-        <div class="section-body">
-          <p>The response sets are written by Mechanical Turk workers, with the high/low diversity label fixed by each dataset&rsquo;s construction protocol.</p>
-          <p>Across the binary tasks Decan clearly tracks human diversity judgements, between 3.7% and 21.0% behind SentBERT in OCA, reaching close to a sentence-embedding baseline.</p>
-          <img class="figure-single tbl" src="assets/table2.png" alt="Tevet Diversity-Eval results table">
-          <p class="caption">Spearman \(\rho\) and OCA against human diversity labels. \(C \times a_n\) and \(a_n\) are ours (Qwen2.5-3B, 50 permutations, per-byte); baselines are from Tevet and Berant. Best per task in bold.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Col 2: OLMo collapse + edge cases -->
-    <div class="col spread">
-      <div class="section">
-        <div class="section-title">Catches post-training mode collapse</div>
-        <div class="section-body">
-          <div class="figure-pair">
-            <img src="assets/fig2_ak.png" alt="AlpacaEval a_k curves by stage">
-            <img src="assets/fig2_violin.png" alt="Per-prompt diversity by stage">
+        <div class="hero-side">
+          <p class="lead">
+            Decan is read off the per-token log-probabilities of a base model
+            \(\theta\), in one forward pass per permutation.
+          </p>
+          <div class="eqn-defs">
+            <div class="def">
+              <div class="eqn">
+                <span class="elabel">Progressive conditional surprise</span>
+                \(a_k = -\frac{1}{\|r_k\|}\log_2 \theta(r_k \mid r_{&lt;k}, p)\)
+              </div>
+              <div class="gloss">
+                How surprised \(\theta\) is by response \(k\) given the previous
+                \(k{-}1\). It is averaged over random response orderings
+                (permutations). The curve of \(a_k\) values characterizes
+                diversity, and scalar summaries attempt to capture its shape.
+              </div>
+            </div>
+            <div class="def">
+              <div class="eqn">
+                <span class="elabel">Residual surprise</span> \(a_n \approx
+                a_\infty = \frac{1}{\|r_n\|}\left(H_\theta(r_n \mid p) -
+                I_\theta(r_n; r_{&lt;n} \mid p)\right)\)
+              </div>
+              <div class="gloss">
+                The curve&rsquo;s last point: the response&rsquo;s own surprise
+                minus what the others reveal about it. High \(a_n\) indicates
+                that responses remain surprising even after seeing the rest.
+              </div>
+            </div>
+            <div class="def">
+              <div class="eqn">
+                <span class="elabel">Coherence</span> \(C = 1 /
+                \mathrm{PPL}_\theta(\pi, p)\)
+              </div>
+              <div class="gloss">
+                Reciprocal perplexity suppresses the diversity score of
+                incoherent sets because noise should not make the metric
+                consider the set to be more diverse.
+              </div>
+            </div>
+            <div class="def decan">
+              <div class="eqn">
+                <span class="elabel">Decan</span> \(D_{Ca_n} = C \times a_n\)
+              </div>
+              <div class="gloss">
+                Bits of surprise per byte left after \(\theta\) learns what it
+                can from the other responses, weighted by coherence.
+              </div>
+            </div>
           </div>
-          <p>On the OLMo-2-7B post-training pipeline, Decan decreases monotonically across the base, SFT, DPO, and RLVR stages, detecting the type of diversity loss that creative-writing applications care about.</p>
-          <p class="stages"><strong>base 0.481 &rarr; SFT 0.329 &rarr; DPO 0.286 &asymp; RLVR 0.281</strong></p>
-          <p class="caption">All three pre-registered contrasts are significant after Bonferroni correction, and each later stage&rsquo;s curve lies below the base curve at every \(k \ge 2\).</p>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Intended edge-case behavior</div>
-        <div class="section-body">
-          <table class="mini-table">
-            <tr><th>Scenario</th><th>C</th><th>\(a_n\)</th><th>\(D_{Ca_n}\)</th><th>GPT-2</th><th>Qwen</th></tr>
-            <tr><td>Pure noise</td><td>low</td><td>high</td><td>low (C)</td><td>0.04</td><td>0.05</td></tr>
-            <tr><td>Multi-mode incoherent</td><td>low</td><td>high</td><td>low (C)</td><td>0.19</td><td>0.29</td></tr>
-            <tr class="win"><td>Multi-mode coherent</td><td>high</td><td>high</td><td><strong>high</strong></td><td>0.26</td><td>0.19</td></tr>
-            <tr><td>One-mode</td><td>high</td><td>low</td><td>low (\(a_n\))</td><td>0.10</td><td>0.09</td></tr>
-            <tr><td>Mixed</td><td>mid</td><td>high</td><td>mid</td><td>0.52</td><td>0.41</td></tr>
-          </table>
-          <p class="caption">The product suppresses pure noise and incoherent multi-mode via C and one-mode sets via \(a_n\), so multi-mode coherent is the intended (highlighted) winner. Empirically \(a_n\) is lower with only 3 modes in 10 responses, so Mixed scores highest and, on Qwen, multi-mode incoherent outranks coherent (see paper).</p>
         </div>
       </div>
     </div>
 
-    <!-- Col 3: cross-metric agreement + mode count -->
-    <div class="col spread">
-      <div class="section">
-        <div class="section-title">Agrees with existing metrics</div>
-        <div class="section-body">
-          <img class="figure-single" src="assets/fig18_scatter.png" alt="D vs EAD and SentBERT diversity">
-          <p>Per-prompt Decan also agrees with the lexical (EAD) and semantic (SentBERT) baselines on the same length-matched subset, confirming the metrics see the same diversity-loss signal.</p>
+    <!-- ═══════════════ RESULTS ROW (two sides: human · AI) ═══════════════ -->
+    <div class="grid2 fill">
+      <!-- Human side: Tevet & Berant human-grounded benchmark (full Table 2) -->
+      <div class="col spread">
+        <div class="section">
+          <div class="section-title">
+            <span class="hl">Human</span> writing diversity evaluation
+          </div>
+          <div class="section-body">
+            <p>
+              We evaluate on Tevet and Berant&rsquo;s human diversity benchmark.
+              The response sets are written by Mechanical Turk workers, with the
+              high/low diversity label fixed by each dataset&rsquo;s
+              construction protocol.
+            </p>
+            <p>
+              Across the binary tasks Decan clearly tracks human diversity
+              judgments, reaching close to the sentence-embedding baseline of
+              SentBERT, but still 3.7&ndash;21.0% behind in OCA. Future work can
+              attempt to close the gap by using other scalar summaries of the
+              \(a_k\) curve or fine-tuning the base model.
+            </p>
+            <img
+              class="figure-single tbl"
+              src="assets/table2.png"
+              alt="Tevet Diversity-Eval results table"
+            />
+            <p class="caption">
+              Spearman \(\rho\) and OCA against human diversity labels. \(C
+              \times a_n\) and \(a_n\) are ours (Qwen2.5-3B, 50 permutations,
+              per-byte); baselines are from Tevet and Berant. Best per task in
+              bold.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-title">The curve responds to mode count</div>
-        <div class="section-body">
-          <img class="figure-single" src="assets/fig5_modecount.png" alt="Mode-count scaling on Qwen2.5-3B">
-          <p>With one repeated mode the curve drops sharply toward zero, whereas with many distinct modes it stays high, so \(a_n\) rises with the number of distinct modes.</p>
-          <p class="caption">Mode-count scaling on Qwen2.5-3B.</p>
+      <!-- AI side: OLMo post-training mode collapse + cross-metric agreement -->
+      <div class="col spread">
+        <div class="section">
+          <div class="section-title">
+            <span class="hl">AI</span> writing evaluation: Post-training mode
+            collapse
+          </div>
+          <div class="section-body">
+            <div class="figure-pair">
+              <img
+                src="assets/fig2_ak.png"
+                alt="AlpacaEval a_k curves by stage"
+              />
+              <img
+                src="assets/fig2_violin.png"
+                alt="Per-prompt diversity by stage"
+              />
+            </div>
+            <p>
+              On the OLMo-2-7B post-training pipeline, Decan decreases
+              monotonically across the base, SFT, DPO, and RLVR stages,
+              detecting the type of diversity loss that creative-writing
+              applications care about.
+            </p>
+            <p class="stages">
+              <strong
+                >base 0.481 &rarr; SFT 0.329 &rarr; DPO 0.286 &asymp; RLVR
+                0.281</strong
+              >
+            </p>
+            <p class="caption">
+              All three pre-registered contrasts are significant after
+              Bonferroni correction.
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <span class="hl">AI</span> writing evaluation: Agreement with
+            existing metrics
+          </div>
+          <div class="section-body">
+            <img
+              class="figure-single"
+              src="assets/fig18_scatter.png"
+              alt="D vs EAD and SentBERT diversity"
+            />
+            <p>
+              Per-prompt Decan also agrees with the lexical (EAD) and semantic
+              (SentBERT) baselines on the same length-matched subset, confirming
+              the metrics see the same diversity-loss signal.
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
-  </div>
-
-  <!-- ═══════════════ FULL-WIDTH FOOTER ═══════════════ -->
-  <div class="footer-strip">
-    <p class="refs-text"><strong>References.</strong> Tevet &amp; Berant. Evaluating the Evaluation of Diversity in NLG. EACL 2021. &middot; Brown et al. Language Models are Few-Shot Learners. 2020. &middot; Team OLMo et al. 2 OLMo 2 Furious. 2024. &middot; Reimers &amp; Gurevych. Sentence-BERT. 2019.</p>
-    <p class="ack-text">This work was made possible by the generous support of the ERA Fellowship and its staff. We are grateful to Professor Zach Wood-Doughty for providing computational resources.</p>
-  </div>
-</body>
+    <!-- ═══════════════ FULL-WIDTH FOOTER ═══════════════ -->
+    <div class="footer-strip">
+      <p class="refs-text">
+        <strong>References.</strong> Tevet &amp; Berant. Evaluating the
+        Evaluation of Diversity in NLG. EACL 2021. &middot; Brown et al.
+        Language Models are Few-Shot Learners. 2020. &middot; Team OLMo et al. 2
+        OLMo 2 Furious. 2024. &middot; Reimers &amp; Gurevych. Sentence-BERT.
+        2019.
+      </p>
+      <p class="ack-text">
+        This work was made possible by the generous support of the ERA
+        Fellowship and its staff. We are grateful to Professor Zach Wood-Doughty
+        for providing computational resources.
+      </p>
+    </div>
+  </body>
 </html>

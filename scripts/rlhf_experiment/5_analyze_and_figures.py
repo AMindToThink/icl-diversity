@@ -254,7 +254,7 @@ def plot_ak_curves(icl_rows: list[dict], prompt_set: str, out: Path) -> None:
         ax.plot(ks, mean, label=STAGE_LABELS[s], marker="o")
         ax.fill_between(ks, mean - sem, mean + sem, alpha=0.2)
     ax.set_xlabel("k (response index)")
-    ax.set_ylabel(r"$\bar a_k$ (bits/byte)")
+    ax.set_ylabel(r"$\bar a_k$ (total bits)")
     ax.set_title(f"Progressive conditional surprise on {prompt_set}")
     ax.legend()
     ax.grid(True, alpha=0.3)
