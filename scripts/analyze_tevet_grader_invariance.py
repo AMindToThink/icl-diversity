@@ -271,15 +271,33 @@ def emit_markdown(results: dict, tags: list[str], tag_dirs: dict[str, str]) -> d
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--tags", nargs="+", default=[t for t, _d, _m in TAG_SPECS])
+    ap.add_argument("--tags", nargs="+", default=[t for t, _d, _m in TAG_SPECS],
+                    help="grader subset to analyze (default: all four TAG_SPECS tags)")
     ap.add_argument("--update-findings", action="store_true",
                     help="splice generated tables into this directory's FINDINGS.md")
+    ap.add_argument(
+        "--output-dir", type=Path, default=None,
+        help="if set, write outputs here as <stem>.json / <stem>_generated_tables.md instead "
+             "of the default results/tevet/grader_invariance/{invariance.json,"
+             "generated_tables.md,tevet_invariance_rho.tex,tevet_invariance_macros.tex}. No "
+             "LaTeX files are emitted in this mode (avoids collisions with the paper-facing "
+             "tevet_invariance_*.tex files), and --update-findings is unavailable.",
+    )
+    ap.add_argument(
+        "--output-stem", default="invariance",
+        help="filename stem used only when --output-dir is set (default: invariance)",
+    )
     args = ap.parse_args()
 
     known = {t for t, _d, _m in TAG_SPECS}
     unknown = set(args.tags) - known
     if unknown:
         raise SystemExit(f"unknown tags {sorted(unknown)}; known: {sorted(known)}")
+    if args.output_dir is not None and args.update_findings:
+        raise SystemExit(
+            "--update-findings is unavailable with --output-dir (it always splices "
+            f"{OUT_DIR / 'FINDINGS.md'}, which would be the wrong file for a custom output dir)"
+        )
 
     tag_dirs = {t: find_tag_dir(t) for t in args.tags}
     results: dict[str, dict] = {}
@@ -287,7 +305,6 @@ def main() -> None:
         per_tag = {t: load_tag_file(t, tag_dirs[t], stem) for t in args.tags}
         results[stem] = analyze_file(per_tag, args.tags)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = {
         "generated_by": "scripts/analyze_tevet_grader_invariance.py",
         "metric": "C_a_n_pb (D = C x a_n, per byte; derivation of analyze_c_ainf.py)",
@@ -295,17 +312,23 @@ def main() -> None:
         "tag_dirs": {t: str(d) for t, d in tag_dirs.items()},
         "files": results,
     }
-    (OUT_DIR / "invariance.json").write_text(json.dumps(out, indent=2))
-    (OUT_DIR / "tevet_invariance_rho.tex").write_text(emit_tex_rho(results, args.tags))
-    (OUT_DIR / "tevet_invariance_macros.tex").write_text(emit_macros(results, args.tags))
     blocks = emit_markdown(results, args.tags, {t: str(d) for t, d in tag_dirs.items()})
     md = [f"<!-- {GENERATED_BY} -->", ""]
     for name, content in blocks.items():
         md += [f"## {name}", "", content, ""]
-    (OUT_DIR / "generated_tables.md").write_text("\n".join(md))
 
-    if args.update_findings:
-        MPO.splice_findings(OUT_DIR / "FINDINGS.md", blocks)
+    if args.output_dir is not None:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        (args.output_dir / f"{args.output_stem}.json").write_text(json.dumps(out, indent=2))
+        (args.output_dir / f"{args.output_stem}_generated_tables.md").write_text("\n".join(md))
+    else:
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        (OUT_DIR / "invariance.json").write_text(json.dumps(out, indent=2))
+        (OUT_DIR / "tevet_invariance_rho.tex").write_text(emit_tex_rho(results, args.tags))
+        (OUT_DIR / "tevet_invariance_macros.tex").write_text(emit_macros(results, args.tags))
+        (OUT_DIR / "generated_tables.md").write_text("\n".join(md))
+        if args.update_findings:
+            MPO.splice_findings(OUT_DIR / "FINDINGS.md", blocks)
 
     for stem, _disp, _mac in FILE_SPECS:
         r = results[stem]

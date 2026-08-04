@@ -1,0 +1,269 @@
+{
+  "generated_by": "scripts/rlhf_experiment/8_variance_base_graders.py",
+  "command": "uv run python scripts/rlhf_experiment/8_variance_base_graders.py",
+  "metric_key": "diversity_score_D_C_an",
+  "gen_order": [
+    "base",
+    "sft",
+    "dpo",
+    "instruct"
+  ],
+  "tiers": {
+    "primary": {
+      "labels": [
+        "GPT-2",
+        "Llama-3.1-8B",
+        "OLMo-base"
+      ],
+      "description": "3 graders, no Qwen, all base models"
+    },
+    "supplementary": {
+      "labels": [
+        "GPT-2",
+        "Llama-3.1-8B",
+        "OLMo-base",
+        "Qwen-3B"
+      ],
+      "description": "4 graders, +Qwen, all base models"
+    }
+  },
+  "prompt_sets": {
+    "alpacaeval": {
+      "n_prompts_canonical": 150,
+      "dropped_n": {
+        "Qwen-3B": 0,
+        "OLMo-base": 0,
+        "OLMo-sft": 0,
+        "OLMo-dpo": 0,
+        "OLMo-instruct": 0,
+        "Llama-3.1-8B": 0,
+        "GPT-2": 13
+      },
+      "primary": {
+        "theta_order": [
+          "GPT-2",
+          "Llama-3.1-8B",
+          "OLMo-base"
+        ],
+        "n_prompts": 137,
+        "cell_means": {
+          "ss": {
+            "grader": 0.006183119911179572,
+            "stage": 0.07791790162322026,
+            "interaction": 0.0016054281217912022
+          },
+          "ss_total": 0.08570644965619102,
+          "frac": {
+            "grader": 0.07214299432519934,
+            "stage": 0.9091252984552003,
+            "interaction": 0.018731707219600525
+          }
+        },
+        "per_prompt": {
+          "ss": {
+            "grader": 0.8470874278315995,
+            "stage": 10.674752522381182,
+            "prompt": 3.4158179411799,
+            "grader_x_stage": 0.2199436526853947,
+            "grader_x_prompt": 0.4670922264415171,
+            "stage_x_prompt": 2.546612133500279,
+            "residual": 0.35759136814377546
+          },
+          "ss_total": 18.52889727216364,
+          "prompt_frac_of_total": 0.18435084889328823,
+          "within_prompt_frac": {
+            "grader": 0.08695644517519872,
+            "stage": 0.8748293029055949,
+            "interaction": 0.03821425191920681
+          }
+        },
+        "dropped_prompts_by_grader": {
+          "GPT-2": [
+            "alpacaeval-007",
+            "alpacaeval-025",
+            "alpacaeval-053",
+            "alpacaeval-066",
+            "alpacaeval-069",
+            "alpacaeval-080",
+            "alpacaeval-098",
+            "alpacaeval-125",
+            "alpacaeval-177",
+            "alpacaeval-189",
+            "alpacaeval-191",
+            "alpacaeval-192",
+            "alpacaeval-193"
+          ],
+          "Llama-3.1-8B": [],
+          "OLMo-base": []
+        }
+      },
+      "supplementary": {
+        "theta_order": [
+          "GPT-2",
+          "Llama-3.1-8B",
+          "OLMo-base",
+          "Qwen-3B"
+        ],
+        "n_prompts": 137,
+        "cell_means": {
+          "ss": {
+            "grader": 0.0066094467685457025,
+            "stage": 0.1043261935270092,
+            "interaction": 0.0016383395855094286
+          },
+          "ss_total": 0.11257397988106435,
+          "frac": {
+            "grader": 0.058712028974445565,
+            "stage": 0.9267345228198467,
+            "interaction": 0.014553448205707505
+          }
+        },
+        "per_prompt": {
+          "ss": {
+            "grader": 0.9054942072907601,
+            "stage": 14.29268851320026,
+            "prompt": 4.699747935254397,
+            "grader_x_stage": 0.22445252321479173,
+            "grader_x_prompt": 0.6563661008158234,
+            "stage_x_prompt": 3.5192870581971607,
+            "residual": 0.47731849955010386
+          },
+          "ss_total": 24.775354837523295,
+          "prompt_frac_of_total": 0.18969447525879368,
+          "within_prompt_frac": {
+            "grader": 0.07779890868106537,
+            "stage": 0.8872446874512347,
+            "interaction": 0.03495640386769991
+          }
+        },
+        "dropped_prompts_by_grader": {
+          "GPT-2": [
+            "alpacaeval-007",
+            "alpacaeval-025",
+            "alpacaeval-053",
+            "alpacaeval-066",
+            "alpacaeval-069",
+            "alpacaeval-080",
+            "alpacaeval-098",
+            "alpacaeval-125",
+            "alpacaeval-177",
+            "alpacaeval-189",
+            "alpacaeval-191",
+            "alpacaeval-192",
+            "alpacaeval-193"
+          ],
+          "Llama-3.1-8B": [],
+          "OLMo-base": [],
+          "Qwen-3B": []
+        }
+      }
+    },
+    "nbcurated": {
+      "n_prompts_canonical": 39,
+      "dropped_n": {
+        "Qwen-3B": 0,
+        "OLMo-base": 0,
+        "OLMo-sft": 0,
+        "OLMo-dpo": 0,
+        "OLMo-instruct": 0,
+        "Llama-3.1-8B": 0,
+        "GPT-2": 0
+      },
+      "primary": {
+        "theta_order": [
+          "GPT-2",
+          "Llama-3.1-8B",
+          "OLMo-base"
+        ],
+        "n_prompts": 39,
+        "cell_means": {
+          "ss": {
+            "grader": 0.004221434598555051,
+            "stage": 0.07492061779494175,
+            "interaction": 0.0010499187373003544
+          },
+          "ss_total": 0.08019197113079717,
+          "frac": {
+            "grader": 0.05264161161058976,
+            "stage": 0.9342658216087796,
+            "interaction": 0.013092566780630492
+          }
+        },
+        "per_prompt": {
+          "ss": {
+            "grader": 0.16463594934364773,
+            "stage": 2.921904094002724,
+            "prompt": 1.138433382640889,
+            "grader_x_stage": 0.04094683075471382,
+            "grader_x_prompt": 0.23543646095547624,
+            "stage_x_prompt": 0.656073865478861,
+            "residual": 0.11958911748856842
+          },
+          "ss_total": 5.277019700664884,
+          "prompt_frac_of_total": 0.21573415435562063,
+          "within_prompt_frac": {
+            "grader": 0.09666885732375932,
+            "stage": 0.8645410979829273,
+            "interaction": 0.038790044693312466
+          }
+        },
+        "dropped_prompts_by_grader": {
+          "GPT-2": [],
+          "Llama-3.1-8B": [],
+          "OLMo-base": []
+        }
+      },
+      "supplementary": {
+        "theta_order": [
+          "GPT-2",
+          "Llama-3.1-8B",
+          "OLMo-base",
+          "Qwen-3B"
+        ],
+        "n_prompts": 39,
+        "cell_means": {
+          "ss": {
+            "grader": 0.0042346826186728,
+            "stage": 0.09491791154707226,
+            "interaction": 0.0012424997494642847
+          },
+          "ss_total": 0.1003950939152093,
+          "frac": {
+            "grader": 0.04218017488234321,
+            "stage": 0.9454437248421431,
+            "interaction": 0.012376100275514088
+          }
+        },
+        "per_prompt": {
+          "ss": {
+            "grader": 0.16515262212823997,
+            "stage": 3.7017985503358135,
+            "prompt": 1.596054517772791,
+            "grader_x_stage": 0.0484574902291071,
+            "grader_x_prompt": 0.3034644155200952,
+            "stage_x_prompt": 0.9234510440907033,
+            "residual": 0.17177659364974773
+          },
+          "ss_total": 6.910155233726499,
+          "prompt_frac_of_total": 0.2309723101418769,
+          "within_prompt_frac": {
+            "grader": 0.08818369517188077,
+            "stage": 0.8703729646186118,
+            "interaction": 0.04144334020950711
+          }
+        },
+        "dropped_prompts_by_grader": {
+          "GPT-2": [],
+          "Llama-3.1-8B": [],
+          "OLMo-base": [],
+          "Qwen-3B": []
+        }
+      }
+    }
+  },
+  "sanity_check": {
+    "ok": true,
+    "mismatches": [],
+    "published_path": "results/rlhf_experiment/matrix/variance_decomposition.json"
+  }
+}
