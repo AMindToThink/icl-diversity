@@ -1,3 +1,7 @@
+# NOTE (2026-08-04): rebuttals SUBMITTED on OpenReview.
+# rebuttal_submission.txt is the text as actually posted and is MORE UP-TO-DATE
+# than the separate rebuttal_*.md working files; treat the .md files as drafts.
+
 [x] Rearrange each section to associate it with the relevant reviewer's comments.
     -> rebuttal_general.md (shared opener), rebuttal_pAJM.md, rebuttal_2bo8.md, rebuttal_5AF8.md
 [x] Add each thing that the reviewers asked for to this list, prioritize, and deduplicate
@@ -11,8 +15,8 @@
     beneath the initial meta-review (or as a top-level Official Comment if no
     reply button exists there); each per-review thread opens with the
     "Please see our response to the meta-review" pointer instead of the opener.
-[] Review every [AI] block and [claude-scaffold] note; delete all scaffold lines.
-[] 2bo8 W3: pick Option A or B for the one mid-sentence AI block (SUGGEST marker
+[X] Review every [AI] block and [claude-scaffold] note; delete all scaffold lines.
+[X] 2bo8 W3: pick Option A or B for the one mid-sentence AI block (SUGGEST marker
    in rebuttal_2bo8.md) so it can be separated like the others.
 [] Approve/reword the Claude-drafted second sentence of each thread's top matter
    ("As there, any AI contributions are clearly marked...").

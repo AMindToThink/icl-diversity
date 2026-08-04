@@ -1,0 +1,310 @@
+OpenReview
+.net
+Search articles, authors and reviews...
+Notifications46
+Activity
+Tasks
+Matthew Khoriaty 
+back arrowGo to NeurIPS 2026 Conference homepage
+"I've Seen How This Goes": Characterizing Diversity via Progressive Conditional Surprise
+Download PDF
+Matthew Khoriaty, David Williams-King, Shi Feng 
+05 May 2026 (modified: 28 May 2026)
+NeurIPS 2026 Conference Submission
+Conference, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions
+CC BY 4.0
+TL;DR: We design a measurement that uses in-context learning to evaluate the diversity of a set of responses, and we evaluate it on both human and LLM-generated data.
+Abstract:
+Measuring the diversity of creative outputs is central to evaluating post-training mode collapse, comparing decoding strategies, and quantifying creative behavior in both AI and human writing. We propose a new approach to measuring diversity using in-context learning, of which the ``Decan'' metric, 
+, is the working instance we evaluate: a per-byte score read off the per-token log-probabilities of a base model 
+ in a \emph{single forward pass} per permutation, with no embedding model, no reference corpus, and no human labels. This approach is grounded in information theory, makes use of language model in-context learning to detect a wide range of similarities between any number of inputs, and obviates the need to train a special-purpose model. The same pipeline scores AI samples and human-written response sets, with diversity treated as a property of (responses, prompt, scoring model). On Tevet and Berant's human-grounded McDiv benchmark, 
+ reaches OCA 0.846 on the McDiv prompt_gen set where it performs best, behind the strongest neural baseline reported in Tevet and Berant (SentBERT, 0.897). On the OLMo-2-7B post-training pipeline, 
+ drops monotonically across the base 
+ SFT 
+ DPO 
+ RLVR stages, detecting the type of diversity loss that creative-writing applications care about.
+
+Checklist Confirmation: I confirm that I have included a paper checklist in the paper PDF.
+Supplementary Material:  zip
+Responsible Reviewing: We acknowledge the responsible reviewing obligations as authors.
+Primary Area: Language and multimodal language models (e.g., text generation, summarization, VQA)
+Secondary Area: Deep learning advancements (e.g., architectures, optimizers, representation learning)
+Contribution Type: General: Most submissions will fall into this type.
+Academic Integrity: I acknowledge that I have read the NeurIPS Handbook and commit to adhering to all policies in the Handbook (https://neurips.cc/Conferences/2026/MainTrackHandbook), the NeurIPS Code of Conduct and the NeurIPS Academic Integrity Policy.
+LLM Usage: Editing (e.g., grammar, spelling, word choice), Drafting sections of the paper, Data processing/filtering, Proving theorems, Understanding technical concepts, Visualizing results for submission, Facilitating or running experiments, Implementing standard methods, Implementing methods where LLM plays an original, non-standard role
+LLM Experiment: Opt in to include this paper in the LLM-assisted peer review experiment.
+Declaration: I confirm that the above information is accurate.
+Reviewer Nomination:  David Williams-King
+Submission Number: 32633
+Discussion
+Filter by reply type...
+Filter by author...
+Search keywords...
+
+Sort: Newest First
+11 / 11 replies shown
+Add:
+Meta Review of Submission32633 by Area Chair sfCT
+Meta Reviewby Area Chair sfCT23 Jul 2026, 20:11Senior Area Chairs, Area Chairs, Authors, Reviewers Submitted, Program Chairs, Area Chair sfCT
+Metareview:
+(a) Summary.
+DCaN scores a set of n continuations as Coherence (geometric-mean bits-per-byte given the prompt) times a_n (mean over permutations of the n-th continuation's bits-per-byte conditioned on the other n−1). It uses a base model's in-context learning as the similarity detector, with no embedding model, reference corpus, nor labels. The method was evaluated against human judgments on Tevet–Berant and on the OLMo-2-7B pipeline, where DCaN falls monotonically across base→SFT→DPO→RLVR.
+
+(b) Strengths.
+2bo8: mentions that the method id "simple and general", and that the authors are "forthright about possible limitations,", providing thoughtful appendix analyses with negative results, and high clarity.
+pAJM: states that using ICL to measure diversity "is worth exploring... general and has the potential to provide a generally applicable measure."
+5AF8: rates originality as "excellent."
+
+(c) Weaknesses.
+
+pAJM: DCaN "quite significantly underperforms SentBERT", which is a ~10× smaller model. Furthermore, it states that the "no embedding model, no labels" framing is "misleading" given the 3B judge.
+2bo8: states that the paper provides essentially no sensitivity analysis (judge model, prompts, n, evaluated-model scale) and that the values are judge-relative with "no guidance for how to select such a model," making cross-work comparison impossible. Furthermore, the main results use only Qwen2.5-3B "despite its issues,".
+pAJM: states that the protocol differs between Sections 4 and 5.
+pAJM: states that the OLMo experiment assumes its ground truth (the diversity ordering) and never tests whether trivial features or coherence alone separate the checkpoints; no baseline metrics are run.
+5AF8: mentions that there's no demonstrated advantage and that there is "little to no ablation of the actual metric."
+2bo8: states that the the related works are relegated to the appendix and that the citations are light.
+(d) Adjusting the odds.
+
+the sensitivity suite both 2bo8 and pAJM specify with a judge sweep with selection guidance including n, permutations, length.
+one consistent, justified protocol;
+for OLMo, pAJM's requested comparison showing existing metrics fail where DCaN succeeds, or independent evidence for the ordering; 4. a clearly evidenced advantage over SentBERT on some axis.
+Add:
+Official Comment by Authors
+Official Commentby Authors (Shi Feng, David Williams-King, Matthew Khoriaty)04 Aug 2026, 04:12Senior Area Chairs, Area Chairs, Authors, Reviewers Submitted, Program Chairs
+Comment:
+Dear Reviewers,
+
+Thank you so much for your thoughts. You all have good points.
+
+AI is useful, but at the same time researchers wish to engage with the ideas of real people. Out of respect for the reviewers, any AI contributions to these rebuttals are clearly marked between [AI] and [/AI] markers, and human authors have ensured the correctness of the AI contributions. Content outside of such tags is human-written.
+
+Many of you were concerned by the fact that Decan underperforms the SentBERT baseline. While it is true that we would have loved our new approach to outperform existing popular approaches in the first paper, our early experiments did not reach that level. They do, however, demonstrate that in-context learning is a promising new foundation for measuring diversity. We wish to publish our findings not because we have the final word on the subject of in-context learning diversity metrics, but because we want to open this area of research for others to develop and build upon. This is in line with NeurIPS' Main Track Handbook, which states that "To help the NeurIPS community move faster out of local minima, it is important to encourage risk and recognize that new approaches can't initially yield state-of-the-art competitive results..." The reviewers all rated our originality favorably, assigning it 3/4/3.
+
+After submitting the paper, we did perform an experiment which demonstrates a case in which in-context learning diversity (in this case, the residual surprise a_n) is superior to SentBERT. When sentence share a structure but have different meanings and different words, in-context learning can pick up on the pattern while neither SentBERT nor n-grams can identify the pattern.
+
+[AI] Concretely: every sentence in a set instantiates the same six-word part-of-speech pattern with freshly sampled words (e.g., "Pelicans coughed beyond trolls without senators."), while a matched control draws the same word classes but shuffles each sentence's order, making the control more diverse by a known ground truth of 0.12 bits/byte. Over 20 independent draws (Qwen2.5-3B judge, 40 responses per set), a_n separates the conditions with the correct sign and approximately the correct magnitude (gap 0.174 ± 0.053 bits/byte, p = 0.0024), while SentBERT shows no significant difference (p = 0.11) and distinct-n differs only through a capitalization artifact that vanishes on lowercased text (p = 0.88). We note transparently that the scalar D = C × a_n does not separate these two conditions: the scrambled control is genuinely less coherent, so C offsets its higher a_n as designed, and the structural-redundancy signal is read from the a_k curve and its endpoint a_n. [/AI]
+
+Add:
+Official Review of Submission32633 by Reviewer 2bo8
+Official Reviewby Reviewer 2bo828 Jun 2026, 19:15 (modified: 28 Jul 2026, 20:28)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer 2bo8Revisions
+Summary:
+This work proposes a new metric DCaN which measures diversity and coherence. DCaN operates on a sample of n independently sampled continuations of a prompt p, generated by a human or AI, and is computed as the scalar product of Coherence and their diversity metric a_n. Coherence is simply the geometric mean of bits per byte for each continuation, conditioned on the prompt. a_n is the mean (over random permutations of continuations) bits per byte of the nth continuation, conditioned on all n-1 other continuations concatenated and appended to the prompt. This work measurea DCaN on Tevet–Berant Diversity-Eval, comparing DCaN values against human judgements. The work then shows DCaN scores on OLMo-2-7B to check for the expected decline over the course of the post-training pipline.
+
+Contribution Type: General: Most submissions will fall into this type.
+Strengths And Weaknesses:
+Strengths
+
+S1. The method is simple and general to various model architectures, tokenization methods, and human text.
+
+S2. Authors are forthright about possible limitations and document some thoughtful consideration of the tradeoffs in designing such a metric. Appendices contain some thoughtful analyses with negative results.
+
+S3. The paper is coherently written and has relatively high polish.
+
+Weaknesses
+
+W1. Main results are shown only with Qwen2.5-3B Base despite its issues, as the authors themselves note.
+
+W2. No (or extremely limited) analysis is conducted of DCaN's sensitivity to base model choice, prompts, n (total continuations), generated (evaluated) model size and/or quality, etc.
+
+W3. Because the DCaN values are a product of the judge model, absolute values (e.g., 0.19) have no meaning, only relative value with the same model. This makes comparisons between works impossible with the DCaN metric unless a judge model can be agreed upon, but because the authors do not analyse the behavior of the metric with respect to the judge model, there is no guidance for how to select such a model or model suite.
+
+W4. (Smaller issue) Though it is common and understandable to relegate details to the appendix, the authors stretch this by even putting the related works in the appendix. It is difficult to judge the paper without reading at least 2-3 pages of the appendix.
+
+W5. (Smaller issue) The paper is light on citations. For example, lack of diversity in creative tasks is now a well-documented phenomenon in LLMs and yet the authors have almost no citations about diversity in LLMs. Similarly, the related works section is very light, dedicating a small paragraph to the connection between perplexity and DCaN, but failing to include works directly related to generation diversity.
+
+Quality: 2: not good
+Clarity: 4: excellent
+Significance: 2: not good
+Originality: 3: good
+Questions:
+Q1. As noted in the limitations section, as well as Appendix C and E, the DCaN definition as the scalar product of C and a_n is not the only possible design for a metric to capture diversity and coherence. There are many ways to design a metric with the property of being high only if C and a_n are both high. Appendix E considers excess entropy, but because of the approximation of a_inf as a_n, the formulation C X E falls with the increase of a_n (if all else is fixed) and thus runs somewhat counter to the direction of C X a_n, which makes this a somewhat odd proposal. Were any other formulations considered?
+
+Q2. Why are the Section 4 experiments carried out with Qwen2.5-3B Base despite its flip of incoherent vs coherent multi-mode? Is there more analysis about the specific dynamics introduced by different choices of judge (base) model, beyond the superficial observation that the base model matters? I saw the results on Qwen2.5-3B to Qwen3-30B-A3B-Base in Appendix H, but as you note, these were conducted before a bug fix and I largely disregard them, as you suggest treating them as only preliminary results.
+
+Q3. You note in Appendix B.1 that you do not use a post-trained model for evaluation because it has "the kind of distributional bias we seek to avoid" and introduces "a confound between coherence-as-fluency and coherence-as539 alignment that the metric should not conflate". Did you conduct any experiments with an instruction tuned model as the base model to validate these concerns?
+
+Q4. Do you have any experiments measuring the impact of the number of permutations (beyond only 3 vs 100), the choice of n, and other hyperparameters of the evaluation process? I see experiments in C.3 about the impact of # of modes in your synthetic dataset, and a discussion in C.5 about 3 vs 100 permutations, but nothing else.
+
+Q5. Do you have example continuation texts corresponding to 5, demonstrating the decrease in diversity indicated by the DCaN metric?
+
+Limitations:
+Yes, the authors are upfront about the limitations of their work, and I cover in the questions and weaknesses my questions about any additional concerns.
+
+Rating: 2: Reject: For instance, a paper with technical flaws, weak evaluation, inadequate reproducibility and incompletely addressed ethical considerations.
+Confidence: 4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+Ethical Concerns: NO or VERY MINOR ethics concerns only
+Paper Formatting Concerns:
+None
+
+Code Of Conduct Acknowledgement: Yes
+Responsible Reviewing Acknowledgement: Yes
+Add:
+Official Comment by Authors
+Official Commentby Authors (Shi Feng, David Williams-King, Matthew Khoriaty)04 Aug 2026, 04:20Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer 2bo8
+Comment:
+While it is true that we did not systematically investigate “prompts, n, evaluated-model scale”, we did investigate the judge model, finding that stronger judge models did not improve classification.
+
+[AI] Post-submission, we re-scored conTest with judges from three model families. Spearman rho against the human diversity labels is stable across judges (prompt_gen: Qwen2.5-3B 0.58, Llama-3.1-8B 0.57, GPT-2 0.54; resp_gen: 0.39, 0.35, 0.31; story_gen: 0.69, 0.63, 0.71). Pairwise rank agreement between judges is rho 0.76-0.90, and after per-judge standardization, 90-95% of the variance is attributable to the scored item rather than the judge. Recent investigations have shown that when the judges are GPT-2, Llama-3.1-8B, and OLMo-2-7B base (three unrelated model families, none from the pipeline's aligned stages) and the generation models are the four OLMo-2-7B pipeline stages, the generation models account for 86-93% of the variance and judge identity for 5-10%, with the judge-by-generator interaction at only 1-4%. [/AI]
+
+This indicates that rankings can be compared across judge models directly, and that absolute values become approximately comparable after a simple per-judge standardization, since the interaction term is the only component a per-judge calibration cannot remove.
+
+We constructed two simple and generic prompts, one for the “instruct” format and one for the “completion” format, and we found them adequate (Appendix B.1). We do not see a particular reason to expect different prompts to perform differently.
+
+The choice of ’n’ is determined by the desired sensitivity to tails. If a practitioner wants types of responses with probability greater than 1/m to count as “too common to be diverse”, then the practitioner should set ’n’ to greater than 2m so that that type of response appears more than twice in expectation. For example, if an evaluator wants to know the diversity of the types of responses a model is capable of producing with probability greater than 1/m, they can set n greater than 2m. We will add this guidance to the revised version.
+
+W3: It is true that Decan’s absolute values are difficult to compare across models and meant to be evaluated relative to the same model. This is similarly true of embedding-based metrics like SentBERT. In practice, your concerns are measurable but small: [AI] when looking at the Olmo pipeline scored by judges from three unrelated families, 5-10% of the variance is from grader identity and 86-93% from generator identity [/AI].
+
+Appendix C.6 explains why it is not possible to recommend a single metric. There are many ways to make use of in-context learning to measure diversity, and many options are available depending on a practitioner's use case. Appendix B discusses choice of n and recommends fixing it for comparisons.
+
+[AI] On W1: we agree the submitted main tables rest on a single judge; the re-scoring above will be in the revised version alongside the main tables. On W4 and W5: we concede both points; the revised version moves Related Work into the main body and adds the missing citation families, in particular the literature documenting diversity loss in post-trained LLMs. On Q3: Post-submission, we re-scored the fixed OLMo generations with the SFT, DPO, and Instruct checkpoints as judges: the stage ordering replicates under every aligned judge. The confound predicted in Appendix B.1 appears exactly where expected: post-trained judges rate base-model text as less coherent (mean C on base-stage text falls from 0.420 under the base judge to 0.331 under the Instruct judge). This supports the base-model recommendation while showing the conclusion is robust to violating it. On Q1, beyond Appendix E's C x E (your reading of its direction is correct), the alternatives we considered are listed in Appendix C.6 but not tested. On Q5: representative continuations are below. [/AI]
+
+[AI]
+
+Prompt: "I would like you to recommend one graphics card for productivity and light gaming. My budget is $1000 USD."
+
+D = C x a_n by stage (this prompt): base 0.534, SFT 0.410, DPO 0.259, RLVR 0.251
+
+Base (3 of 10 samples, OLMo-2-7B base):
+
+"What's the most powerful CPU to pair? I'll go easy on overclocking and thermals but I need the most power! First, what"
+"Any tips or links on buying best one? If your is good graphics card Under $1000 : PowerColor R9 270X HD 2GB LY"
+"Any recommendations?" To decide which graphics card (GPU) is best for your Dell XPS 7018, we need detailed specification"
+RLVR (3 of 10 samples, OLMo-2-7B Instruct/RLVR):
+
+"Given your $1000 USD budget, a graphics card that offers good performance for productivity tasks and light gaming is..."
+"For a productivity and light gaming setup within a $1000 USD budget, I recommend the ASUS ROG Strix RTX 3060 Taylor..."
+"For a budget of $1,000 USD targeted towards productivity and light gaming, I would recommend the ASUS ROG Strix GT66..."
+[/AI]
+
+Add:
+Official Review of Submission32633 by Reviewer 5AF8
+Official Reviewby Reviewer 5AF826 Jun 2026, 09:21 (modified: 02 Aug 2026, 07:40)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer 5AF8Revisions
+Summary:
+This paper proposes a creativity metric for LLMs, compares it against several other methods and shows that it does not exceed embedding baselines.
+
+Contribution Type: General: Most submissions will fall into this type.
+Strengths And Weaknesses:
+Strengths:
+
+it's always good to have new metrics and explore model-intrinsic variants
+Weaknesses:
+
+the paper is awkwardly written, this can be an advantage in some cases, but in this case it just becomes cumbersome to read
+the method does not show any significant advantage to other methods and it appears expensive to compute
+there is little to no ablation of the actual metric
+Quality: 2: not good
+Clarity: 2: not good
+Significance: 2: not good
+Originality: 4: excellent
+Questions:
+N/A
+
+Limitations:
+yes
+
+Rating: 2: Reject: For instance, a paper with technical flaws, weak evaluation, inadequate reproducibility and incompletely addressed ethical considerations.
+Confidence: 2: You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+Ethical Concerns: NO or VERY MINOR ethics concerns only
+Paper Formatting Concerns:
+N/A
+
+Code Of Conduct Acknowledgement: Yes
+Responsible Reviewing Acknowledgement: Yes
+Add:
+Official Comment by Authors
+Official Commentby Authors (Shi Feng, David Williams-King, Matthew Khoriaty)04 Aug 2026, 04:21Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer 5AF8
+Comment:
+We apologize for the awkward and cumbersome writing. If you have ideas for how we can make the next version easier to read, we would be happy to implement your suggestions. We plan to move the prior work section to the main body, if we can free up space. Do you have other ideas?
+
+Please see our response to the meta-review. As there, any AI contributions are clearly marked between [AI] and [/AI] markers; content outside them is human-written.
+
+The motivation of measuring diversity has a different set of requirements than the database-scale similarity metrics like Sentence-BERT. For applications such as performing reinforcement learning for creative-writing, it is important that a diversity metric can withstand optimization pressure and more closely tracks the thing we want to optimize, and we argue that we have reasons to expect in-context learning diversity metrics will track this better, though we left this for future work. Distinct-n, in contrast, would assign random noise the highest diversity score, and Decan avoids that pitfall. The speed and memory usage of the algorithm is less important for this use case.
+
+While we did not systematically ablate every design choice, we did investigate the judge model, finding that stronger judge models did not improve classification.
+
+[AI] Post-submission, we re-scored the human-labeled conTest benchmark with judges from three model families spanning 124M to 8B parameters: Spearman correlation with the human diversity labels is stable across judges (for example, prompt_gen: Qwen2.5-3B 0.58, Llama-3.1-8B 0.57, GPT-2 0.54), pairwise rank agreement between judges is rho 0.76-0.90, and on the OLMo-2-7B post-training pipeline the model being evaluated accounts for 86-93% of the variance versus 5-10% for judge identity. [/AI]
+
+We intended Decan to be a proof-of-concept for in-context learning diversity metrics. If you have other metrics you would like us to investigate, or a suggestion for how to implement a systematic exploration of the design space, we would be interested to hear your advice.
+
+Add:
+Official Review of Submission32633 by Reviewer pAJM
+Official Reviewby Reviewer pAJM20 Jun 2026, 12:00 (modified: 28 Jul 2026, 20:28)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer pAJMRevisions
+Summary:
+This paper proposes a metric called Decan to measure the diversity of language content, including human written and LLM generated. The metric is a product between a coherence measure (inversed perplexity) and a surprise measure. Both elements are evaluated using a base language model, different from the one that generates the language content. The authors conduct experiments on human-written content and LLM generated content.
+
+Contribution Type: General: Most submissions will fall into this type.
+Strengths And Weaknesses:
+Strengths:
+
+The approach of using in-context learning to measure diversity is worth exploring. It is general and has the potential to provide a generally applicable measure of diversity/surprise.
+Weakness:
+
+I believe the most important aspects of this paper worth improving is (1) a consistent and clear protocol for measuring the proposed Decan metric, (2) sufficient empirical evidence that the metric strongly aligns with human measurements of diversity and (3) sufficient ablation studies that shows the measurement is well behaved when we change hyper parameters of the measurement protocol, such as how many responses per prompt, length of the responses, with chat format or not, and more. I provide more concrete suggestions for improvement below.
+
+The authors are encouraged to define a consistent and clear protocol for measurement. I noticed the measurement is conducted differently in Section 4 and 5. In Section 5, response truncation is applied: “we truncate every (stage, prompt) tuple’s responses to a common per-prompt UTF-8 byte length before scoring” . This truncation choice seems to be post-hoc and leaves no justification/guidance on whether others should truncate or not when doing this measurement.
+
+The empirical evidence does not support Decan is a strong diversity metric. From Table 2, experiment on Tevet–Berant dataset, it quite significantly underperforms SentBERT. SentBERT is also much smaller (300M I think? Authors can correct me if wrong) while Qwen2.5-3B is 10x larger.
+
+Experiment result on OLMo in Section 5 provides weak and loose empirical support to the utility of the metric. --- It takes a loose assumption that the diversity decreases from Base model, to SFT, DPO, RLVR. The authors should provide justification/evidence/measurement for this, especially because this is used as the ground-truth for the Decan measurement. --- Second, it is unclear how to interpret the result that Decan separates these model checkpoints. What if separating these model checkpoints is a very easy task, and Decan only weakly measures diversity but it is sufficient to separate these model checkpoints? What if many other features (such as coherence) can also be used to separate these model checkpoints, and the coherence term in Decan simply can tell these model checkpoints apart? The experiment needs to be better designed. Comparing with existing methods on this experiment as well is helpful, for example if the results shows Decan can separate models apart but other methods cannot.
+
+I believe for designing an metric for diversity, ablation experiments are necessary to show that it behaves well / is robust to common hyper parameters to the measurement protocol. For example, this includes length of the response, length of the question, number of responses, different base models, different templates, human and AI written. Better understanding on these dimensions will guide how to apply and interpret the measurement.
+
+Quality: 2: not good
+Clarity: 2: not good
+Significance: 2: not good
+Originality: 3: good
+Questions:
+The authors are encouraged to explain why particularly base model is selected as the model for in-context learning and measuring diversity. Why base model better suits than chat models? Are there any empirical experiments comparing different types of modes? “There is no embedding model, no reference corpus, no human labels, no auxiliary classifier”. This phrase is repeatedly emphasized in paper but it is misleading. While the measurement does not use an embedding model, it uses an 3B parameter LLM. And in experiment comparison, a 300M SentBERT outperforms the proposed Decan measurement. I’d encourage the authors to be more specific on their method’s advantages. For example, is Decan faster, requires less compute? “No reference corpus, no human labels, no auxiliary classifier”: what existing methods require reference corpus, human labels, auxiliary classifiers?
+
+Line 56 says “θ be a trusted base model from which we can obtain per-token log-probabilities”. What does “trusted” mean here? My interpretation is some base models work better for measuring diversity, and some worse. The authors are encouraged to be specific about how to choose base model for measurement.
+
+The authors are encouraged to analyse and show how a_k (k \in n) looks like w.r.t different k and n.
+
+Lines 153 - 158 are confusing and self-contradictory. “low-diversity sets are paraphrases of specific, dramatic endings that are intrinsically more surprising to the base model than typical high-diversity continuations.” So my interpretation is the Decan measurement is ill-behaved because it reports higher diversity for the low-diversity sets. Or does the authors mean this low-diversity set should actually be high diversity, and the Decan measurement flags this correctly?
+
+Limitations:
+See Strengths And Weaknesses section.
+
+Rating: 2: Reject: For instance, a paper with technical flaws, weak evaluation, inadequate reproducibility and incompletely addressed ethical considerations.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+Ethical Concerns: NO or VERY MINOR ethics concerns only
+Paper Formatting Concerns:
+NA
+
+Code Of Conduct Acknowledgement: Yes
+Responsible Reviewing Acknowledgement: Yes
+Add:
+Official Comment by Authors
+Official Commentby Authors (Shi Feng, David Williams-King, Matthew Khoriaty)04 Aug 2026, 04:44Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer pAJM
+Comment:
+By “reference corpus” we were referring to the human-labeled datasets such as the SNLI, MultiNLI, and STS-Benchmark datasets used to train Sentence-BERT. While empirically Sentence-BERT generalizes well from these datasets, we developed Decan in part because we disliked the idea of relying on the model to generalize from a limited dataset. By using base model in-context learning, we instead rely on the model to generalize from a vast internet-scale dataset of patterns. We concede that SentBERT (.3B parameters) is much smaller than Qwen2.5-3B. [AI] We concede that "reference corpus" was imprecise: none of the benchmark's metrics consult a corpus at evaluation time, and we meant these supervised training corpora. In the revised version we will state this as "no task-specific supervised training data." [/AI]
+
+"Auxiliary models" refers to the process of training special-purpose similarity models. Both neural baselines in Table 2 fall into this category. In-context learning diversity metrics avoid this step by using a general purpose pretrained model.
+
+The motivation of measuring diversity has a different set of requirements than the database-scale similarity metrics like Sentence-BERT. For applications such as performing reinforcement learning for creative-writing, it is important that a diversity metric can withstand optimization pressure and more closely tracks the thing we want to optimize, and we argue that we have reasons to expect in-context learning diversity metrics will track this better, though we left this for future work. Distinct-n, in contrast, would assign random noise the highest diversity score. Decan avoids that pitfall. The speed and memory usage of the algorithm is less important for this use case.
+
+We tested the "assumption that the diversity decreases from Base model, to SFT, DPO, RLVR" by measuring the correlation between Decan and existing metrics and found that they correlated strongly (Appendix I).
+
+Although the paper does not report whether coherence alone can separate the checkpoints, we did check whether coherence alone can classify the ConTest dataset (Table 2). It performed much worse than Decan, so we used Decan for further experiments. Additionally, in unreported numbers on the OLMo experiments, we find that coherence rises rather than falls during post-training.
+
+[AI] On the length-matched AlpacaEval subset, mean coherence C rises from 0.436 at base to 0.674-0.698 across the post-training stages (SFT 0.674, DPO 0.694, RLVR 0.698), while D falls. The separation is carried by the a_n term. Coherence alone therefore cannot separate the checkpoints; it moves in the opposite direction. [/AI]
+
+[AI] On the Section 4 vs Section 5 protocol difference: the truncation in Section 5 is stated with its justification in the Setup paragraph. Per-byte cross-entropy in a causal LM decreases with within-response context, so comparing conditions whose response lengths differ systematically requires a fixed byte denominator; we therefore truncate each (stage, prompt) tuple's responses to a common per-prompt byte length. Section 4 does not truncate because the rule only bites when the compared sets differ systematically in length.[/AI] Practitioners can length-match when they want to measure diversity in a fixed window, and they can skip length-matching if they want to measure overall surprisal. Both to have their uses, though we expect length-matching to be overall more informative.
+
+[AI] On how to choose the base model: re-scoring with judges from three model families (124M to 8B parameters) left the human-label correlations essentially unchanged (conTest prompt_gen Spearman rho 0.54-0.58 across judges), so rankings are not sensitive to the choice among models. Comparability benefits from pinning a public base-model checkpoint as the reference judge, similar to how embedding metrics are comparable across papers if they share an encoder. We agree the a_k versus k curve is more informative than Decan, and the paper says so in several places (Section 3, Appendix B, Appendix C.6). D_{Ca_n} is a simple, comparable scalar summary. Full curves are reported in Appendix C.3 and Section 5. On lines 153-158: we apologize for the confusing wording. The passage discloses a construction confound in McDiv_nuggets. The low-diversity sets are paraphrases of self-selected dramatic endings, which lowers their coherence in the direction of the label, spuriously helping the C term on this benchmark. The sentence you quote is our disclosure of exactly that, so that readers do not over-credit our metric. [/AI]
+
+We concede that we did not vary the question-lengths or templates in our tests. We are curious to hear more about the reviewer's expectations for why this would be interesting or why they expect in-context learning metrics like Decan to behave in unpredictable ways.
+
+Add:
+About OpenReview
+Contact
+FAQ
+Hosting a Venue
+Sponsors
+Terms of Use / Privacy Policy
+All Venues
+Donate
+News
+OpenReview is a long-term project to advance science through improved peer review with legal nonprofit status. We gratefully acknowledge the support of the OpenReview Sponsors. © 2026 OpenReview
+
