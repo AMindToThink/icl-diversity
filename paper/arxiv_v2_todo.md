@@ -44,7 +44,31 @@ detection with a known ground-truth entropy gap
 placement then). All inline numbers are macros (`framesQwen*` / `posPattern*`)
 emitted by `scripts/build_paper_macros.py` from the script-generated summaries.
 
-## 4. arXiv paper title is out of date
+## 4. B.1 "The formatting choice affects results" is ungrounded
+
+`paper/sections/06_practical.tex` (App B.1) asserts "The formatting choice affects results"
+with no supporting test — no format A/B comparison exists anywhere in the repo (all Tevet
+runs are completion-format; `old_gpt2_instruct` is superseded, not a clean comparison).
+Matthew expects format NOT to matter meaningfully (2026-08-03). Either soften to a
+data-type-matching statement ("we match the conditioning format to the response style:
+instruct-style responses use the instruct format, continuations the completion format")
+or ground it with an actual A/B test. Do not restate the untested assertion.
+
+## 5. Appendix F gap-direction wording slip
+
+`paper/sections/appC_mcdiv_confounds.tex` says "the high-minus-low per-byte gap remains
+positive," but both generated tables (`results/tables/confound_stats.tex`,
+`confound_length.tex`) define Gap = low-minus-high (e.g., a_1 1.154 − 0.977 = +0.177;
+mean bytes 46.5 − 52.7 = −6.3). Numbers and conclusion are correct; flip the prose
+direction label to "low-minus-high" (found 2026-08-04 while preparing the NeurIPS rebuttal).
+
+Also re-examine when rested: during the rebuttal Matthew was tired and did not think hard
+about the "content-driven, not a length artifact" interpretation (the length-bin
+stratification: gap +0.167/+0.141/+0.176 in the first three bins, +0.003 in the longest).
+The rebuttal wording was checked against the tables, but the reasoning itself deserves a
+fresh-eyes review before it goes into any paper revision.
+
+## 6. arXiv paper title is out of date
 
 arXiv v1 metadata (https://arxiv.org/abs/2606.01811, verified 2026-06-23) still carries
 the OLD SHORT title:
